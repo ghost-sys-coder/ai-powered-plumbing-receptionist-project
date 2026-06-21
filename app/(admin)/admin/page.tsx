@@ -1,9 +1,9 @@
-import React from 'react'
+import { requireAdmin } from "@/lib/auth/require-admin";
 
-const page = () => {
-  return (
-    <div>page</div>
-  )
-}
+const AdminPage = async () => {
+    await requireAdmin();
 
-export default page
+    return <div>page</div>;
+};
+
+export default AdminPage;
