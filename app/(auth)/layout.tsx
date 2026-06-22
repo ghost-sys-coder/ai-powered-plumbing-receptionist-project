@@ -1,17 +1,13 @@
-import React from 'react'
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation';
+import React from "react";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
-    const {  isAuthenticated } = await auth();
+    const { isAuthenticated } = await auth();
 
     if (isAuthenticated) redirect("/dashboard");
 
-    return (
-        <div>
-            {children}
-        </div>
-    )
-}
+    return <div className="min-h-screen bg-background text-foreground">{children}</div>;
+};
 
-export default AuthLayout
+export default AuthLayout;
