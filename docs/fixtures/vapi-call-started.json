@@ -1,0 +1,13 @@
+{
+  "message": {
+    "type": "call-started",
+    "call": {
+      "id": "vapi_call_fixture_001",
+      "assistantId": "REPLACE_WITH_YOUR_VAPI_ASSISTANT_ID",
+      "customer": {
+        "number": "+18135559182"
+      },
+      "startedAt": "2026-06-22T14:32:00.000Z"
+    }
+  }
+}

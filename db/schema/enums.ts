@@ -25,6 +25,11 @@ export const vapiAgentStatusEnum = pgEnum("vapi_agent_status", [
   "error",
 ]);
 
+export const phoneNumberSourceEnum = pgEnum("phone_number_source", [
+  "vapi_native",
+  "twilio_imported",
+]);
+
 export const callOutcomeEnum = pgEnum("call_outcome", [
   "booked",
   "message_taken",

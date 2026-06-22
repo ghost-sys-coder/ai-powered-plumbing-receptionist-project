@@ -1,0 +1,28 @@
+{
+  "message": {
+    "type": "end-of-call-report",
+    "call": {
+      "id": "vapi_call_fixture_001",
+      "assistantId": "REPLACE_WITH_YOUR_VAPI_ASSISTANT_ID",
+      "customer": {
+        "number": "+18135559182"
+      },
+      "startedAt": "2026-06-22T14:32:00.000Z",
+      "endedAt": "2026-06-22T14:35:47.000Z"
+    },
+    "artifact": {
+      "transcript": "AI: Hightower Plumbing, this is Sarah, how can I help you?\nCaller: Hi yeah, I've got water coming out from under my kitchen sink, it's been dripping for a couple days now.\nAI: I'm sorry to hear that. Can I get your name?\nCaller: It's Marcus Webb.\nAI: Thanks Marcus. And your service address?\nCaller: 4821 Cypress Run Drive, Tampa.\nAI: Got it. Would you say the leak is getting worse or staying about the same?\nCaller: Staying about the same I'd say. It's been two days and it's still just dripping.\nAI: Okay, that sounds like a routine repair we can get to within a few days. Our standard service call is $89 and the technician will quote the full job on site. What time window works best for you?\nCaller: Uh, Thursday morning if possible?\nAI: Thursday morning works. I've got you down for Thursday between 8 and 11am. You'll get a confirmation shortly. Anything else I can help with?\nCaller: No that's great, thanks.\nAI: Perfect, see you Thursday Marcus. Have a good one.",
+      "recordingUrl": null
+    },
+    "analysis": {
+      "structuredData": {
+        "caller_name": "Marcus Webb",
+        "issue_summary": "Water dripping from under the kitchen sink for two days, not getting worse.",
+        "urgency_level": "routine",
+        "service_address": "4821 Cypress Run Drive, Tampa",
+        "outcome": "booked",
+        "booking_time": "2026-06-25T08:00:00.000Z"
+      }
+    }
+  }
+}

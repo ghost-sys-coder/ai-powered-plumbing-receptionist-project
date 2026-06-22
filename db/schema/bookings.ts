@@ -16,7 +16,7 @@ export const bookings = pgTable(
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id),
-    scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     calendarEventId: text("calendar_event_id"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
