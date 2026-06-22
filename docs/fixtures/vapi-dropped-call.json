@@ -1,0 +1,28 @@
+{
+  "message": {
+    "type": "end-of-call-report",
+    "call": {
+      "id": "vapi_call_fixture_003",
+      "assistantId": "REPLACE_WITH_YOUR_VAPI_ASSISTANT_ID",
+      "customer": {
+        "number": "+18135557723"
+      },
+      "startedAt": "2026-06-22T09:45:00.000Z",
+      "endedAt": "2026-06-22T09:45:18.000Z"
+    },
+    "artifact": {
+      "transcript": "AI: Hightower Plumbing, this is Sarah, how can I help you?\nCaller: Hi I wanted to ask about—",
+      "recordingUrl": null
+    },
+    "analysis": {
+      "structuredData": {
+        "caller_name": null,
+        "issue_summary": null,
+        "urgency_level": "unknown",
+        "service_address": null,
+        "outcome": "dropped",
+        "booking_time": null
+      }
+    }
+  }
+}

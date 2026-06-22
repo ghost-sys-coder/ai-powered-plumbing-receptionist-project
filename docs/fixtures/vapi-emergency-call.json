@@ -1,0 +1,28 @@
+{
+  "message": {
+    "type": "end-of-call-report",
+    "call": {
+      "id": "vapi_call_fixture_002",
+      "assistantId": "REPLACE_WITH_YOUR_VAPI_ASSISTANT_ID",
+      "customer": {
+        "number": "+18135554401"
+      },
+      "startedAt": "2026-06-22T02:14:00.000Z",
+      "endedAt": "2026-06-22T02:17:22.000Z"
+    },
+    "artifact": {
+      "transcript": "AI: Hightower Plumbing, this is Sarah, how can I help you?\nCaller: Yeah my basement is flooding right now, like there's water coming in fast I don't know what to do.\nAI: Okay, this is an emergency. First — do you know where your main water shutoff valve is?\nCaller: Uh, I think it's near the water heater?\nAI: Go shut that off right now if you can, it'll stop more water coming in. I'm getting someone out to you as soon as possible. What's your name and address?\nCaller: Dave Kowalski, 902 Palmetto Boulevard, Tampa.\nAI: Got it Dave. I'm flagging this as an emergency right now. Someone will call you back within 15 minutes. Is your phone number the one you're calling from?\nCaller: Yeah that's my cell.\nAI: Perfect. Go shut off that valve and stay on the safe side of the water. You'll hear back very shortly.\nCaller: Okay thank you.",
+      "recordingUrl": null
+    },
+    "analysis": {
+      "structuredData": {
+        "caller_name": "Dave Kowalski",
+        "issue_summary": "Basement actively flooding, caller reporting fast water intrusion.",
+        "urgency_level": "emergency",
+        "service_address": "902 Palmetto Boulevard, Tampa",
+        "outcome": "message_taken",
+        "booking_time": null
+      }
+    }
+  }
+}

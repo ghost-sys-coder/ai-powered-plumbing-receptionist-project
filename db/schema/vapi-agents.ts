@@ -1,6 +1,6 @@
 import { pgTable, uuid, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { vapiAgentStatusEnum } from "./enums";
+import { vapiAgentStatusEnum, phoneNumberSourceEnum } from "./enums";
 import { customers } from "./customers";
 
 export const vapiAgents = pgTable(
@@ -14,7 +14,10 @@ export const vapiAgents = pgTable(
       .references(() => customers.id),
     vapiAssistantId: text("vapi_assistant_id").notNull().unique(),
     vapiPhoneNumberId: text("vapi_phone_number_id"),
-    twilioNumber: text("twilio_number"),
+    phoneNumber: text("phone_number"),
+    phoneNumberSource: phoneNumberSourceEnum("phone_number_source")
+      .notNull()
+      .default("vapi_native"),
     status: vapiAgentStatusEnum("status").notNull().default("active"),
     servicesOffered: jsonb("services_offered"),
     pricingTable: jsonb("pricing_table"),
