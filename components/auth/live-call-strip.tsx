@@ -9,9 +9,9 @@ type LiveCallStripProps = {
 
 const transcript = [
     { who: "Caller", line: "Hi — my kitchen sink is leaking under the cabinet, water everywhere." },
-    { who: "PlumbVoice", line: "I'm sorry to hear that. Have you been able to shut off the valve below the sink?" },
+    { who: "PlumberAnswered", line: "I'm sorry to hear that. Have you been able to shut off the valve below the sink?" },
     { who: "Caller", line: "Yes, just did. It slowed down a lot." },
-    { who: "PlumbVoice", line: "Good — that's an emergency for us. Mike can be there by 4:15 today. Address okay to confirm?" },
+    { who: "PlumberAnswered", line: "Good — that's an emergency for us. Mike can be there by 4:15 today. Address okay to confirm?" },
 ];
 
 const WAVE_BARS = 18;
@@ -64,7 +64,7 @@ export function LiveCallStrip({ className }: LiveCallStripProps) {
                         <span
                             className={cn(
                                 "font-mono text-[10px] uppercase tracking-[0.18em] pt-0.5",
-                                t.who === "PlumbVoice"
+                                t.who === "PlumberAnswered"
                                     ? "text-brand"
                                     : "text-muted-foreground"
                             )}

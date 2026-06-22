@@ -21,7 +21,7 @@ export function ThemeToggle() {
             size="icon-sm"
             aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
             onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="relative size-9 rounded-full border border-border/60 bg-background/60 backdrop-blur-sm transition-all hover:border-border hover:bg-muted"
+            className="relative size-9 rounded-full border border-border bg-muted text-foreground transition-all hover:bg-accent hover:text-accent-foreground"
         >
             <Sun
                 aria-hidden

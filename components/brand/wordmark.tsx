@@ -17,12 +17,12 @@ export function Wordmark({ href = "/", className, showMark = true }: WordmarkPro
                     aria-hidden
                     className="relative grid size-8 place-items-center rounded-md bg-brand text-brand-foreground shadow-[0_1px_0_color-mix(in_oklch,var(--foreground)_15%,transparent),inset_0_1px_0_color-mix(in_oklch,white_25%,transparent)]"
                 >
-                    <span className="font-mono text-[13px] font-semibold tracking-tight">PV</span>
+                    <span className="font-mono text-[13px] font-semibold tracking-tight">PA</span>
                 </span>
             )}
             <span className="flex items-baseline gap-1.5">
                 <span className="text-[17px] font-semibold tracking-tight text-foreground">
-                    PlumbVoice
+                    PlumberAnswered
                 </span>
                 <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80 sm:inline">
                     /ai-line
