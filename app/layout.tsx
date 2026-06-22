@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "PlumbVoice — AI that answers when you can't",
+    title: "PlumberAnswered — AI that answers when you can't",
     description:
         "Premium AI receptionist for solo plumbing businesses. Books jobs, triages emergencies, never misses a call.",
 };

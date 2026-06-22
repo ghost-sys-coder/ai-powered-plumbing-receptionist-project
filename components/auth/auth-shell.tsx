@@ -56,7 +56,7 @@ export function AuthShell({ eyebrow, title, subtitle, children, footer }: AuthSh
                         SOC 2-ready · HIPAA-aware
                     </span>
                     <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                        © 2026 PlumbVoice
+                        © 2026 PlumberAnswered
                     </span>
                 </footer>
             </main>

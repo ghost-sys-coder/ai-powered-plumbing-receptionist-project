@@ -40,7 +40,7 @@ export function BrandPanel() {
                         The voice that picks up <span className="italic text-brand">when you can&rsquo;t.</span>
                     </h1>
                     <p className="max-w-[42ch] text-[15px] leading-relaxed text-muted-foreground">
-                        PlumbVoice answers every call, triages the emergency,
+                        PlumberAnswered answers every call, triages the emergency,
                         quotes the ballpark, and books the slot — so a single
                         plumber runs a shop that feels like a five-person dispatch.
                     </p>
