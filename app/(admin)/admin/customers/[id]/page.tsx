@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { and, eq, isNull } from "drizzle-orm";
+import { db } from "@/db/drizzle";
+import { users } from "@/db/schema";
 import { getCustomerDetail } from "@/lib/services/admin-dashboard";
 import { PageHeader } from "@/components/layout/page-header";
 import { CustomerAccountCard } from "@/components/admin/customer-account-card";
@@ -14,11 +17,20 @@ interface Props {
 
 const CustomerDetailPage = async ({ params }: Props) => {
   const { id } = await params;
-  const data = await getCustomerDetail(id);
+
+  const [data, linkedUserRows] = await Promise.all([
+    getCustomerDetail(id),
+    db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(and(eq(users.customerId, id), isNull(users.deletedAt)))
+      .limit(1),
+  ]);
 
   if (!data) notFound();
 
   const { customer, agent, recentCalls, upcomingBookings } = data;
+  const linkedUser = linkedUserRows[0] ?? null;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -42,7 +54,11 @@ const CustomerDetailPage = async ({ params }: Props) => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <CustomerAccountCard customer={customer} />
+        <CustomerAccountCard
+          customer={customer}
+          hasActiveLogin={linkedUser !== null}
+          linkedUserEmail={linkedUser?.email ?? null}
+        />
         <CustomerAgentCard agent={agent} />
       </div>
 

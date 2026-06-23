@@ -8,6 +8,7 @@ export type ClerkUserPayload = {
   primary_email_address_id: string | null;
   first_name: string | null;
   last_name: string | null;
+  public_metadata?: { role?: string; customer_id?: string };
 };
 
 function primaryEmail(payload: ClerkUserPayload): string {
@@ -26,12 +27,17 @@ function fullName(payload: ClerkUserPayload): string | null {
   return name.length > 0 ? name : null;
 }
 
-export async function syncClerkUserCreated(payload: ClerkUserPayload): Promise<void> {
+export async function syncClerkUserCreated(
+  payload: ClerkUserPayload,
+  customerId: string | null = null,
+  role: "admin" | "client" = "client"
+): Promise<void> {
   const row: NewUser = {
     clerkId: payload.id,
     email: primaryEmail(payload),
     name: fullName(payload),
-    role: "client",
+    role,
+    customerId: customerId ?? undefined,
   };
 
   try {

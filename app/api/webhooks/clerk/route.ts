@@ -1,4 +1,5 @@
 import { Webhook } from "svix";
+import { clerkClient } from "@clerk/nextjs/server";
 import {
   syncClerkUserCreated,
   syncClerkUserUpdated,
@@ -45,9 +46,23 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     switch (event.type) {
-      case "user.created":
-        await syncClerkUserCreated(event.data as ClerkUserPayload);
+      case "user.created": {
+        const data = event.data as ClerkUserPayload;
+        let meta = data.public_metadata;
+
+        // Clerk sometimes delays metadata propagation — fetch user directly as fallback
+        if (!meta?.customer_id) {
+          const client = await clerkClient();
+          const clerkUser = await client.users.getUser(data.id);
+          meta = clerkUser.publicMetadata as { role?: string; customer_id?: string };
+        }
+
+        const customerId = meta?.customer_id ?? null;
+        const role = meta?.role === "admin" ? "admin" : "client";
+
+        await syncClerkUserCreated(data, customerId, role);
         break;
+      }
       case "user.updated":
         await syncClerkUserUpdated(event.data as ClerkUserPayload);
         break;

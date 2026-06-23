@@ -1,7 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Customer } from "@/db/schema/customers";
+import { InviteButton } from "@/components/admin/invite-button";
 
-export function CustomerAccountCard({ customer }: { customer: Customer }) {
+interface CustomerAccountCardProps {
+  customer: Customer;
+  hasActiveLogin: boolean;
+  linkedUserEmail: string | null;
+}
+
+export function CustomerAccountCard({
+  customer,
+  hasActiveLogin,
+  linkedUserEmail,
+}: CustomerAccountCardProps) {
   return (
     <Card>
       <CardHeader>
@@ -71,6 +82,36 @@ export function CustomerAccountCard({ customer }: { customer: Customer }) {
                   year: "numeric",
                 })}
               </dd>
+            </div>
+          )}
+
+          {/* Login status */}
+          <div className="col-span-2">
+            <dt className="text-muted-foreground">Login status</dt>
+            <dd className="mt-1 flex items-center gap-2">
+              {hasActiveLogin ? (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  <span className="font-medium text-green-700 dark:text-green-400">
+                    Login active
+                  </span>
+                  {linkedUserEmail && (
+                    <span className="text-muted-foreground">— {linkedUserEmail}</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-slate-400" />
+                  <span className="font-medium">No login yet</span>
+                </>
+              )}
+            </dd>
+          </div>
+
+          {/* Invite action */}
+          {!hasActiveLogin && (
+            <div className="col-span-2 pt-1">
+              <InviteButton customerId={customer.id} />
             </div>
           )}
         </dl>
