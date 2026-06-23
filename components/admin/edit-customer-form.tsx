@@ -20,21 +20,7 @@ import {
   type BusinessHoursValue,
 } from "@/components/admin/business-hours-input";
 import { ServicesInput, type ServiceEntry } from "@/components/admin/services-input";
-import {
-  ProvisioningProgress,
-  type ProvisioningStep,
-} from "@/components/admin/provisioning-progress";
 import { ChevronDown, ChevronUp, ClipboardPaste } from "lucide-react";
-
-const DEFAULT_HOURS: BusinessHoursValue = {
-  Monday: { open: "08:00", close: "17:00", closed: false },
-  Tuesday: { open: "08:00", close: "17:00", closed: false },
-  Wednesday: { open: "08:00", close: "17:00", closed: false },
-  Thursday: { open: "08:00", close: "17:00", closed: false },
-  Friday: { open: "08:00", close: "17:00", closed: false },
-  Saturday: { open: "09:00", close: "13:00", closed: false },
-  Sunday: { open: "", close: "", closed: true },
-};
 
 const US_TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time" },
@@ -82,66 +68,77 @@ const SAMPLE_JSON = `{
   }
 }`;
 
-const INITIAL_STEPS: ProvisioningStep[] = [
-  { label: "Creating account...", status: "pending" },
-  { label: "Provisioning AI assistant...", status: "pending" },
-  { label: "Assigning phone number...", status: "pending" },
-  { label: "Activating agent...", status: "pending" },
-  { label: "Done ✓", status: "pending" },
-];
+export interface EditCustomerFormProps {
+  customerId: string;
+  initial: {
+    businessName: string;
+    ownerName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    timezone: string;
+    serviceArea: string;
+    emergencyDefinition: string;
+    businessHours: BusinessHoursValue;
+    servicesOffered: ServiceEntry[];
+    serviceCallFee: string;
+    hourlyRate: string;
+    afterHoursSurcharge: string;
+    freeEstimates: boolean;
+    plan: string;
+    stripeCustomerId: string;
+  };
+}
 
-export function NewCustomerForm() {
+export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [steps, setSteps] = useState<ProvisioningStep[]>(INITIAL_STEPS);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
+  // JSON paste panel state
   const [jsonPanelOpen, setJsonPanelOpen] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
 
-  const [businessName, setBusinessName] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [timezone, setTimezone] = useState("America/New_York");
-  const [serviceArea, setServiceArea] = useState("");
-  const [emergencyDefinition, setEmergencyDefinition] = useState(
-    "Any situation where water is actively causing damage, gas leaks, complete loss of hot water in winter, or sewage backup."
-  );
-  const [businessHours, setBusinessHours] =
-    useState<BusinessHoursValue>(DEFAULT_HOURS);
-  const [services, setServices] = useState<ServiceEntry[]>([
-    { name: "Drain cleaning", price: "$150–$300" },
-    { name: "Water heater repair", price: "$200–$500" },
-    { name: "Leak repair", price: "$100–$400" },
-  ]);
-  const [serviceCallFee, setServiceCallFee] = useState("$95");
-  const [hourlyRate, setHourlyRate] = useState("$125/hr");
-  const [afterHoursSurcharge, setAfterHoursSurcharge] = useState("$75");
-  const [freeEstimates, setFreeEstimates] = useState(false);
-  const [plan, setPlan] = useState("standard");
-  const [stripeCustomerId, setStripeCustomerId] = useState("");
+  // Form fields
+  const [businessName, setBusinessName] = useState(initial.businessName);
+  const [ownerName, setOwnerName] = useState(initial.ownerName);
+  const [email, setEmail] = useState(initial.email);
+  const [phone, setPhone] = useState(initial.phone);
+  const [address, setAddress] = useState(initial.address);
+  const [city, setCity] = useState(initial.city);
+  const [state, setState] = useState(initial.state);
+  const [timezone, setTimezone] = useState(initial.timezone);
+  const [serviceArea, setServiceArea] = useState(initial.serviceArea);
+  const [emergencyDefinition, setEmergencyDefinition] = useState(initial.emergencyDefinition);
+  const [businessHours, setBusinessHours] = useState<BusinessHoursValue>(initial.businessHours);
+  const [services, setServices] = useState<ServiceEntry[]>(initial.servicesOffered);
+  const [serviceCallFee, setServiceCallFee] = useState(initial.serviceCallFee);
+  const [hourlyRate, setHourlyRate] = useState(initial.hourlyRate);
+  const [afterHoursSurcharge, setAfterHoursSurcharge] = useState(initial.afterHoursSurcharge);
+  const [freeEstimates, setFreeEstimates] = useState(initial.freeEstimates);
+  const [plan, setPlan] = useState(initial.plan);
+  const [stripeCustomerId, setStripeCustomerId] = useState(initial.stripeCustomerId);
 
   function fillFromJson() {
     setJsonError(null);
     try {
       const parsed = JSON.parse(jsonInput);
 
-      if (parsed.businessName)          setBusinessName(parsed.businessName);
-      if (parsed.ownerName)             setOwnerName(parsed.ownerName);
-      if (parsed.email)                 setEmail(parsed.email);
-      if (parsed.phone !== undefined)   setPhone(parsed.phone ?? "");
+      if (parsed.businessName)        setBusinessName(parsed.businessName);
+      if (parsed.ownerName)           setOwnerName(parsed.ownerName);
+      if (parsed.email)               setEmail(parsed.email);
+      if (parsed.phone !== undefined) setPhone(parsed.phone ?? "");
       if (parsed.address !== undefined) setAddress(parsed.address ?? "");
-      if (parsed.city !== undefined)    setCity(parsed.city ?? "");
-      if (parsed.state !== undefined)   setState(parsed.state ?? "");
-      if (parsed.timezone)              setTimezone(parsed.timezone);
+      if (parsed.city !== undefined)  setCity(parsed.city ?? "");
+      if (parsed.state !== undefined) setState(parsed.state ?? "");
+      if (parsed.timezone)            setTimezone(parsed.timezone);
       if (parsed.serviceArea !== undefined) setServiceArea(parsed.serviceArea ?? "");
-      if (parsed.emergencyDefinition)   setEmergencyDefinition(parsed.emergencyDefinition);
-      if (parsed.businessHours)         setBusinessHours(parsed.businessHours);
+      if (parsed.emergencyDefinition) setEmergencyDefinition(parsed.emergencyDefinition);
+      if (parsed.businessHours)       setBusinessHours(parsed.businessHours);
       if (Array.isArray(parsed.servicesOffered)) setServices(parsed.servicesOffered);
       if (parsed.pricing) {
         if (parsed.pricing.serviceCallFee !== undefined)      setServiceCallFee(parsed.pricing.serviceCallFee ?? "");
@@ -149,7 +146,7 @@ export function NewCustomerForm() {
         if (parsed.pricing.afterHoursSurcharge !== undefined) setAfterHoursSurcharge(parsed.pricing.afterHoursSurcharge ?? "");
         if (parsed.pricing.freeEstimates !== undefined)       setFreeEstimates(Boolean(parsed.pricing.freeEstimates));
       }
-      if (parsed.plan)                          setPlan(parsed.plan);
+      if (parsed.plan)               setPlan(parsed.plan);
       if (parsed.stripeCustomerId !== undefined) setStripeCustomerId(parsed.stripeCustomerId ?? "");
 
       setJsonPanelOpen(false);
@@ -159,12 +156,6 @@ export function NewCustomerForm() {
     }
   }
 
-  function setStepStatus(index: number, status: ProvisioningStep["status"]) {
-    setSteps((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, status } : s))
-    );
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!businessName || !ownerName || !email || !emergencyDefinition) {
@@ -172,13 +163,13 @@ export function NewCustomerForm() {
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSaving(true);
     setError(null);
-    setSteps(INITIAL_STEPS.map((s, i) => (i === 0 ? { ...s, status: "active" } : s)));
+    setSuccess(false);
 
     try {
-      const res = await fetch("/api/admin/customers", {
-        method: "POST",
+      const res = await fetch(`/api/admin/customers/${customerId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessName,
@@ -202,57 +193,17 @@ export function NewCustomerForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        const failedStep = data.failedStep ?? 0;
-        setSteps((prev) =>
-          prev.map((s, i) =>
-            i < failedStep
-              ? { ...s, status: "done" }
-              : i === failedStep
-              ? { ...s, status: "error" }
-              : s
-          )
-        );
-        setError(data.error ?? "Provisioning failed. The account was saved — you can retry.");
-        setIsSubmitting(false);
+        setError(data.error ?? "Failed to save changes.");
         return;
       }
 
-      // Animate remaining steps
-      for (let i = 1; i <= 4; i++) {
-        setStepStatus(i - 1, "done");
-        if (i < 4) setStepStatus(i, "active");
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      setStepStatus(4, "done");
-
-      await new Promise((r) => setTimeout(r, 600));
-      router.push(`/admin/customers/${data.customerId}`);
+      setSuccess(true);
+      setTimeout(() => router.push(`/admin/customers/${customerId}`), 1200);
     } catch {
       setError("Unexpected error. Please try again.");
-      setIsSubmitting(false);
+    } finally {
+      setIsSaving(false);
     }
-  }
-
-  if (isSubmitting) {
-    return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-6 py-12">
-        <h2 className="text-lg font-semibold">Setting up account...</h2>
-        <div className="w-72">
-          <ProvisioningProgress steps={steps} />
-        </div>
-        {error && (
-          <div className="w-72 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
-            {error}
-            <button
-              onClick={() => setIsSubmitting(false)}
-              className="mt-2 block text-xs underline"
-            >
-              Back to form
-            </button>
-          </div>
-        )}
-      </div>
-    );
   }
 
   return (
@@ -313,8 +264,14 @@ export function NewCustomerForm() {
       </Card>
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-700 dark:bg-green-950/30 dark:text-green-400">
+          Changes saved — redirecting...
         </div>
       )}
 
@@ -448,10 +405,7 @@ export function NewCustomerForm() {
             <Label>Pricing</Label>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label
-                  htmlFor="serviceCallFee"
-                  className="text-sm text-muted-foreground"
-                >
+                <Label htmlFor="serviceCallFee" className="text-sm text-muted-foreground">
                   Service call fee
                 </Label>
                 <Input
@@ -462,10 +416,7 @@ export function NewCustomerForm() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label
-                  htmlFor="hourlyRate"
-                  className="text-sm text-muted-foreground"
-                >
+                <Label htmlFor="hourlyRate" className="text-sm text-muted-foreground">
                   Hourly rate
                 </Label>
                 <Input
@@ -476,10 +427,7 @@ export function NewCustomerForm() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label
-                  htmlFor="afterHours"
-                  className="text-sm text-muted-foreground"
-                >
+                <Label htmlFor="afterHours" className="text-sm text-muted-foreground">
                   After-hours surcharge
                 </Label>
                 <Input
@@ -535,9 +483,16 @@ export function NewCustomerForm() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button type="submit" size="lg" className="min-w-56">
-          Create customer & provision agent
+      <div className="flex items-center justify-end gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push(`/admin/customers/${customerId}`)}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" size="lg" className="min-w-40" disabled={isSaving}>
+          {isSaving ? "Saving..." : "Save changes"}
         </Button>
       </div>
     </form>
