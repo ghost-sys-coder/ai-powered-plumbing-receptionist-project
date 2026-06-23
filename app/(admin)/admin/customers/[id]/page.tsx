@@ -9,6 +9,7 @@ import { CustomerAccountCard } from "@/components/admin/customer-account-card";
 import { CustomerAgentCard } from "@/components/admin/customer-agent-card";
 import { CustomerRecentCalls } from "@/components/admin/customer-recent-calls";
 import { CustomerBookings } from "@/components/admin/customer-bookings";
+import { WebCallPanel } from "@/components/admin/web-call-panel";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -61,6 +62,15 @@ const CustomerDetailPage = async ({ params }: Props) => {
         />
         <CustomerAgentCard agent={agent} />
       </div>
+
+      {agent && (
+        <WebCallPanel
+          customerId={customer.id}
+          agentStatus={agent.status}
+          phoneNumber={agent.phoneNumber ?? null}
+          ownerName={agent.ownerName ?? null}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <CustomerRecentCalls calls={recentCalls} customerId={customer.id} />
