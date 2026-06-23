@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Booking } from "@/db/schema/bookings";
 
-function formatDateTime(date: Date): string {
+function formatDateTime(date: Date | null): string {
+  if (!date) return "Time TBD";
   return date.toLocaleString("en-US", {
     weekday: "long",
     year: "numeric",
