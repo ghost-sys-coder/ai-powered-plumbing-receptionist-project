@@ -67,16 +67,14 @@ export async function updateVapiAssistant(
 
   await vapi.assistants.update({
     id: assistantId,
-    body: {
-      name: `${config.businessName} AI Receptionist`,
-      model: {
-        provider: "openai",
-        model: "gpt-4o",
-        messages: [{ role: "system", content: systemPrompt }],
-      } as any,
-      firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
+    name: `${config.businessName} AI Receptionist`,
+    model: {
+      provider: "openai",
+      model: "gpt-4o",
+      messages: [{ role: "system", content: systemPrompt }],
     } as any,
-  });
+    firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
+  } as any);
 }
 
 export async function linkPhoneNumberToAssistant(
