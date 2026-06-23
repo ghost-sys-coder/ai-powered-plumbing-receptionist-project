@@ -83,7 +83,7 @@ const DashboardPage = async () => {
         ) : (
           <div className="space-y-2">
             {recentCalls.map((call) => (
-              <Link key={call.id} href={`/dashboard/calls/${call.id}`}>
+              <Link key={call.id} href={`/dashboard/calls/${call.id}`} className="block">
                 <Card className="cursor-pointer transition-colors hover:bg-accent/30">
                   <CardContent className="py-3">
                     <div className="flex items-center justify-between gap-4">

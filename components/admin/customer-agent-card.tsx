@@ -28,7 +28,7 @@ export function CustomerAgentCard({ agent }: { agent: VapiAgent | null }) {
           </div>
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Phone</dt>
-            <dd className="font-mono font-medium">{agent.twilioNumber ?? "—"}</dd>
+            <dd className="font-mono font-medium">{agent.phoneNumber ?? "—"}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Vapi Assistant ID</dt>

@@ -20,10 +20,10 @@ export function AgentStatusCard({ agent }: { agent: VapiAgent }) {
           />
           <span className="font-medium capitalize">{agent.status}</span>
         </div>
-        {agent.twilioNumber && (
+        {agent.phoneNumber && (
           <div className="flex justify-between gap-2">
             <span className="text-muted-foreground">Phone number</span>
-            <span className="font-mono font-medium">{agent.twilioNumber}</span>
+            <span className="font-mono font-medium">{agent.phoneNumber}</span>
           </div>
         )}
         <div>

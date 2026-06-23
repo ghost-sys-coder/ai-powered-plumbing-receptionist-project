@@ -27,9 +27,11 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <ClientNav businessName={businessName} />
-      <main className="flex-1 overflow-y-auto bg-background">
+    <div className="flex min-h-screen">
+      <div className="sticky top-0 h-screen shrink-0 self-start">
+        <ClientNav businessName={businessName} />
+      </div>
+      <main className="flex-1 bg-background">
         <div className="mx-auto max-w-5xl px-6 py-8">{children}</div>
       </main>
     </div>
