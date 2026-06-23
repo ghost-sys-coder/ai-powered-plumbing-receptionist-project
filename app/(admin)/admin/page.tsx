@@ -3,6 +3,7 @@ import { getAllCustomers, getCustomerStats } from "@/lib/services/admin-dashboar
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { CustomersTable } from "@/components/admin/customers-table";
+import { SeedControls } from "@/components/admin/seed-controls";
 import { Button } from "@/components/ui/button";
 
 const AdminPage = async () => {
@@ -21,6 +22,8 @@ const AdminPage = async () => {
           </Link>
         }
       />
+
+      <SeedControls />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total customers" value={stats.total} />

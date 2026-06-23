@@ -1,5 +1,7 @@
 import { Webhook } from "svix";
-import { clerkClient } from "@clerk/nextjs/server";
+import { db } from "@/db/drizzle";
+import { pendingInvites } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import {
   syncClerkUserCreated,
   syncClerkUserUpdated,
@@ -12,6 +14,13 @@ type ClerkWebhookEvent =
   | { type: "user.updated"; data: ClerkUserPayload }
   | { type: "user.deleted"; data: { id: string; deleted?: boolean } }
   | { type: string; data: unknown };
+
+function primaryEmail(payload: ClerkUserPayload): string | null {
+  const primary = payload.email_addresses.find(
+    (e) => e.id === payload.primary_email_address_id
+  );
+  return primary?.email_address ?? payload.email_addresses[0]?.email_address ?? null;
+}
 
 export async function POST(request: Request): Promise<Response> {
   const secret = process.env.CLERK_WEBHOOK_SECRET;
@@ -48,17 +57,26 @@ export async function POST(request: Request): Promise<Response> {
     switch (event.type) {
       case "user.created": {
         const data = event.data as ClerkUserPayload;
-        let meta = data.public_metadata;
+        const email = primaryEmail(data);
 
-        // Clerk sometimes delays metadata propagation — fetch user directly as fallback
-        if (!meta?.customer_id) {
-          const client = await clerkClient();
-          const clerkUser = await client.users.getUser(data.id);
-          meta = clerkUser.publicMetadata as { role?: string; customer_id?: string };
+        let customerId: string | null = null;
+        let role: "admin" | "client" = "client";
+
+        if (email) {
+          // Look up our own pending_invites table — reliable, no Clerk metadata timing issues
+          const [invite] = await db
+            .select({ customerId: pendingInvites.customerId })
+            .from(pendingInvites)
+            .where(eq(pendingInvites.email, email))
+            .limit(1);
+
+          if (invite) {
+            customerId = invite.customerId;
+            role = "client";
+            // Clean up — invite is consumed
+            await db.delete(pendingInvites).where(eq(pendingInvites.email, email));
+          }
         }
-
-        const customerId = meta?.customer_id ?? null;
-        const role = meta?.role === "admin" ? "admin" : "client";
 
         await syncClerkUserCreated(data, customerId, role);
         break;
