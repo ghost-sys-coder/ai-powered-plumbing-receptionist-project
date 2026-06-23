@@ -15,14 +15,16 @@ export function CustomerBookings({ bookings }: { bookings: Booking[] }) {
             {bookings.map((b) => (
               <div key={b.id} className="py-2 text-sm">
                 <p className="font-medium">
-                  {b.scheduledAt.toLocaleString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
+                  {b.scheduledAt
+                    ? b.scheduledAt.toLocaleString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                    : "Time TBD"}
                 </p>
                 {b.notes && (
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
