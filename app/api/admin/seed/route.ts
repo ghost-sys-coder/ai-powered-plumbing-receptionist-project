@@ -1,11 +1,41 @@
-import { NextResponse } from "next/server";
-import { eq, inArray } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+import { eq, inArray, like } from "drizzle-orm";
+import { clerkClient } from "@clerk/nextjs/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { db } from "@/db/drizzle";
-import { customers, vapiAgents, calls, bookings } from "@/db/schema";
+import { customers, vapiAgents, calls, bookings, users } from "@/db/schema";
 
 const HIGHTOWER_EMAIL = "ecommercedock@gmail.com";
-const SEED_ASSISTANT_ID = "seed_demo_hightower_assistant";
+const SEED_CALL_PREFIX = "seed_hightower_";
+
+type SeedConfig = {
+  businessName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  city: string;
+  state: string;
+  serviceArea: string;
+  plan: "pilot" | "standard";
+  vapiAssistantId: string;
+  agentPhone: string;
+  emergencyDefinition: string;
+};
+
+const SEED_DEFAULTS: SeedConfig = {
+  businessName: "Hightower Plumbing",
+  ownerName: "Ray Hightower",
+  email: HIGHTOWER_EMAIL,
+  phone: "+18135550192",
+  city: "Tampa",
+  state: "FL",
+  serviceArea: "Hillsborough County",
+  plan: "pilot",
+  vapiAssistantId: "seed_demo_hightower_assistant",
+  agentPhone: "+18135550192",
+  emergencyDefinition:
+    "Active flooding, burst pipe, no water in house, sewage backup, gas smell",
+};
 
 type Caller = {
   name: string | null;
@@ -177,49 +207,138 @@ const callers: Caller[] = [
 ];
 
 async function wipeHightower(): Promise<void> {
-  const existing = await db
-    .select({ id: customers.id })
-    .from(customers)
-    .where(eq(customers.email, HIGHTOWER_EMAIL))
+  // Anchor on the seed call ID prefix — this is set by us and never user-editable,
+  // unlike vapiAssistantId (now configurable) or email (editable via admin UI).
+  let customerId: string | null = null;
+
+  const [seedCall] = await db
+    .select({ customerId: calls.customerId })
+    .from(calls)
+    .where(like(calls.vapiCallId, `${SEED_CALL_PREFIX}%`))
     .limit(1);
 
-  if (existing.length === 0) return;
+  if (seedCall) {
+    customerId = seedCall.customerId;
+    console.log("[seed-wipe] resolved customer via seed call prefix:", customerId);
+  } else {
+    // Fallback: partial seed may have inserted the customer before calls failed.
+    // Use default email as a best-effort last resort.
+    const [byEmail] = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(eq(customers.email, HIGHTOWER_EMAIL))
+      .limit(1);
+    customerId = byEmail?.id ?? null;
+    if (customerId) {
+      console.log("[seed-wipe] resolved customer via email fallback:", customerId);
+    }
+  }
 
-  const customerId = existing[0].id;
+  if (!customerId) {
+    console.log("[seed-wipe] no Hightower seed customer found — nothing to wipe");
+    return;
+  }
 
+  // 1. Delete linked Clerk users first, then remove DB rows.
+  //    users.customerId has no onDelete cascade so this must happen before
+  //    the customer row is deleted or the FK will reject it.
+  const linkedUsers = await db
+    .select({ clerkId: users.clerkId })
+    .from(users)
+    .where(eq(users.customerId, customerId));
+
+  console.log("[seed-wipe] linked DB users:", linkedUsers.length);
+
+  if (linkedUsers.length > 0) {
+    const clerk = await clerkClient();
+    for (const { clerkId } of linkedUsers) {
+      try {
+        await clerk.users.deleteUser(clerkId);
+        console.log("[seed-wipe] deleted Clerk user", clerkId);
+      } catch (err) {
+        console.warn("[seed-wipe] Clerk delete failed for", clerkId, (err as Error).message);
+      }
+    }
+    await db.delete(users).where(eq(users.customerId, customerId));
+    console.log("[seed-wipe] deleted users from DB");
+  }
+
+  // 2. Delete bookings before calls (FK: bookings.call_id → calls.id)
   const customerCalls = await db
     .select({ id: calls.id })
     .from(calls)
     .where(eq(calls.customerId, customerId));
 
+  console.log("[seed-wipe] calls to delete:", customerCalls.length);
+
   if (customerCalls.length > 0) {
     const callIds = customerCalls.map((c) => c.id);
     await db.delete(bookings).where(inArray(bookings.callId, callIds));
+    console.log("[seed-wipe] deleted bookings");
   }
 
+  // 3. calls → vapiAgents → customers (pending_invites cascades on customer delete)
   await db.delete(calls).where(eq(calls.customerId, customerId));
+  console.log("[seed-wipe] deleted calls");
+
   await db.delete(vapiAgents).where(eq(vapiAgents.customerId, customerId));
+  console.log("[seed-wipe] deleted vapiAgents");
+
   await db.delete(customers).where(eq(customers.id, customerId));
+  console.log("[seed-wipe] deleted customer");
+
+  // Verify the customer row is actually gone — Neon HTTP can silently drop
+  // a FK-violated DELETE without throwing, which would produce a false 200.
+  const gone = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+
+  if (gone.length > 0) {
+    throw new Error(
+      `Customer ${customerId} still exists after all deletes — likely a remaining FK reference. Check server logs for which step silently failed.`
+    );
+  }
+
+  console.log("[seed-wipe] verified: customer row is gone");
 }
 
-// POST — seed Hightower demo data (wipes first so it's idempotent)
-export async function POST() {
+// POST — seed demo data (wipes first so it's idempotent)
+// Accepts an optional JSON body to override defaults — see SeedConfig type above.
+export async function POST(req: NextRequest) {
   await requireAdmin();
 
-  await wipeHightower();
+  let cfg: SeedConfig = SEED_DEFAULTS;
+  try {
+    const body = await req.json();
+    cfg = { ...SEED_DEFAULTS, ...body };
+  } catch {
+    // no body or invalid JSON — use defaults
+  }
+
+  try {
+    await wipeHightower();
+  } catch (err) {
+    console.error("[seed] wipe-before-seed failed:", err);
+    return NextResponse.json(
+      { error: (err as Error).message ?? "Failed to wipe existing seed data" },
+      { status: 500 }
+    );
+  }
 
   const [customer] = await db
     .insert(customers)
     .values({
-      businessName: "Hightower Plumbing",
-      ownerName: "Ray Hightower",
-      email: HIGHTOWER_EMAIL,
-      phone: "+18135550192",
-      city: "Tampa",
-      state: "FL",
+      businessName: cfg.businessName,
+      ownerName: cfg.ownerName,
+      email: cfg.email,
+      phone: cfg.phone || null,
+      city: cfg.city || null,
+      state: cfg.state || null,
       timezone: "America/New_York",
-      serviceArea: "Hillsborough County",
-      plan: "pilot",
+      serviceArea: cfg.serviceArea || null,
+      plan: cfg.plan,
       status: "active",
       subscriptionStatus: "active",
       onboardedAt: new Date("2026-06-01T13:00:00.000Z"),
@@ -230,13 +349,12 @@ export async function POST() {
     .insert(vapiAgents)
     .values({
       customerId: customer.id,
-      vapiAssistantId: SEED_ASSISTANT_ID,
-      phoneNumber: "+18135550192",
+      vapiAssistantId: cfg.vapiAssistantId,
+      phoneNumber: cfg.agentPhone || null,
       phoneNumberSource: "vapi_native",
       status: "active",
-      ownerName: "Ray Hightower",
-      emergencyDefinition:
-        "Active flooding, burst pipe, no water in house, sewage backup, gas smell",
+      ownerName: cfg.ownerName,
+      emergencyDefinition: cfg.emergencyDefinition,
       businessHours: {
         Monday:    { open: "07:00", close: "17:00", closed: false },
         Tuesday:   { open: "07:00", close: "17:00", closed: false },
@@ -310,6 +428,14 @@ export async function POST() {
 // DELETE — wipe Hightower demo data only
 export async function DELETE() {
   await requireAdmin();
-  await wipeHightower();
+  try {
+    await wipeHightower();
+  } catch (err) {
+    console.error("[seed] wipe failed:", err);
+    return NextResponse.json(
+      { error: (err as Error).message ?? "Wipe failed" },
+      { status: 500 }
+    );
+  }
   return NextResponse.json({ success: true });
 }
