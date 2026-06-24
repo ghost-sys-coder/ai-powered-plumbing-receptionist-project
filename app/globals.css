@@ -241,3 +241,35 @@
 }
 
 .animate-call-pulse { animation: callPulse 1.5s ease-out infinite; }
+
+/* marketing: hero fade up */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-hero-fade-up {
+  animation: heroFadeUp 0.5s ease-out both;
+}
+
+/* marketing: scroll reveal for how-it-works steps */
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-on-scroll {
+  opacity: 0;
+}
+
+.reveal-on-scroll.revealed {
+  animation: revealUp 0.4s ease-out both;
+}
+
+/* marketing: nav background on scroll */
+.nav-scrolled {
+  background-color: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #1a1a1a;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
