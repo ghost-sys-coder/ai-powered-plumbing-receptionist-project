@@ -5,7 +5,7 @@ import { eq, and, isNull } from "drizzle-orm";
 
 type InviteResult =
   | { ok: true }
-  | { ok: false; status: 400 | 404; error: string };
+  | { ok: false; status: 400 | 404; error: string; code?: string };
 
 export async function sendCustomerInvite(customerId: string): Promise<InviteResult> {
   const [customer] = await db
@@ -49,9 +49,15 @@ export async function sendCustomerInvite(customerId: string): Promise<InviteResu
       notify: true,
     });
   } catch (err: unknown) {
-    const clerkErr = err as { errors?: Array<{ code?: string }> };
-    if (clerkErr?.errors?.[0]?.code === "already_invited") {
-      return { ok: false, status: 400, error: "Invitation already sent to this email" };
+    const clerkErr = err as { errors?: Array<{ code?: string; longMessage?: string }> };
+    const code = clerkErr?.errors?.[0]?.code;
+    if (code === "already_invited" || code === "duplicate_record") {
+      return {
+        ok: false,
+        status: 400,
+        code: "duplicate_invitation",
+        error: `There is already a pending invitation for ${customer.email}.`,
+      };
     }
     throw err;
   }
@@ -65,6 +71,61 @@ export async function sendCustomerInvite(customerId: string): Promise<InviteResu
       target: pendingInvites.email,
       set: { customerId: customer.id, createdAt: new Date() },
     });
+
+  return { ok: true };
+}
+
+export async function revokeCustomerInvite(customerId: string): Promise<InviteResult> {
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+
+  if (!customer) {
+    return { ok: false, status: 404, error: "Customer not found" };
+  }
+
+  const client = await clerkClient();
+  let cleared = false;
+
+  // 1. Revoke any pending invitation for this email.
+  const invResponse = await client.invitations.getInvitationList({ limit: 500 });
+  const allInvitations = Array.isArray(invResponse) ? invResponse : (invResponse.data ?? []);
+  const pendingInvitation = allInvitations.find(
+    (inv) =>
+      inv.emailAddress.toLowerCase() === customer.email.toLowerCase() &&
+      inv.status === "pending"
+  );
+  if (pendingInvitation) {
+    await client.invitations.revokeInvitation(pendingInvitation.id);
+    console.log("[revoke] revoked pending invitation", pendingInvitation.id);
+    cleared = true;
+  }
+
+  // 2. Clerk also blocks new invitations when a user account already exists for
+  //    the email (accepted invite = Clerk account created). Delete that account.
+  const userResponse = await client.users.getUserList({
+    emailAddress: [customer.email],
+  });
+  const clerkUsers = Array.isArray(userResponse) ? userResponse : (userResponse.data ?? []);
+  for (const clerkUser of clerkUsers) {
+    await client.users.deleteUser(clerkUser.id);
+    await db.delete(users).where(eq(users.clerkId, clerkUser.id));
+    console.log("[revoke] deleted Clerk user", clerkUser.id);
+    cleared = true;
+  }
+
+  // 3. Clean up our pending_invites table regardless.
+  await db.delete(pendingInvites).where(eq(pendingInvites.email, customer.email));
+
+  if (!cleared) {
+    return {
+      ok: false,
+      status: 404,
+      error: `Nothing to revoke for ${customer.email} — no pending invitation or Clerk account found.`,
+    };
+  }
 
   return { ok: true };
 }
