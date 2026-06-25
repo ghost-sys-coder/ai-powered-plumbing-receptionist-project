@@ -490,7 +490,7 @@ export function NewCustomerForm() {
                 />
               </div>
               <div className="flex items-center gap-2 pt-5">
-                <input
+                <Input
                   type="checkbox"
                   id="freeEstimates"
                   checked={freeEstimates}
