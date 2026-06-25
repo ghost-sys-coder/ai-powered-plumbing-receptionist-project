@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { db } from "@/db/drizzle";
-import { customers, vapiAgents } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { customers, vapiAgents, calls, bookings, users } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
+import { clerkClient } from "@clerk/nextjs/server";
 import {
   updateVapiAssistant,
   type ProvisioningConfig,
@@ -102,5 +103,60 @@ export async function PATCH(
     }
   }
 
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await requireAdmin();
+  const { id } = await params;
+
+  const [customer] = await db
+    .select({ id: customers.id, businessName: customers.businessName })
+    .from(customers)
+    .where(eq(customers.id, id))
+    .limit(1);
+
+  if (!customer) {
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  }
+
+  // 1. Delete linked Clerk users, then DB user rows
+  const linkedUsers = await db
+    .select({ clerkId: users.clerkId })
+    .from(users)
+    .where(eq(users.customerId, id));
+
+  if (linkedUsers.length > 0) {
+    const clerk = await clerkClient();
+    for (const { clerkId } of linkedUsers) {
+      try {
+        await clerk.users.deleteUser(clerkId);
+      } catch (err) {
+        console.warn(`[delete-customer] Clerk delete failed for ${clerkId}:`, (err as Error).message);
+      }
+    }
+    await db.delete(users).where(eq(users.customerId, id));
+  }
+
+  // 2. Delete bookings before calls (FK: bookings.call_id → calls.id)
+  const customerCalls = await db
+    .select({ id: calls.id })
+    .from(calls)
+    .where(eq(calls.customerId, id));
+
+  if (customerCalls.length > 0) {
+    const callIds = customerCalls.map((c) => c.id);
+    await db.delete(bookings).where(inArray(bookings.callId, callIds));
+  }
+
+  // 3. calls → vapiAgents → customer (pending_invites cascade automatically)
+  await db.delete(calls).where(eq(calls.customerId, id));
+  await db.delete(vapiAgents).where(eq(vapiAgents.customerId, id));
+  await db.delete(customers).where(eq(customers.id, id));
+
+  console.log(`[delete-customer] deleted customer ${id} (${customer.businessName})`);
   return NextResponse.json({ success: true });
 }

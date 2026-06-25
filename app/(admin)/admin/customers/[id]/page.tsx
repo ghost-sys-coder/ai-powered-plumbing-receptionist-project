@@ -10,6 +10,7 @@ import { CustomerAgentCard } from "@/components/admin/customer-agent-card";
 import { CustomerRecentCalls } from "@/components/admin/customer-recent-calls";
 import { CustomerBookings } from "@/components/admin/customer-bookings";
 import { WebCallPanel } from "@/components/admin/web-call-panel";
+import { DeleteCustomerButton } from "@/components/admin/delete-customer-button";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -47,11 +48,17 @@ const CustomerDetailPage = async ({ params }: Props) => {
           title={customer.businessName}
           description={`${customer.ownerName} · ${customer.email}`}
         />
-        <Link href={`/admin/customers/${customer.id}/edit`}>
-          <Button variant="outline" size="sm">
-            Edit
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href={`/admin/customers/${customer.id}/edit`}>
+            <Button variant="outline" size="sm">
+              Edit
+            </Button>
+          </Link>
+          <DeleteCustomerButton
+            customerId={customer.id}
+            businessName={customer.businessName}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
