@@ -53,11 +53,11 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
         throw new Error(data.error ?? "Failed to get call token");
       }
 
-      const { token } = await res.json();
+      const { assistantId } = await res.json();
 
       setCallState("connecting");
 
-      const vapi = new Vapi(token);
+      const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_KEY!);
       vapiRef.current = vapi;
 
       vapi.on("call-start", () => setCallState("active"));
@@ -72,7 +72,7 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
         vapiRef.current = null;
       });
 
-      await vapi.start(token);
+      await vapi.start(assistantId);
     } catch (err) {
       console.error("[useVapiCall] startCall failed", err);
       setErrorMessage((err as Error).message);

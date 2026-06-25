@@ -16,5 +16,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  return NextResponse.json({ token: result.token, callId: result.callId });
+  return NextResponse.json({ assistantId: result.assistantId });
 }
