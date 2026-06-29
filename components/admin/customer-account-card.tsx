@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Customer } from "@/db/schema/customers";
 import { InviteButton } from "@/components/admin/invite-button";
+import { SetRoleButton } from "@/components/admin/set-role-button";
 
 interface CustomerAccountCardProps {
   customer: Customer;
@@ -112,6 +113,13 @@ export function CustomerAccountCard({
           {!hasActiveLogin && (
             <div className="col-span-2 pt-1">
               <InviteButton customerId={customer.id} />
+            </div>
+          )}
+
+          {/* Role fix — for users who signed up before the role was applied */}
+          {hasActiveLogin && (
+            <div className="col-span-2 pt-1">
+              <SetRoleButton customerId={customer.id} />
             </div>
           )}
         </dl>

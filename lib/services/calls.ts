@@ -32,6 +32,12 @@ function safeUrgency(value: unknown): UrgencyLevel {
         : "unknown";
 }
 
+function emptyToNull(value: string | null | undefined): string | null {
+    if (value == null) return null;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+}
+
 function toDate(value: unknown): Date | null {
     if (!value) return null;
     const d = new Date(value as string);
@@ -98,6 +104,42 @@ export type StructuredCallData = {
     booking_time?: string | null;
 };
 
+// The catalog key our structured-data plan is registered under in Vapi. Used
+// both when provisioning the assistant (structuredDataMultiPlan[].key) and when
+// reading the result back out of `call.analysis.structuredDataMulti`.
+export const CALL_DATA_KEY = "call_details";
+
+type VapiAnalysis = {
+    structuredData?: Record<string, unknown> | null;
+    structuredDataMulti?: Array<Record<string, unknown>> | null;
+};
+
+// Vapi deprecated the single `structuredDataPlan` (→ analysis.structuredData) in
+// favour of `structuredDataMultiPlan` (→ analysis.structuredDataMulti, an array
+// of `{ [key]: data }` entries). Read the new shape first, fall back to the
+// legacy one so assistants that haven't been re-synced yet keep working.
+export function extractStructuredData(analysis: VapiAnalysis | undefined | null): StructuredCallData {
+    if (!analysis) return {};
+
+    const multi = analysis.structuredDataMulti;
+    if (Array.isArray(multi)) {
+        for (const entry of multi) {
+            if (!entry || typeof entry !== "object") continue;
+            // Normal shape: [{ call_details: { ...fields } }]
+            const keyed = entry[CALL_DATA_KEY];
+            if (keyed && typeof keyed === "object") {
+                return keyed as StructuredCallData;
+            }
+            // Fallback shape: the data object sits directly in the array.
+            if ("outcome" in entry || "issue_summary" in entry) {
+                return entry as StructuredCallData;
+            }
+        }
+    }
+
+    return (analysis.structuredData as StructuredCallData) ?? {};
+}
+
 export type FinalizeCallInput = {
     vapiCallId: string;
     endedAt: Date | null;
@@ -119,10 +161,10 @@ export type FinalizedCall = {
 export async function finalizeCall(input: FinalizeCallInput): Promise<FinalizedCall | null> {
     const outcome = safeOutcome(input.structured.outcome);
     const urgency = safeUrgency(input.structured.urgency_level);
-    const callerName = input.structured.caller_name ?? null;
-    const issueSummary = input.structured.issue_summary ?? null;
-    const serviceAddress = input.structured.service_address ?? null;
-    const bookingTime = input.structured.booking_time ?? null;
+    const callerName = emptyToNull(input.structured.caller_name);
+    const issueSummary = emptyToNull(input.structured.issue_summary);
+    const serviceAddress = emptyToNull(input.structured.service_address);
+    const bookingTime = emptyToNull(input.structured.booking_time);
 
     const duration =
         input.startedAt && input.endedAt

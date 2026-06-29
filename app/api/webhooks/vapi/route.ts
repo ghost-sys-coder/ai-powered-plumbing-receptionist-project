@@ -2,12 +2,12 @@ import crypto from "node:crypto";
 
 import {
     createCall,
+    extractStructuredData,
     finalizeCall,
     recordCallEndedFallback,
     toDate,
     updateCallTranscript,
     type CreateCallInput,
-    type StructuredCallData,
 } from "@/lib/services/calls";
 import { createBookingFromCall } from "@/lib/services/bookings";
 import { getAgentByVapiAssistantId } from "@/lib/services/vapi-agents";
@@ -26,7 +26,8 @@ type VapiMessage = {
         recordingUrl?: string | null;
     };
     analysis?: {
-        structuredData?: StructuredCallData;
+        structuredData?: Record<string, unknown> | null;
+        structuredDataMulti?: Array<Record<string, unknown>> | null;
     };
     transcript?: string;
     transcriptType?: string;
@@ -120,7 +121,7 @@ export async function POST(request: Request): Promise<Response> {
                     endedAt,
                     transcript: message?.artifact?.transcript ?? null,
                     audioUrl: message?.artifact?.recordingUrl ?? null,
-                    structured: message?.analysis?.structuredData ?? {},
+                    structured: extractStructuredData(message?.analysis),
                 });
                 if (finalized && finalized.outcome === "booked") {
                     await createBookingFromCall({

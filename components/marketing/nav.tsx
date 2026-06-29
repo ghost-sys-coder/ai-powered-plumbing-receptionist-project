@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "../ui/skeleton";
+import { useUser } from "@clerk/nextjs";
 
 export function Nav() {
+  const { isLoaded, isSignedIn, user } = useUser();
   const [scrolled, setScrolled] = useState(false);
   const bookingUrl = process.env.NEXT_PUBLIC_BOOKING_URL!;
 
-  console.log("BOOKING URL:", process.env.NEXT_PUBLIC_BOOKING_URL);
+  console.log("user role:", user?.publicMetadata.role);
+
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -42,15 +46,25 @@ export function Nav() {
           </Link>
         </div>
 
-        <Button
-          asChild
-          size="sm"
-          className="bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
-        >
-          <Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
-            Book a call
-          </Link>
-        </Button>
+        {!isLoaded ? (
+          <Skeleton className="h-8 w-32 rounded-md" />
+        ) : (
+
+          <Button
+            asChild
+            size="sm"
+            className="bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
+          >
+            {isSignedIn ? (
+              <Link href={user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard"}>
+                Dashboard
+              </Link>
+            ) : (
+              <Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
+                Book a call
+              </Link>
+            )}
+          </Button>)}
       </div>
     </nav>
   );

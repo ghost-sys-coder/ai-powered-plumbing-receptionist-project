@@ -23,7 +23,7 @@ export function Pricing() {
               Pilot
             </p>
             <p className="mt-2 text-3xl font-bold text-white">
-              $500 <span className="text-lg font-normal">setup</span> + $150
+              $1500 <span className="text-lg font-normal">setup</span> + $150
               <span className="text-lg font-normal">/mo</span>
             </p>
             <p className="mt-4 text-sm leading-relaxed" style={{ color: "#A1A1AA" }}>
@@ -59,7 +59,7 @@ export function Pricing() {
               Standard
             </p>
             <p className="mt-2 text-3xl font-bold text-white">
-              $1,500 <span className="text-lg font-normal">setup</span> + $250
+              $2,500 <span className="text-lg font-normal">setup</span> + $250
               <span className="text-lg font-normal">/mo</span>
             </p>
 

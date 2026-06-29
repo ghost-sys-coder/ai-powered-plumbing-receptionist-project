@@ -1,5 +1,6 @@
 import { VapiClient } from "@vapi-ai/server-sdk";
 import { buildAgentPrompt } from "@/lib/templates/agent-prompt";
+import { CALL_DATA_KEY } from "@/lib/services/calls";
 
 function getVapi() {
   const key = process.env.VAPI_API_KEY;
@@ -21,6 +22,68 @@ export interface ProvisioningConfig {
   emergencyDefinition: string;
   businessHours: Record<string, { open?: string; close?: string; closed?: boolean }>;
 }
+
+// Tells Vapi to extract structured data from every call. The property keys here
+// MUST match the keys read in lib/services/calls.ts (StructuredCallData) and the
+// enum values must match db/schema/enums.ts (callOutcomeEnum / urgencyLevelEnum).
+//
+// Vapi deprecated the single-schema `structuredDataPlan` (→ analysis.structuredData)
+// in favour of the catalog-based `structuredDataMultiPlan` (→ analysis.structuredDataMulti).
+// We register under CALL_DATA_KEY and disable the legacy plan to clear the
+// deprecation warning. The webhook reads the result via extractStructuredData().
+const CALL_DATA_SCHEMA = {
+  type: "object",
+  properties: {
+    caller_name: {
+      type: "string",
+      description:
+        "The caller's full name as given on the call. Empty string if never provided.",
+    },
+    issue_summary: {
+      type: "string",
+      description:
+        "One or two sentences describing the plumbing problem or reason for the call.",
+    },
+    urgency_level: {
+      type: "string",
+      enum: ["emergency", "urgent", "routine", "unknown"],
+      description:
+        "How urgent the job is. 'emergency' = active flooding/no water/gas/sewage now; 'urgent' = needs attention within ~24h; 'routine' = can be scheduled normally; 'unknown' if unclear.",
+    },
+    service_address: {
+      type: "string",
+      description:
+        "The full service address (where the work is needed). Empty string if not provided.",
+    },
+    outcome: {
+      type: "string",
+      enum: ["booked", "message_taken", "transferred", "dropped", "abandoned"],
+      description:
+        "How the call concluded. 'booked' = appointment scheduled; 'message_taken' = message left for the shop; 'transferred' = handed to a human; 'dropped' = caller hung up before resolution; 'abandoned' = no meaningful interaction.",
+    },
+    booking_time: {
+      type: "string",
+      description:
+        "If an appointment was booked, the agreed date/time as an ISO 8601 timestamp. Empty string if no booking was made.",
+    },
+  },
+  required: ["issue_summary", "urgency_level", "outcome"],
+} as const;
+
+const CALL_ANALYSIS_PLAN = {
+  // Disable the deprecated single-schema plan.
+  structuredDataPlan: { enabled: false },
+  // Catalog-based plan (the non-deprecated path).
+  structuredDataMultiPlan: [
+    {
+      key: CALL_DATA_KEY,
+      plan: {
+        enabled: true,
+        schema: CALL_DATA_SCHEMA,
+      },
+    },
+  ],
+} as const;
 
 function extractVapiError(err: unknown): string {
   if (err && typeof err === "object") {
@@ -52,6 +115,7 @@ export async function createVapiAssistant(
       } as any,
       voice: { provider: "11labs", voiceId: "paula" } as any,
       firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
+      analysisPlan: CALL_ANALYSIS_PLAN as any,
     });
     return { vapiAssistantId: assistant.id };
   } catch (err) {
@@ -105,6 +169,7 @@ export async function updateVapiAssistant(
       messages: [{ role: "system", content: systemPrompt }],
     } as any,
     firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
+    analysisPlan: CALL_ANALYSIS_PLAN as any,
   } as any);
 }
 

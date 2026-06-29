@@ -12,13 +12,17 @@ type CallState =
   | "ended"
   | "error";
 
+type Speaker = "agent" | "caller" | null;
+
 type UseVapiCallReturn = {
   callState: CallState;
   isMuted: boolean;
   errorMessage: string | null;
+  activeSpeaker: Speaker;
   startCall: () => Promise<void>;
   endCall: () => void;
   toggleMute: () => void;
+  reset: () => void;
 };
 
 export function useVapiCall(customerId: string): UseVapiCallReturn {
@@ -26,6 +30,7 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
   const [callState, setCallState] = useState<CallState>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeSpeaker, setActiveSpeaker] = useState<Speaker>(null);
 
   // Stop call if component unmounts during an active session
   useEffect(() => {
@@ -40,6 +45,7 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
     setCallState("requesting");
     setErrorMessage(null);
     setIsMuted(false);
+    setActiveSpeaker(null);
 
     try {
       const res = await fetch("/api/admin/web-call/token", {
@@ -63,13 +69,29 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
       vapi.on("call-start", () => setCallState("active"));
       vapi.on("call-end", () => {
         setCallState("ended");
+        setActiveSpeaker(null);
         vapiRef.current = null;
       });
       vapi.on("error", (err) => {
         console.error("[useVapiCall] error", err);
         setErrorMessage(err?.message ?? "Call error occurred");
         setCallState("error");
+        setActiveSpeaker(null);
         vapiRef.current = null;
+      });
+
+      // "speech-update" fires whenever the assistant or user starts/stops
+      // speaking — drives the live speaking indicator.
+      vapi.on("message", (msg) => {
+        if (msg?.type !== "speech-update") return;
+        if (msg.status === "started") {
+          setActiveSpeaker(msg.role === "user" ? "caller" : "agent");
+        } else if (msg.status === "stopped") {
+          setActiveSpeaker((current) => {
+            const stopped = msg.role === "user" ? "caller" : "agent";
+            return current === stopped ? null : current;
+          });
+        }
       });
 
       await vapi.start(assistantId);
@@ -92,5 +114,12 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
     setIsMuted(next);
   }, [isMuted]);
 
-  return { callState, isMuted, errorMessage, startCall, endCall, toggleMute };
+  const reset = useCallback(() => {
+    setCallState("idle");
+    setActiveSpeaker(null);
+    setErrorMessage(null);
+    setIsMuted(false);
+  }, []);
+
+  return { callState, isMuted, errorMessage, activeSpeaker, startCall, endCall, toggleMute, reset };
 }

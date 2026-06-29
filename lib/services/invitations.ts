@@ -45,7 +45,7 @@ export async function sendCustomerInvite(customerId: string): Promise<InviteResu
         role: "client",
         customer_id: customer.id,
       },
-      redirectUrl: `${appUrl}/dashboard`,
+      redirectUrl: `${appUrl}/sign-up`,
       notify: true,
     });
   } catch (err: unknown) {
@@ -71,6 +71,50 @@ export async function sendCustomerInvite(customerId: string): Promise<InviteResu
       target: pendingInvites.email,
       set: { customerId: customer.id, createdAt: new Date() },
     });
+
+  return { ok: true };
+}
+
+// Backfill the Clerk role for a customer who already signed up but whose
+// publicMetadata.role was never set (e.g. invited before the ticket flow fix).
+export async function assignCustomerRole(customerId: string): Promise<InviteResult> {
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+
+  if (!customer) {
+    return { ok: false, status: 404, error: "Customer not found" };
+  }
+
+  const [linkedUser] = await db
+    .select({ clerkId: users.clerkId })
+    .from(users)
+    .where(and(eq(users.customerId, customerId), isNull(users.deletedAt)))
+    .limit(1);
+
+  if (!linkedUser) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Customer has no login account yet — send a login invite first.",
+    };
+  }
+
+  const client = await clerkClient();
+  await client.users.updateUserMetadata(linkedUser.clerkId, {
+    publicMetadata: {
+      role: "client",
+      customer_id: customer.id,
+    },
+  });
+
+  // Keep our own DB row in sync.
+  await db
+    .update(users)
+    .set({ role: "client" })
+    .where(eq(users.clerkId, linkedUser.clerkId));
 
   return { ok: true };
 }
