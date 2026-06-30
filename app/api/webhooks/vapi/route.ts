@@ -21,13 +21,17 @@ type VapiMessage = {
         startedAt?: string;
         endedAt?: string;
     };
+    // On end-of-call-report the timestamps live at the top level of the
+    // message, not under `call`.
+    startedAt?: string;
+    endedAt?: string;
     artifact?: {
         transcript?: string | null;
         recordingUrl?: string | null;
     };
     analysis?: {
         structuredData?: Record<string, unknown> | null;
-        structuredDataMulti?: Array<Record<string, unknown>> | null;
+        structuredDataMulti?: unknown;
     };
     transcript?: string;
     transcriptType?: string;
@@ -86,8 +90,11 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const callerPhone = message?.call?.customer?.number ?? null;
-    const startedAt = toDate(message?.call?.startedAt) ?? new Date();
-    const endedAt = toDate(message?.call?.endedAt);
+    // Prefer top-level timestamps (present on end-of-call-report); fall back to
+    // the ones nested under `call` for other events.
+    const startedAt =
+        toDate(message?.startedAt) ?? toDate(message?.call?.startedAt) ?? new Date();
+    const endedAt = toDate(message?.endedAt) ?? toDate(message?.call?.endedAt);
 
     const baseCallInput: CreateCallInput = {
         vapiCallId,
@@ -115,13 +122,24 @@ export async function POST(request: Request): Promise<Response> {
 
             case "end-of-call-report": {
                 await createCall(baseCallInput);
+
+                const extracted = extractStructuredData(message?.analysis);
+                console.log(
+                    `[vapi-webhook] end-of-call-report ${vapiCallId} — raw analysis:`,
+                    JSON.stringify(message?.analysis, null, 2)
+                );
+                console.log(
+                    `[vapi-webhook] end-of-call-report ${vapiCallId} — extracted structured data:`,
+                    JSON.stringify(extracted, null, 2)
+                );
+
                 const finalized = await finalizeCall({
                     vapiCallId,
                     startedAt,
                     endedAt,
                     transcript: message?.artifact?.transcript ?? null,
                     audioUrl: message?.artifact?.recordingUrl ?? null,
-                    structured: extractStructuredData(message?.analysis),
+                    structured: extracted,
                 });
                 if (finalized && finalized.outcome === "booked") {
                     await createBookingFromCall({

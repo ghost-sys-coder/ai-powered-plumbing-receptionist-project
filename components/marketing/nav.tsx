@@ -57,7 +57,7 @@ export function Nav() {
           >
             {isSignedIn ? (
               <Link href={user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard"}>
-                Dashboard
+                {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "Dashboard"}
               </Link>
             ) : (
               <Link href={bookingUrl} target="_blank" rel="noopener noreferrer">

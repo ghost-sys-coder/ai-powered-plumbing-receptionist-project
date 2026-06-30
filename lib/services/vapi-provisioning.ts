@@ -55,6 +55,11 @@ const CALL_DATA_SCHEMA = {
       description:
         "The full service address (where the work is needed). Empty string if not provided.",
     },
+    callback_number: {
+      type: "string",
+      description:
+        "The callback phone number the caller provided, digits only (e.g. '5805551234'). Empty string if not provided.",
+    },
     outcome: {
       type: "string",
       enum: ["booked", "message_taken", "transferred", "dropped", "abandoned"],

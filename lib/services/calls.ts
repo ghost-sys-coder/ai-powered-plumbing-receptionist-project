@@ -100,6 +100,7 @@ export type StructuredCallData = {
     issue_summary?: string | null;
     urgency_level?: string | null;
     service_address?: string | null;
+    callback_number?: string | null;
     outcome?: string | null;
     booking_time?: string | null;
 };
@@ -111,33 +112,66 @@ export const CALL_DATA_KEY = "call_details";
 
 type VapiAnalysis = {
     structuredData?: Record<string, unknown> | null;
-    structuredDataMulti?: Array<Record<string, unknown>> | null;
+    // Can arrive as an array (structuredDataMultiPlan) OR as an object keyed by
+    // structured-output id (Vapi Structured Outputs) — handle both.
+    structuredDataMulti?: unknown;
 };
 
+// Fields we recognise as "our" call data, used to pick the right object out of
+// whatever container Vapi sends.
+const CALL_DATA_FIELDS = [
+    "outcome",
+    "issue_summary",
+    "service_address",
+    "caller_name",
+    "urgency_level",
+    "callback_number",
+] as const;
+
+function looksLikeCallData(value: unknown): value is StructuredCallData {
+    if (!value || typeof value !== "object") return false;
+    return CALL_DATA_FIELDS.some((f) => f in (value as Record<string, unknown>));
+}
+
+// Pull candidate data objects out of a single container entry, unwrapping the
+// nesting styles Vapi uses:
+//   - multiplan output:     { key: "call_details", data: { ...fields } }
+//   - keyed object:         { call_details: { ...fields } }
+//   - structured outputs:   { name, result: { ...fields } }
+function collectCandidates(value: unknown, out: unknown[]): void {
+    if (!value || typeof value !== "object") return;
+    const obj = value as Record<string, unknown>;
+    if (obj.data && typeof obj.data === "object") out.push(obj.data);
+    if (obj.result && typeof obj.result === "object") out.push(obj.result);
+    if (obj[CALL_DATA_KEY] && typeof obj[CALL_DATA_KEY] === "object") out.push(obj[CALL_DATA_KEY]);
+    out.push(obj);
+}
+
 // Vapi deprecated the single `structuredDataPlan` (→ analysis.structuredData) in
-// favour of `structuredDataMultiPlan` (→ analysis.structuredDataMulti, an array
-// of `{ [key]: data }` entries). Read the new shape first, fall back to the
-// legacy one so assistants that haven't been re-synced yet keep working.
+// favour of `structuredDataMultiPlan` / Structured Outputs (→ analysis.structuredDataMulti).
+// That field shows up in several shapes depending on how the assistant is
+// configured, so we gather every candidate object and return the first one that
+// carries our known fields. Falls back to the legacy `structuredData`.
 export function extractStructuredData(analysis: VapiAnalysis | undefined | null): StructuredCallData {
     if (!analysis) return {};
 
+    const candidates: unknown[] = [];
     const multi = analysis.structuredDataMulti;
+
     if (Array.isArray(multi)) {
-        for (const entry of multi) {
-            if (!entry || typeof entry !== "object") continue;
-            // Normal shape: [{ call_details: { ...fields } }]
-            const keyed = entry[CALL_DATA_KEY];
-            if (keyed && typeof keyed === "object") {
-                return keyed as StructuredCallData;
-            }
-            // Fallback shape: the data object sits directly in the array.
-            if ("outcome" in entry || "issue_summary" in entry) {
-                return entry as StructuredCallData;
-            }
+        // [{ call_details: {...} }] or [{ name, result: {...} }] or [{ ...fields }]
+        for (const entry of multi) collectCandidates(entry, candidates);
+    } else if (multi && typeof multi === "object") {
+        // { "<output-id>": { name, result: {...} } }
+        for (const entry of Object.values(multi as Record<string, unknown>)) {
+            collectCandidates(entry, candidates);
         }
     }
 
-    return (analysis.structuredData as StructuredCallData) ?? {};
+    collectCandidates(analysis.structuredData, candidates);
+
+    const match = candidates.find(looksLikeCallData);
+    return (match as StructuredCallData) ?? {};
 }
 
 export type FinalizeCallInput = {
@@ -165,6 +199,7 @@ export async function finalizeCall(input: FinalizeCallInput): Promise<FinalizedC
     const issueSummary = emptyToNull(input.structured.issue_summary);
     const serviceAddress = emptyToNull(input.structured.service_address);
     const bookingTime = emptyToNull(input.structured.booking_time);
+    const callbackNumber = emptyToNull(input.structured.callback_number);
 
     const duration =
         input.startedAt && input.endedAt
@@ -172,7 +207,12 @@ export async function finalizeCall(input: FinalizeCallInput): Promise<FinalizedC
             : null;
 
     const existing = await db
-        .select({ id: calls.id, customerId: calls.customerId, endedAt: calls.endedAt })
+        .select({
+            id: calls.id,
+            customerId: calls.customerId,
+            endedAt: calls.endedAt,
+            callerPhone: calls.callerPhone,
+        })
         .from(calls)
         .where(eq(calls.vapiCallId, input.vapiCallId))
         .limit(1);
@@ -206,6 +246,9 @@ export async function finalizeCall(input: FinalizeCallInput): Promise<FinalizedC
             callerName,
             issueSummary,
             serviceAddress,
+            // Prefer the real caller ID; fall back to the callback number the
+            // agent collected (web/test calls have no caller ID).
+            callerPhone: existing[0].callerPhone ?? callbackNumber,
         })
         .where(eq(calls.vapiCallId, input.vapiCallId));
 
