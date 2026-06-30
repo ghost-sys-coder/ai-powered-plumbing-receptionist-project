@@ -91,6 +91,7 @@ export async function PATCH(
           businessName,
           ownerName,
           serviceArea: serviceArea ?? "",
+          timezone: timezone ?? "America/New_York",
           servicesOffered: servicesOffered ?? [],
           pricing: pricing ?? {},
           emergencyDefinition,

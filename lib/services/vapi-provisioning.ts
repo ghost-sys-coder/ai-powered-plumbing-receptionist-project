@@ -12,6 +12,7 @@ export interface ProvisioningConfig {
   businessName: string;
   ownerName: string;
   serviceArea: string;
+  timezone: string;
   servicesOffered: Array<{ name: string; price?: string }>;
   pricing: {
     serviceCallFee?: string;
@@ -69,7 +70,7 @@ const CALL_DATA_SCHEMA = {
     booking_time: {
       type: "string",
       description:
-        "If an appointment was booked, the agreed date/time as an ISO 8601 timestamp. Empty string if no booking was made.",
+        "If an appointment was booked, the agreed date and time as a full ISO 8601 timestamp WITH the timezone offset (e.g. '2026-07-03T14:00:00-05:00'). Use the absolute date that was confirmed on the call — it must be in the future, never a past year. Empty string if no booking was made.",
     },
   },
   required: ["issue_summary", "urgency_level", "outcome"],

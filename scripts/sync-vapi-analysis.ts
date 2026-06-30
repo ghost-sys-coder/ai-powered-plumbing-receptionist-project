@@ -45,6 +45,7 @@ async function run(): Promise<void> {
       businessName: customers.businessName,
       ownerNameCustomer: customers.ownerName,
       serviceArea: customers.serviceArea,
+      timezone: customers.timezone,
     })
     .from(vapiAgents)
     .innerJoin(customers, eq(vapiAgents.customerId, customers.id));
@@ -74,6 +75,7 @@ async function run(): Promise<void> {
         businessName: r.businessName,
         ownerName: r.ownerNameAgent ?? r.ownerNameCustomer,
         serviceArea: r.serviceArea ?? "",
+        timezone: r.timezone ?? "America/New_York",
         servicesOffered:
           (r.servicesOffered as ProvisioningConfig["servicesOffered"]) ?? [],
         pricing: (r.pricingTable as ProvisioningConfig["pricing"]) ?? {},

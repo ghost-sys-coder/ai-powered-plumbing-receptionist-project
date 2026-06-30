@@ -12,10 +12,15 @@ export type CreateBookingFromCallInput = {
 function parseBookingTime(value: string | null): { scheduledAt: Date | null; raw: string | null } {
     if (!value) return { scheduledAt: null, raw: null };
     const d = new Date(value);
-    if (!Number.isNaN(d.getTime())) {
-        return { scheduledAt: d, raw: null };
+    if (Number.isNaN(d.getTime())) {
+        return { scheduledAt: null, raw: value };
     }
-    return { scheduledAt: null, raw: value };
+    // Guard against bad extractions (e.g. the model defaulting to a past year):
+    // don't create a backdated booking — flag it for human confirmation instead.
+    if (d.getTime() < Date.now() - 60 * 60 * 1000) {
+        return { scheduledAt: null, raw: value };
+    }
+    return { scheduledAt: d, raw: null };
 }
 
 export async function createBookingFromCall(

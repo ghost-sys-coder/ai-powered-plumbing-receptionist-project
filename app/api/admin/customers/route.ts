@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
     businessName,
     ownerName,
     serviceArea: serviceArea ?? "",
+    timezone: timezone ?? "America/New_York",
     servicesOffered: servicesOffered ?? [],
     pricing: pricing ?? {},
     emergencyDefinition,
