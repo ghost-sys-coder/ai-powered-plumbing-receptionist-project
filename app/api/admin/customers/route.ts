@@ -11,6 +11,21 @@ import {
   type ProvisioningConfig,
 } from "@/lib/services/vapi-provisioning";
 
+// Drizzle wraps the driver error, so the real Postgres error (with code +
+// constraint) sits on `.cause`. Walk the chain to find it.
+function findPgError(
+  err: unknown
+): { code?: string; constraint?: string; detail?: string } | null {
+  let cur = err as { code?: string; constraint?: string; detail?: string; cause?: unknown } | null;
+  for (let i = 0; i < 5 && cur; i++) {
+    if (typeof cur === "object" && (cur.code || cur.constraint)) {
+      return { code: cur.code, constraint: cur.constraint, detail: cur.detail };
+    }
+    cur = (cur as { cause?: unknown }).cause as typeof cur;
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   await requireAdmin();
 
@@ -61,9 +76,28 @@ export async function POST(req: NextRequest) {
       })
       .returning({ id: customers.id });
     customerId = customer.id;
-  } catch {
+  } catch (err) {
+    console.error("[create-customer] step 1 (customer insert) failed:", err);
+    const pg = findPgError(err);
+
+    // 23505 = unique_violation. The customers table's only unique column is
+    // stripe_customer_id, so surface a clear, actionable message.
+    if (pg?.code === "23505") {
+      return NextResponse.json(
+        {
+          error: stripeCustomerId
+            ? `A customer with Stripe Customer ID "${stripeCustomerId}" already exists. Leave the field blank or use a unique ID.`
+            : "A customer with these details already exists (duplicate unique field).",
+          failedStep: 0,
+          code: "duplicate",
+        },
+        { status: 409 }
+      );
+    }
+
+    const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "Failed to create customer account", failedStep: 0 },
+      { error: `Failed to create customer account — ${message}`, failedStep: 0 },
       { status: 500 }
     );
   }
@@ -85,6 +119,7 @@ export async function POST(req: NextRequest) {
     const result = await createVapiAssistant(config);
     vapiAssistantId = result.vapiAssistantId;
   } catch (err) {
+    console.error("[create-customer] step 2 (Vapi assistant) failed:", err);
     return NextResponse.json(
       {
         error: `Step 2 — AI assistant creation failed. Customer account saved (ID: ${customerId}). ${(err as Error).message}`,
@@ -109,6 +144,7 @@ export async function POST(req: NextRequest) {
       vapiPhoneNumberId = result.vapiPhoneNumberId;
       provisionedPhone = result.phoneNumber;
     } catch (err) {
+      console.error("[create-customer] step 3 (phone provisioning) failed:", err);
       return NextResponse.json(
         {
           error: `Step 3 — Phone number provisioning failed. Assistant created in Vapi (ID: ${vapiAssistantId}). ${(err as Error).message}`,
@@ -148,6 +184,7 @@ export async function POST(req: NextRequest) {
       .set({ status: "active", onboardedAt: new Date() })
       .where(eq(customers.id, customerId));
   } catch (err) {
+    console.error("[create-customer] step 4 (agent activation) failed:", err);
     return NextResponse.json(
       {
         error: `Step 4 — Agent activation failed. Customer ID: ${customerId}, Vapi assistant ID: ${vapiAssistantId}${vapiPhoneNumberId ? `, phone number ID: ${vapiPhoneNumberId}` : ""}. ${(err as Error).message}`,

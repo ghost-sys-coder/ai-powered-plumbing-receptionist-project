@@ -42,7 +42,7 @@ const SAMPLE_JSON = `{
   "timezone": "America/Chicago",
   "serviceArea": "Greater Austin, TX and surrounding cities",
   "plan": "standard",
-  "stripeCustomerId": "cus_xxxxxxxxxxxxxxxx",
+  "stripeCustomerId": "",
   "emergencyDefinition": "Active water damage, burst pipe, sewage backup, or complete loss of water service. Gas line issues are emergencies — advise caller to call 911 first.",
   "businessHours": {
     "Monday":    { "open": "08:00", "close": "17:00", "closed": false },
@@ -438,7 +438,7 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
                 />
               </div>
               <div className="flex items-center gap-2 pt-5">
-                <input
+                <Input
                   type="checkbox"
                   id="freeEstimates"
                   checked={freeEstimates}

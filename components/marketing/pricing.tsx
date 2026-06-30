@@ -13,39 +13,10 @@ export function Pricing() {
           </h2>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Pilot card */}
-          <div
-            className="flex flex-col rounded-xl p-8"
-            style={{ border: "1px solid #3f3f46" }}
-          >
-            <p className="text-sm font-medium uppercase tracking-widest" style={{ color: "#A1A1AA" }}>
-              Pilot
-            </p>
-            <p className="mt-2 text-3xl font-bold text-white">
-              $1500 <span className="text-lg font-normal">setup</span> + $150
-              <span className="text-lg font-normal">/mo</span>
-            </p>
-            <p className="mt-4 text-sm leading-relaxed" style={{ color: "#A1A1AA" }}>
-              For our first 5 customers. Locked in for 6 months in exchange for
-              a testimonial and case study.
-            </p>
-            <div className="mt-8">
-              <Button
-                asChild
-                variant="outline"
-                className="w-full border-zinc-700 text-white hover:bg-zinc-800"
-              >
-                <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
-                  Book a call
-                </a>
-              </Button>
-            </div>
-          </div>
-
+        <div className="flex justify-center items-center">
           {/* Standard card */}
           <div
-            className="relative flex flex-col rounded-xl p-8"
+            className="relative flex flex-col rounded-xl p-8 min-w-75 max-w-md shadow-lg"
             style={{ border: "2px solid #2563EB", backgroundColor: "#0f172a" }}
           >
             <span

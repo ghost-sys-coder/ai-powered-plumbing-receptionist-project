@@ -105,12 +105,34 @@ function extractVapiError(err: unknown): string {
   return String(err);
 }
 
+// Reads the assistant back and confirms our structured-data plan survived the
+// write. Vapi can silently drop `structuredDataMultiPlan` (e.g. a later save in
+// the dashboard strips it), which leaves calls with no structured data and is
+// otherwise invisible until someone inspects a call. Surface it loudly instead.
+async function verifyAnalysisPlan(
+  vapi: VapiClient,
+  assistantId: string
+): Promise<void> {
+  const back = await vapi.assistants.get({ id: assistantId });
+  const multi = (back as { analysisPlan?: { structuredDataMultiPlan?: Array<{ key?: string }> } })
+    .analysisPlan?.structuredDataMultiPlan;
+  const present = Array.isArray(multi) && multi.some((p) => p?.key === CALL_DATA_KEY);
+  if (!present) {
+    throw new Error(
+      `Structured-data plan (key "${CALL_DATA_KEY}") was not applied to assistant ${assistantId} — ` +
+        `Vapi dropped structuredDataMultiPlan. Calls would record no structured data. ` +
+        `Re-run scripts/sync-vapi-analysis.ts and avoid editing analysis settings in the Vapi dashboard.`
+    );
+  }
+}
+
 export async function createVapiAssistant(
   config: ProvisioningConfig
 ): Promise<{ vapiAssistantId: string }> {
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
+  let assistantId: string;
   try {
     const assistant = await vapi.assistants.create({
       name: `${config.businessName} AI Receptionist`,
@@ -123,10 +145,13 @@ export async function createVapiAssistant(
       firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
       analysisPlan: CALL_ANALYSIS_PLAN as any,
     });
-    return { vapiAssistantId: assistant.id };
+    assistantId = assistant.id;
   } catch (err) {
     throw new Error(`Failed to create Vapi assistant — ${extractVapiError(err)}`);
   }
+
+  await verifyAnalysisPlan(vapi, assistantId);
+  return { vapiAssistantId: assistantId };
 }
 
 export function extractAreaCode(phone: string | null | undefined): string | null {
@@ -177,6 +202,46 @@ export async function updateVapiAssistant(
     firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
     analysisPlan: CALL_ANALYSIS_PLAN as any,
   } as any);
+
+  await verifyAnalysisPlan(vapi, assistantId);
+}
+
+// Fetches the phone number currently attached to the assistant straight from
+// Vapi (the source of truth), rather than the copy stored in our DB. Looks up by
+// phone-number id first, then falls back to scanning the account's numbers for
+// one linked to this assistant. Never throws — returns null on any failure so a
+// page render can gracefully fall back to the stored value.
+export async function getLiveAssistantPhoneNumber(opts: {
+  phoneNumberId?: string | null;
+  assistantId?: string | null;
+}): Promise<{ number: string; status?: string } | null> {
+  try {
+    const vapi = getVapi();
+
+    if (opts.phoneNumberId) {
+      const pn = (await vapi.phoneNumbers.get({ id: opts.phoneNumberId })) as {
+        number?: string;
+        status?: string;
+      };
+      if (pn?.number) return { number: pn.number, status: pn.status };
+    }
+
+    if (opts.assistantId) {
+      const resp = await vapi.phoneNumbers.list();
+      const all = (Array.isArray(resp) ? resp : (resp as { data?: unknown[] })?.data ?? []) as Array<{
+        number?: string;
+        status?: string;
+        assistantId?: string;
+      }>;
+      const match = all.find((p) => p?.assistantId === opts.assistantId && p?.number);
+      if (match?.number) return { number: match.number, status: match.status };
+    }
+
+    return null;
+  } catch (err) {
+    console.error("[getLiveAssistantPhoneNumber] failed", err);
+    return null;
+  }
 }
 
 export async function linkPhoneNumberToAssistant(

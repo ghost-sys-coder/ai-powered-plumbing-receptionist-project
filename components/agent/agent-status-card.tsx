@@ -1,3 +1,4 @@
+import { Phone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { VapiAgent } from "@/db/schema/vapi-agents";
 
@@ -7,7 +8,16 @@ const statusDot: Record<string, string> = {
   error: "bg-red-500",
 };
 
-export function AgentStatusCard({ agent }: { agent: VapiAgent }) {
+export function AgentStatusCard({
+  agent,
+  livePhoneNumber,
+}: {
+  agent: VapiAgent;
+  livePhoneNumber?: string | null;
+}) {
+  // Prefer the number live from Vapi; fall back to the stored value.
+  const phoneNumber = livePhoneNumber ?? agent.phoneNumber;
+
   return (
     <Card>
       <CardHeader>
@@ -20,10 +30,13 @@ export function AgentStatusCard({ agent }: { agent: VapiAgent }) {
           />
           <span className="font-medium capitalize">{agent.status}</span>
         </div>
-        {agent.phoneNumber && (
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Phone number</span>
-            <span className="font-mono font-medium">{agent.phoneNumber}</span>
+        {phoneNumber && (
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Phone className="h-3.5 w-3.5" />
+              Phone number
+            </span>
+            <span className="font-mono font-medium">{phoneNumber}</span>
           </div>
         )}
         <div>

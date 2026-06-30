@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getCustomerId } from "@/lib/auth/get-customer-id";
 import { getAgentConfig } from "@/lib/services/dashboard";
+import { getCachedLiveAssistantPhoneNumber } from "@/lib/services/live-phone";
 import { PageHeader } from "@/components/layout/page-header";
 import { AgentStatusCard } from "@/components/agent/agent-status-card";
 import { BusinessHoursCard } from "@/components/agent/business-hours-card";
@@ -16,6 +17,13 @@ const AgentPage = async () => {
 
   if (!agent) notFound();
 
+  // Pull the number actually attached to the assistant in Vapi (source of
+  // truth); fall back to the stored value if the live lookup fails.
+  const livePhone = await getCachedLiveAssistantPhoneNumber({
+    phoneNumberId: agent.vapiPhoneNumberId,
+    assistantId: agent.vapiAssistantId,
+  });
+
   const supportEmail =
     process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@plumberanswered.com";
 
@@ -27,7 +35,7 @@ const AgentPage = async () => {
       />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <AgentStatusCard agent={agent} />
+        <AgentStatusCard agent={agent} livePhoneNumber={livePhone?.number ?? null} />
         <Card>
           <CardContent className="space-y-2 pt-6 text-sm">
             <p className="font-medium">Emergency definition</p>

@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
 import { getCustomerDetail } from "@/lib/services/admin-dashboard";
+import { getCachedLiveAssistantPhoneNumber } from "@/lib/services/live-phone";
 import { PageHeader } from "@/components/layout/page-header";
 import { CustomerAccountCard } from "@/components/admin/customer-account-card";
 import { CustomerAgentCard } from "@/components/admin/customer-agent-card";
@@ -33,6 +34,14 @@ const CustomerDetailPage = async ({ params }: Props) => {
 
   const { customer, agent, recentCalls, upcomingBookings } = data;
   const linkedUser = linkedUserRows[0] ?? null;
+
+  // Live phone number attached to the assistant in Vapi (source of truth).
+  const livePhone = agent
+    ? await getCachedLiveAssistantPhoneNumber({
+        phoneNumberId: agent.vapiPhoneNumberId,
+        assistantId: agent.vapiAssistantId,
+      })
+    : null;
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -67,7 +76,7 @@ const CustomerDetailPage = async ({ params }: Props) => {
           hasActiveLogin={linkedUser !== null}
           linkedUserEmail={linkedUser?.email ?? null}
         />
-        <CustomerAgentCard agent={agent} />
+        <CustomerAgentCard agent={agent} livePhoneNumber={livePhone?.number ?? null} />
       </div>
 
       {agent && (
