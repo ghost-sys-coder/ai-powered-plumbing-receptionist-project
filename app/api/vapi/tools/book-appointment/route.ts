@@ -9,9 +9,11 @@ import {
 import { resolveOrCreateCallId } from "@/lib/services/calls";
 import { createPendingBooking } from "@/lib/services/bookings";
 
+const FN = "book_appointment";
+
 type VapiToolPayload = {
   message?: {
-    toolCallList?: Array<{ id?: string; function?: { arguments?: unknown } }>;
+    toolCallList?: Array<{ id?: string; function?: { name?: string; arguments?: unknown } }>;
     call?: { id?: string; assistantId?: string; customer?: { number?: string | null } };
   };
 };
@@ -20,23 +22,25 @@ export async function POST(request: Request): Promise<Response> {
   const rawBody = await request.text();
   const unauthorized = checkVapiSignature(request, rawBody);
   if (unauthorized) return unauthorized;
-  console.log("[tool] book_appointment received");
 
   let payload: VapiToolPayload;
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return vapiToolResult("", "Sorry, I couldn't read that request.");
+    return vapiToolResult("", FN, "Sorry, I couldn't read that request.");
   }
 
   const toolCall = payload.message?.toolCallList?.[0];
   const toolCallId = toolCall?.id ?? "";
+  const name = toolCall?.function?.name ?? FN;
   const assistantId = payload.message?.call?.assistantId;
   const vapiCallId = payload.message?.call?.id;
+  console.log(`[tool] book_appointment received (assistant=${assistantId ?? "?"})`);
 
   if (!assistantId || !vapiCallId) {
     return vapiToolResult(
       toolCallId,
+      name,
       "I couldn't complete the booking just now, but I've noted your request and someone will call to confirm."
     );
   }
@@ -45,6 +49,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!ctx || ctx.calendarType !== "google_calendar" || !ctx.calendarId) {
     return vapiToolResult(
       toolCallId,
+      name,
       "I've noted your details and someone will call you back to confirm a time."
     );
   }
@@ -54,6 +59,7 @@ export async function POST(request: Request): Promise<Response> {
   if (Number.isNaN(start.getTime())) {
     return vapiToolResult(
       toolCallId,
+      name,
       "I didn't catch a valid time. Could you pick one of the times I offered?"
     );
   }
@@ -82,8 +88,10 @@ export async function POST(request: Request): Promise<Response> {
 
   if (result.success) {
     const label = formatSlotLabel(result.scheduledAt, ctx.timezone);
+    console.log(`[tool] book_appointment -> booked ${result.scheduledAt.toISOString()}`);
     return vapiToolResult(
       toolCallId,
+      name,
       `You're booked for ${label}. You'll receive a confirmation shortly. Is there anything else I can help you with?`
     );
   }
@@ -106,6 +114,7 @@ export async function POST(request: Request): Promise<Response> {
         .join("; ");
       return vapiToolResult(
         toolCallId,
+        name,
         `That time was just taken. I now have: ${options}. Which works? Use the exact bracketed time as slot_start.`
       );
     }
@@ -128,6 +137,7 @@ export async function POST(request: Request): Promise<Response> {
 
   return vapiToolResult(
     toolCallId,
+    name,
     "I wasn't able to book that directly, but I've noted your preferred time and someone will confirm with you shortly."
   );
 }

@@ -26,59 +26,93 @@ export interface ProvisioningConfig {
   businessHours: Record<string, { open?: string; close?: string; closed?: boolean }>;
 }
 
-// The check_availability / book_appointment function tools, attached only when
-// the customer books via Google Calendar. Vapi POSTs tool calls to these URLs
-// mid-conversation and feeds the result back to the model.
-function buildCalendarTools(config: ProvisioningConfig): unknown[] {
-  if (config.calendarType !== "google_calendar") return [];
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+// Definitions for the two calendar function tools. These are created as
+// first-class Vapi Tool objects (not inline/transient on the assistant) so they
+// show up in the dashboard, survive assistant edits, and are reliably passed to
+// the model. Assistants reference them by id via `model.toolIds`.
+const CALENDAR_TOOL_DEFS = [
+  {
+    name: "check_availability",
+    path: "/api/vapi/tools/check-availability",
+    description:
+      "Check available appointment slots for the plumbing business. Use when a caller wants to book an appointment.",
+    parameters: {
+      type: "object",
+      properties: {
+        preferred_date: {
+          type: "string",
+          description:
+            "The caller's preferred day, e.g. 'Thursday', 'tomorrow', 'next week', 'Monday'.",
+        },
+        preferred_time: {
+          type: "string",
+          description:
+            "The caller's preferred time of day if they mention one, e.g. '2 PM', 'morning', 'afternoon'. Omit if not stated.",
+        },
+      },
+      required: [] as string[],
+    },
+  },
+  {
+    name: "book_appointment",
+    path: "/api/vapi/tools/book-appointment",
+    description:
+      "Book a confirmed appointment slot. Only call after the caller has explicitly agreed to a specific time.",
+    parameters: {
+      type: "object",
+      properties: {
+        slot_start: {
+          type: "string",
+          description:
+            "The chosen slot start — the exact ISO 8601 value returned by check_availability. Do not reformat it.",
+        },
+        caller_name: { type: "string", description: "The caller's full name" },
+        caller_phone: { type: "string", description: "The caller's phone number" },
+        issue_summary: { type: "string", description: "Brief description of the issue" },
+        service_address: { type: "string", description: "Address where the work is needed" },
+      },
+      required: ["slot_start"],
+    },
+  },
+];
 
-  return [
-    {
-      type: "function",
+// Upserts the calendar tools in the Vapi account (create if missing, update the
+// server URL + definition if present) and returns their ids. Idempotent, keyed
+// by function name — so it also refreshes the tool server URLs after an ngrok
+// rotation without creating duplicates.
+async function ensureCalendarToolIds(vapi: VapiClient): Promise<string[]> {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const listResp = await vapi.tools.list();
+  const existing = (
+    Array.isArray(listResp) ? listResp : ((listResp as { data?: unknown[] })?.data ?? [])
+  ) as Array<{ id?: string; function?: { name?: string } }>;
+
+  const ids: string[] = [];
+  for (const def of CALENDAR_TOOL_DEFS) {
+    // `type` is required on create but rejected on update — keep it out of the
+    // shared body and add it only for the create call.
+    const body = {
+      async: false,
       function: {
-        name: "check_availability",
-        description:
-          "Check available appointment slots for the plumbing business. Use when a caller wants to book an appointment.",
-        parameters: {
-          type: "object",
-          properties: {
-            preferred_date: {
-              type: "string",
-              description:
-                "The caller's preferred date or period, e.g. 'Thursday', 'tomorrow', 'next week', 'morning'.",
-            },
-          },
-          required: [],
-        },
+        name: def.name,
+        description: def.description,
+        parameters: def.parameters,
       },
-      server: { url: `${appUrl}/api/vapi/tools/check-availability` },
-    },
-    {
-      type: "function",
-      function: {
-        name: "book_appointment",
-        description:
-          "Book a confirmed appointment slot. Only call after the caller has explicitly agreed to a specific time.",
-        parameters: {
-          type: "object",
-          properties: {
-            slot_start: {
-              type: "string",
-              description:
-                "The chosen slot start — the exact ISO 8601 value returned by check_availability. Do not reformat it.",
-            },
-            caller_name: { type: "string", description: "The caller's full name" },
-            caller_phone: { type: "string", description: "The caller's phone number" },
-            issue_summary: { type: "string", description: "Brief description of the issue" },
-            service_address: { type: "string", description: "Address where the work is needed" },
-          },
-          required: ["slot_start"],
-        },
-      },
-      server: { url: `${appUrl}/api/vapi/tools/book-appointment` },
-    },
-  ];
+      server: { url: `${appUrl}${def.path}` },
+    };
+    const found = existing.find((t) => t?.function?.name === def.name);
+    if (found?.id) {
+      await vapi.tools.update({ id: found.id, body: body as never });
+      ids.push(found.id);
+    } else {
+      const created = (await vapi.tools.create({
+        type: "function",
+        ...body,
+      } as never)) as { id: string };
+      ids.push(created.id);
+    }
+  }
+  return ids;
 }
 
 // Tells Vapi to extract structured data from every call. The property keys here
@@ -189,6 +223,9 @@ export async function createVapiAssistant(
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
+  const toolIds =
+    config.calendarType === "google_calendar" ? await ensureCalendarToolIds(vapi) : [];
+
   let assistantId: string;
   try {
     const assistant = await vapi.assistants.create({
@@ -197,7 +234,7 @@ export async function createVapiAssistant(
         provider: "openai",
         model: "gpt-4o",
         messages: [{ role: "system", content: systemPrompt }],
-        tools: buildCalendarTools(config),
+        toolIds,
       } as any,
       voice: { provider: "11labs", voiceId: "paula" } as any,
       firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
@@ -249,6 +286,9 @@ export async function updateVapiAssistant(
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
+  const toolIds =
+    config.calendarType === "google_calendar" ? await ensureCalendarToolIds(vapi) : [];
+
   await vapi.assistants.update({
     id: assistantId,
     name: `${config.businessName} AI Receptionist`,
@@ -256,7 +296,7 @@ export async function updateVapiAssistant(
       provider: "openai",
       model: "gpt-4o",
       messages: [{ role: "system", content: systemPrompt }],
-      tools: buildCalendarTools(config),
+      toolIds,
     } as any,
     firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
     analysisPlan: CALL_ANALYSIS_PLAN as any,

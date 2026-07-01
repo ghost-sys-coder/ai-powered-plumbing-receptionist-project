@@ -29,6 +29,10 @@ const US_TIMEZONES = [
   { value: "America/Los_Angeles", label: "Pacific Time" },
   { value: "America/Anchorage", label: "Alaska Time" },
   { value: "Pacific/Honolulu", label: "Hawaii Time" },
+  { value: "Africa/Kampala", label: "East Africa Time (Kampala)" },
+  { value: "Africa/Nairobi", label: "East Africa Time (Nairobi)" },
+  { value: "Africa/Lagos", label: "West Africa Time (Lagos)" },
+  { value: "Europe/London", label: "UK Time (London)" },
 ];
 
 const SAMPLE_JSON = `{

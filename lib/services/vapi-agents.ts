@@ -5,6 +5,7 @@ import { vapiAgents, customers } from "@/db/schema";
 export type AgentLookup = {
     id: string;
     customerId: string;
+    calendarType: "google_calendar" | "manual";
 };
 
 export type AgentBookingContext = {
@@ -51,7 +52,11 @@ export async function getAgentByVapiAssistantId(
     }
 
     const rows = await db
-        .select({ id: vapiAgents.id, customerId: vapiAgents.customerId })
+        .select({
+            id: vapiAgents.id,
+            customerId: vapiAgents.customerId,
+            calendarType: vapiAgents.calendarType,
+        })
         .from(vapiAgents)
         .where(eq(vapiAgents.vapiAssistantId, vapiAssistantId))
         .limit(1);

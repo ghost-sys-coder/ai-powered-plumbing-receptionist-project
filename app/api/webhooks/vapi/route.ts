@@ -121,7 +121,16 @@ export async function POST(request: Request): Promise<Response> {
                     audioUrl: message?.artifact?.recordingUrl ?? null,
                     structured: extracted,
                 });
-                if (finalized && finalized.outcome === "booked") {
+                // For Google-Calendar customers, book_appointment is the sole
+                // source of truth (it creates the real calendar event). Creating a
+                // booking here from the transcript would produce phantom rows with
+                // no calendar event when the caller hangs up mid-booking. Only the
+                // manual flow records bookings from the end-of-call outcome.
+                if (
+                    finalized &&
+                    finalized.outcome === "booked" &&
+                    agent.calendarType !== "google_calendar"
+                ) {
                     await createBookingFromCall({
                         callId: finalized.callId,
                         customerId: finalized.customerId,

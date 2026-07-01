@@ -42,10 +42,33 @@ export type GetAvailableSlotsInput = {
   timezone: string;
   businessHours: unknown;
   fromDate?: Date;
+  preferredTime?: string | null; // e.g. "2 PM", "afternoon", "14:00"
 };
 
 function parseBusinessHours(value: unknown): BusinessHours {
   return value && typeof value === "object" ? (value as BusinessHours) : {};
+}
+
+// Maps a spoken time preference to minutes-from-midnight, or null. Handles
+// periods ("morning"/"afternoon"/"evening") and clock times ("2 PM", "14:00").
+export function parseTimeOfDay(text: string | null | undefined): number | null {
+  if (!text) return null;
+  const t = text.trim().toLowerCase();
+  if (t.includes("morning")) return 9 * 60;
+  if (t.includes("noon") || t.includes("midday")) return 12 * 60;
+  if (t.includes("afternoon")) return 14 * 60;
+  if (t.includes("evening") || t.includes("night")) return 17 * 60;
+
+  const m = /(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/.exec(t);
+  if (m) {
+    let hour = Number(m[1]);
+    const minute = Number(m[2] ?? "0");
+    const ap = m[3]?.replace(/\./g, "");
+    if (ap === "pm" && hour < 12) hour += 12;
+    if (ap === "am" && hour === 12) hour = 0;
+    if (hour <= 23 && minute <= 59) return hour * 60 + minute;
+  }
+  return null;
 }
 
 // Maps a caller's spoken preference ("Thursday", "tomorrow", "next week") to a
@@ -60,17 +83,21 @@ export function parsePreferredDate(
 
   if (t.includes("today")) return today.toJSDate();
   if (t.includes("tomorrow")) return today.plus({ days: 1 }).toJSDate();
-  if (t.includes("next week")) return today.plus({ days: 7 }).toJSDate();
 
+  // A weekday name takes priority over "next week", so "Monday next week" and
+  // "next Monday" resolve to a Monday (not 7 days from today).
   // luxon weekday: Monday=1 … Sunday=7
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   for (let i = 0; i < days.length; i++) {
     if (t.includes(days[i])) {
       const target = i + 1;
-      const diff = (target - today.weekday + 7) % 7;
+      let diff = (target - today.weekday + 7) % 7;
+      if (diff === 0) diff = 7; // bare weekday matching today → the next occurrence
       return today.plus({ days: diff }).toJSDate();
     }
   }
+
+  if (t.includes("next week")) return today.plus({ days: 7 }).toJSDate();
   return undefined;
 }
 
@@ -175,10 +202,15 @@ export async function getAvailableSlots(
     ]);
     const busy = [...googleBusy, ...dbBusy];
 
-    const slots: TimeSlot[] = [];
+    const targetMin = parseTimeOfDay(input.preferredTime);
+
+    // Collect every open candidate, tagged with its day offset and minute-of-day
+    // so we can rank them: soonest day first, and — when the caller stated a
+    // preferred time — closest to that time within each day.
+    type Candidate = { slot: TimeSlot; dayOffset: number; minOfDay: number };
+    const candidates: Candidate[] = [];
 
     for (let dayOffset = 0; dayOffset < BOOKING_WINDOW_DAYS; dayOffset++) {
-      if (slots.length >= MAX_SLOTS) break;
       const day = now.plus({ days: dayOffset }).startOf("day");
       const dayHours = hours[DAY_NAMES[day.weekday % 7]];
       if (!dayHours || dayHours.closed) continue;
@@ -191,29 +223,42 @@ export async function getAvailableSlots(
       const dayClose = day.set({ hour: close.hour, minute: close.minute });
 
       while (cursor.plus({ minutes: input.durationMinutes }) <= dayClose) {
-        if (slots.length >= MAX_SLOTS) break;
-
         const slotStart = cursor;
         const slotEnd = cursor.plus({ minutes: input.durationMinutes });
         const slotEndWithBuffer = slotEnd.plus({ minutes: input.bufferMinutes });
 
         const tooSoon = slotStart < earliest;
         if (!tooSoon && !overlapsBusy(slotStart, slotEndWithBuffer, busy)) {
-          slots.push({
-            start: slotStart.toJSDate(),
-            end: slotEnd.toJSDate(),
-            startIso: slotStart.toISO() ?? slotStart.toJSDate().toISOString(),
-            label: `${slotStart.toFormat("cccc, LLLL d")}, ${slotStart.toFormat(
-              "h:mm a"
-            )} – ${slotEnd.toFormat("h:mm a")}`,
+          candidates.push({
+            dayOffset,
+            minOfDay: slotStart.hour * 60 + slotStart.minute,
+            slot: {
+              start: slotStart.toJSDate(),
+              end: slotEnd.toJSDate(),
+              startIso: slotStart.toISO() ?? slotStart.toJSDate().toISOString(),
+              label: `${slotStart.toFormat("cccc, LLLL d")}, ${slotStart.toFormat(
+                "h:mm a"
+              )} – ${slotEnd.toFormat("h:mm a")}`,
+            },
           });
         }
 
         cursor = cursor.plus({ minutes: SLOT_INCREMENT_MINUTES });
       }
+
+      // Once we have enough candidates on/after the requested day to rank, stop.
+      if (candidates.length >= 40) break;
     }
 
-    return slots;
+    candidates.sort((a, b) => {
+      if (a.dayOffset !== b.dayOffset) return a.dayOffset - b.dayOffset;
+      if (targetMin != null) {
+        return Math.abs(a.minOfDay - targetMin) - Math.abs(b.minOfDay - targetMin);
+      }
+      return a.minOfDay - b.minOfDay;
+    });
+
+    return candidates.slice(0, MAX_SLOTS).map((c) => c.slot);
   } catch (err) {
     console.error("[calendar-availability] getAvailableSlots failed", err);
     return [];

@@ -306,10 +306,11 @@ Vapi tool-call payload:
 }
 ```
 
-Vapi expects:
+Vapi expects (`name` — the function name — is REQUIRED alongside `toolCallId`;
+without it Vapi can't match the result to the call and the model never sees it):
 
 ```json
-{ "results": [{ "toolCallId": "call_abc123", "result": "text the AI reads" }] }
+{ "results": [{ "toolCallId": "call_abc123", "name": "check_availability", "result": "text the AI reads" }] }
 ```
 
 ### Shared agent lookup
@@ -412,6 +413,16 @@ hours to confirm your appointment."
 ---
 
 ## Task 7: Vapi assistant tool configuration (code-driven)
+
+> **Implementation note (important):** use **persistent Vapi Tool objects + `model.toolIds`**,
+> NOT inline transient `model.tools`. Inline tools do not appear in the Vapi
+> dashboard and proved unreliable — the model would not consistently call them.
+> `ensureCalendarToolIds()` upserts the two function tools in the account (create
+> if missing, update the server URL if present — idempotent, keyed by function
+> name) and returns their ids; `createVapiAssistant`/`updateVapiAssistant` set
+> `model.toolIds` to those ids (empty array for `manual`). On ngrok rotation, a
+> re-sync refreshes the tools' server URLs in place — assistants keep the same ids.
+> Note: `type: "function"` is required on tool **create** but rejected on **update**.
 
 Attach the tools in **both** `createVapiAssistant()` and `updateVapiAssistant()`
 in `lib/services/vapi-provisioning.ts`, conditional on `calendarType`. Both functions
