@@ -44,3 +44,14 @@ export const urgencyLevelEnum = pgEnum("urgency_level", [
   "routine",
   "unknown",
 ]);
+
+export const bookingStatusEnum = pgEnum("booking_status", [
+  "confirmed",
+  "pending",
+  "cancelled",
+]);
+
+export const calendarTypeEnum = pgEnum("calendar_type", [
+  "google_calendar",
+  "manual",
+]);

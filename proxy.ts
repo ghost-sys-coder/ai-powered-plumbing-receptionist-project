@@ -5,6 +5,7 @@ const isProtected = createRouteMatcher(["/admin(.*)", "/dashboard(.*)"]);
 const isPublic = createRouteMatcher([
     "/api/webhooks/clerk",
     "/api/webhooks/vapi",
+    "/api/vapi/tools/(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

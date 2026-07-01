@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 import {
     createCall,
     extractStructuredData,
@@ -11,6 +9,7 @@ import {
 } from "@/lib/services/calls";
 import { createBookingFromCall } from "@/lib/services/bookings";
 import { getAgentByVapiAssistantId } from "@/lib/services/vapi-agents";
+import { checkVapiSignature } from "@/lib/vapi/verify-signature";
 
 type VapiMessage = {
     type?: string;
@@ -41,30 +40,11 @@ type VapiWebhookPayload = {
     message?: VapiMessage;
 };
 
-function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
-    if (!signature) return false;
-    const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-    const provided = signature.startsWith("sha256=") ? signature.slice(7) : signature;
-    if (provided.length !== expected.length) return false;
-    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
-}
-
 export async function POST(request: Request): Promise<Response> {
     const rawBody = await request.text();
 
-    const skipVerify = process.env.SKIP_VAPI_SIGNATURE_VERIFY === "true";
-    if (!skipVerify) {
-        const secret = process.env.VAPI_WEBHOOK_SECRET;
-        if (!secret) {
-            console.error("[vapi-webhook] VAPI_WEBHOOK_SECRET is not set");
-            return new Response("Webhook secret not configured", { status: 500 });
-        }
-        const signature = request.headers.get("x-vapi-signature");
-        if (!verifySignature(rawBody, signature, secret)) {
-            console.warn("[vapi-webhook] signature verification failed");
-            return new Response("Invalid signature", { status: 400 });
-        }
-    }
+    const unauthorized = checkVapiSignature(request, rawBody);
+    if (unauthorized) return unauthorized;
 
     let payload: VapiWebhookPayload;
     try {

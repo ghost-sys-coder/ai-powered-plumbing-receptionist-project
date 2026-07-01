@@ -46,7 +46,17 @@ export async function POST(req: NextRequest) {
     pricing,
     plan,
     stripeCustomerId,
+    calendarType,
+    calendarId,
+    appointmentDurationMinutes,
+    appointmentBufferMinutes,
   } = body;
+
+  const resolvedCalendarType = calendarType === "manual" ? "manual" : "google_calendar";
+  const durationMinutes = Number(appointmentDurationMinutes) || 120;
+  const bufferMinutes = Number.isFinite(Number(appointmentBufferMinutes))
+    ? Number(appointmentBufferMinutes)
+    : 30;
 
   if (!businessName || !ownerName || !email || !emergencyDefinition) {
     return NextResponse.json(
@@ -107,6 +117,8 @@ export async function POST(req: NextRequest) {
     ownerName,
     serviceArea: serviceArea ?? "",
     timezone: timezone ?? "America/New_York",
+    calendarType: resolvedCalendarType,
+    appointmentDurationMinutes: durationMinutes,
     servicesOffered: servicesOffered ?? [],
     pricing: pricing ?? {},
     emergencyDefinition,
@@ -177,6 +189,10 @@ export async function POST(req: NextRequest) {
       businessHours: businessHours ?? null,
       emergencyDefinition,
       ownerName,
+      calendarType: resolvedCalendarType,
+      calendarId: calendarId || null,
+      appointmentDurationMinutes: durationMinutes,
+      appointmentBufferMinutes: bufferMinutes,
     });
 
     await db

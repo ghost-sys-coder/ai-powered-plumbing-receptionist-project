@@ -1,5 +1,6 @@
 import { pgTable, uuid, text, timestamp, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { bookingStatusEnum } from "./enums";
 import { calls } from "./calls";
 import { customers } from "./customers";
 
@@ -18,6 +19,7 @@ export const bookings = pgTable(
       .references(() => customers.id),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     calendarEventId: text("calendar_event_id"),
+    status: bookingStatusEnum("status").notNull().default("confirmed"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

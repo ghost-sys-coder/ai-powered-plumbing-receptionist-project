@@ -13,6 +13,8 @@ export interface ProvisioningConfig {
   ownerName: string;
   serviceArea: string;
   timezone: string;
+  calendarType: "google_calendar" | "manual";
+  appointmentDurationMinutes: number;
   servicesOffered: Array<{ name: string; price?: string }>;
   pricing: {
     serviceCallFee?: string;
@@ -22,6 +24,61 @@ export interface ProvisioningConfig {
   };
   emergencyDefinition: string;
   businessHours: Record<string, { open?: string; close?: string; closed?: boolean }>;
+}
+
+// The check_availability / book_appointment function tools, attached only when
+// the customer books via Google Calendar. Vapi POSTs tool calls to these URLs
+// mid-conversation and feeds the result back to the model.
+function buildCalendarTools(config: ProvisioningConfig): unknown[] {
+  if (config.calendarType !== "google_calendar") return [];
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+
+  return [
+    {
+      type: "function",
+      function: {
+        name: "check_availability",
+        description:
+          "Check available appointment slots for the plumbing business. Use when a caller wants to book an appointment.",
+        parameters: {
+          type: "object",
+          properties: {
+            preferred_date: {
+              type: "string",
+              description:
+                "The caller's preferred date or period, e.g. 'Thursday', 'tomorrow', 'next week', 'morning'.",
+            },
+          },
+          required: [],
+        },
+      },
+      server: { url: `${appUrl}/api/vapi/tools/check-availability` },
+    },
+    {
+      type: "function",
+      function: {
+        name: "book_appointment",
+        description:
+          "Book a confirmed appointment slot. Only call after the caller has explicitly agreed to a specific time.",
+        parameters: {
+          type: "object",
+          properties: {
+            slot_start: {
+              type: "string",
+              description:
+                "The chosen slot start — the exact ISO 8601 value returned by check_availability. Do not reformat it.",
+            },
+            caller_name: { type: "string", description: "The caller's full name" },
+            caller_phone: { type: "string", description: "The caller's phone number" },
+            issue_summary: { type: "string", description: "Brief description of the issue" },
+            service_address: { type: "string", description: "Address where the work is needed" },
+          },
+          required: ["slot_start"],
+        },
+      },
+      server: { url: `${appUrl}/api/vapi/tools/book-appointment` },
+    },
+  ];
 }
 
 // Tells Vapi to extract structured data from every call. The property keys here
@@ -140,6 +197,7 @@ export async function createVapiAssistant(
         provider: "openai",
         model: "gpt-4o",
         messages: [{ role: "system", content: systemPrompt }],
+        tools: buildCalendarTools(config),
       } as any,
       voice: { provider: "11labs", voiceId: "paula" } as any,
       firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
@@ -198,6 +256,7 @@ export async function updateVapiAssistant(
       provider: "openai",
       model: "gpt-4o",
       messages: [{ role: "system", content: systemPrompt }],
+      tools: buildCalendarTools(config),
     } as any,
     firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
     analysisPlan: CALL_ANALYSIS_PLAN as any,

@@ -71,6 +71,35 @@ export async function createCall(input: CreateCallInput): Promise<void> {
     }
 }
 
+// Returns the internal calls.id for a vapiCallId, creating the row on demand if
+// it doesn't exist yet (e.g. a booking tool fires mid-call before the call row
+// has otherwise been created). Needed because bookings.call_id is NOT NULL.
+export async function resolveOrCreateCallId(
+    vapiCallId: string,
+    fallback: CreateCallInput
+): Promise<string> {
+    const existing = await db
+        .select({ id: calls.id })
+        .from(calls)
+        .where(eq(calls.vapiCallId, vapiCallId))
+        .limit(1);
+
+    if (existing.length > 0) return existing[0].id;
+
+    await createCall(fallback);
+
+    const [row] = await db
+        .select({ id: calls.id })
+        .from(calls)
+        .where(eq(calls.vapiCallId, vapiCallId))
+        .limit(1);
+
+    if (!row) {
+        throw new Error(`resolveOrCreateCallId: failed to resolve call ${vapiCallId}`);
+    }
+    return row.id;
+}
+
 export async function updateCallTranscript(
     vapiCallId: string,
     chunk: string,

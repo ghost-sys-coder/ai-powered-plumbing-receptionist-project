@@ -23,6 +23,26 @@ function parseBookingTime(value: string | null): { scheduledAt: Date | null; raw
     return { scheduledAt: d, raw: null };
 }
 
+// Records a pending booking when direct calendar booking failed mid-call, so the
+// preferred time isn't lost. Idempotent on call_id.
+export async function createPendingBooking(input: {
+    callId: string;
+    customerId: string;
+    scheduledAt: Date | null;
+    notes: string | null;
+}): Promise<void> {
+    await db
+        .insert(bookings)
+        .values({
+            callId: input.callId,
+            customerId: input.customerId,
+            scheduledAt: input.scheduledAt,
+            status: "pending",
+            notes: input.notes,
+        })
+        .onConflictDoNothing({ target: bookings.callId });
+}
+
 export async function createBookingFromCall(
     input: CreateBookingFromCallInput
 ): Promise<void> {

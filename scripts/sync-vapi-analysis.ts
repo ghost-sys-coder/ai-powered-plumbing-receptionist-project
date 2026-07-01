@@ -42,6 +42,8 @@ async function run(): Promise<void> {
       pricingTable: vapiAgents.pricingTable,
       businessHours: vapiAgents.businessHours,
       emergencyDefinition: vapiAgents.emergencyDefinition,
+      calendarType: vapiAgents.calendarType,
+      appointmentDurationMinutes: vapiAgents.appointmentDurationMinutes,
       businessName: customers.businessName,
       ownerNameCustomer: customers.ownerName,
       serviceArea: customers.serviceArea,
@@ -76,6 +78,8 @@ async function run(): Promise<void> {
         ownerName: r.ownerNameAgent ?? r.ownerNameCustomer,
         serviceArea: r.serviceArea ?? "",
         timezone: r.timezone ?? "America/New_York",
+        calendarType: r.calendarType,
+        appointmentDurationMinutes: r.appointmentDurationMinutes,
         servicesOffered:
           (r.servicesOffered as ProvisioningConfig["servicesOffered"]) ?? [],
         pricing: (r.pricingTable as ProvisioningConfig["pricing"]) ?? {},

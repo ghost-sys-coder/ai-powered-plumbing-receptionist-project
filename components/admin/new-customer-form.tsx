@@ -57,6 +57,10 @@ const SAMPLE_JSON = `{
   "serviceArea": "Greater Austin, TX and surrounding cities",
   "plan": "standard",
   "stripeCustomerId": "",
+  "calendarType": "google_calendar",
+  "calendarId": "",
+  "appointmentDurationMinutes": 120,
+  "appointmentBufferMinutes": 30,
   "emergencyDefinition": "Active water damage, burst pipe, sewage backup, or complete loss of water service. Gas line issues are emergencies — advise caller to call 911 first.",
   "businessHours": {
     "Monday":    { "open": "08:00", "close": "17:00", "closed": false },
@@ -125,6 +129,10 @@ export function NewCustomerForm() {
   const [freeEstimates, setFreeEstimates] = useState(false);
   const [plan, setPlan] = useState("standard");
   const [stripeCustomerId, setStripeCustomerId] = useState("");
+  const [calendarType, setCalendarType] = useState("google_calendar");
+  const [calendarId, setCalendarId] = useState("");
+  const [appointmentDuration, setAppointmentDuration] = useState("120");
+  const [appointmentBuffer, setAppointmentBuffer] = useState("30");
 
   function fillFromJson() {
     setJsonError(null);
@@ -151,6 +159,10 @@ export function NewCustomerForm() {
       }
       if (parsed.plan)                          setPlan(parsed.plan);
       if (parsed.stripeCustomerId !== undefined) setStripeCustomerId(parsed.stripeCustomerId ?? "");
+      if (parsed.calendarType)                  setCalendarType(parsed.calendarType);
+      if (parsed.calendarId !== undefined)      setCalendarId(parsed.calendarId ?? "");
+      if (parsed.appointmentDurationMinutes !== undefined) setAppointmentDuration(String(parsed.appointmentDurationMinutes));
+      if (parsed.appointmentBufferMinutes !== undefined)   setAppointmentBuffer(String(parsed.appointmentBufferMinutes));
 
       setJsonPanelOpen(false);
       setJsonInput("");
@@ -196,6 +208,10 @@ export function NewCustomerForm() {
           pricing: { serviceCallFee, hourlyRate, afterHoursSurcharge, freeEstimates },
           plan,
           stripeCustomerId: stripeCustomerId || undefined,
+          calendarType,
+          calendarId: calendarId || undefined,
+          appointmentDurationMinutes: Number(appointmentDuration) || 120,
+          appointmentBufferMinutes: Number(appointmentBuffer) || 30,
         }),
       });
 
@@ -502,6 +518,65 @@ export function NewCustomerForm() {
                 </Label>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Booking & calendar</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="calendarType">Calendar integration</Label>
+            <Select value={calendarType} onValueChange={setCalendarType}>
+              <SelectTrigger id="calendarType">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="google_calendar">Google Calendar (direct booking)</SelectItem>
+                <SelectItem value="manual">Manual scheduling (AI takes messages)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {calendarType === "google_calendar" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="calendarId">Calendar ID</Label>
+              <Input
+                id="calendarId"
+                value={calendarId}
+                onChange={(e) => setCalendarId(e.target.value)}
+                placeholder="abc123@group.calendar.google.com"
+              />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="appointmentDuration">Appointment duration (minutes)</Label>
+            <Input
+              id="appointmentDuration"
+              type="number"
+              min={30}
+              max={480}
+              step={30}
+              value={appointmentDuration}
+              onChange={(e) => setAppointmentDuration(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              How long to block on the calendar per booking.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="appointmentBuffer">Buffer time between appointments (minutes)</Label>
+            <Input
+              id="appointmentBuffer"
+              type="number"
+              min={0}
+              max={120}
+              step={15}
+              value={appointmentBuffer}
+              onChange={(e) => setAppointmentBuffer(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Travel/prep time between jobs.</p>
           </div>
         </CardContent>
       </Card>

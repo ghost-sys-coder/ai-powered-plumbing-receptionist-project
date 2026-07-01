@@ -65,9 +65,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Customer not found" }, { status: 404 });
   }
 
-  // Update agent row
+  // Update agent row. Calendar settings are managed by the agent-config PATCH
+  // route, so they're read here (not overwritten) to keep the assistant in sync.
   const [agent] = await db
-    .select({ vapiAssistantId: vapiAgents.vapiAssistantId })
+    .select({
+      vapiAssistantId: vapiAgents.vapiAssistantId,
+      calendarType: vapiAgents.calendarType,
+      appointmentDurationMinutes: vapiAgents.appointmentDurationMinutes,
+    })
     .from(vapiAgents)
     .where(eq(vapiAgents.customerId, id))
     .limit(1);
@@ -92,6 +97,8 @@ export async function PATCH(
           ownerName,
           serviceArea: serviceArea ?? "",
           timezone: timezone ?? "America/New_York",
+          calendarType: agent.calendarType,
+          appointmentDurationMinutes: agent.appointmentDurationMinutes,
           servicesOffered: servicesOffered ?? [],
           pricing: pricing ?? {},
           emergencyDefinition,

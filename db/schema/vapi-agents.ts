@@ -1,6 +1,6 @@
-import { pgTable, uuid, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb, integer, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { vapiAgentStatusEnum, phoneNumberSourceEnum } from "./enums";
+import { vapiAgentStatusEnum, phoneNumberSourceEnum, calendarTypeEnum } from "./enums";
 import { customers } from "./customers";
 
 export const vapiAgents = pgTable(
@@ -25,6 +25,15 @@ export const vapiAgents = pgTable(
     emergencyDefinition: text("emergency_definition"),
     ownerName: text("owner_name"),
     calendarId: text("calendar_id"),
+    calendarType: calendarTypeEnum("calendar_type")
+      .notNull()
+      .default("google_calendar"),
+    appointmentDurationMinutes: integer("appointment_duration_minutes")
+      .notNull()
+      .default(120),
+    appointmentBufferMinutes: integer("appointment_buffer_minutes")
+      .notNull()
+      .default(30),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
