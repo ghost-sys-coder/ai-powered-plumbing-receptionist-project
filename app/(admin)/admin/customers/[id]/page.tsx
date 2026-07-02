@@ -90,7 +90,7 @@ const CustomerDetailPage = async ({ params }: Props) => {
 
       <div className="grid gap-4 md:grid-cols-2">
         <CustomerRecentCalls calls={recentCalls} customerId={customer.id} />
-        <CustomerBookings bookings={upcomingBookings} />
+        <CustomerBookings bookings={upcomingBookings} timezone={customer.timezone} />
       </div>
     </div>
   );

@@ -305,6 +305,38 @@ export async function updateVapiAssistant(
   await verifyAnalysisPlan(vapi, assistantId);
 }
 
+// Tears down a customer's Vapi resources when the customer is deleted. Releases
+// the phone number first (it points at the assistant), then deletes the
+// assistant. Each step is non-fatal so a Vapi hiccup never blocks DB cleanup.
+// Deliberately does NOT delete the calendar tools — those are shared across all
+// assistants and referenced by other customers via toolIds.
+export async function deleteVapiResources(opts: {
+  vapiAssistantId?: string | null;
+  vapiPhoneNumberId?: string | null;
+}): Promise<void> {
+  const vapi = getVapi();
+
+  if (opts.vapiPhoneNumberId) {
+    try {
+      await vapi.phoneNumbers.delete({ id: opts.vapiPhoneNumberId });
+    } catch (err) {
+      console.warn(
+        `[delete-vapi] phone number ${opts.vapiPhoneNumberId} delete failed — ${extractVapiError(err)}`
+      );
+    }
+  }
+
+  if (opts.vapiAssistantId) {
+    try {
+      await vapi.assistants.delete({ id: opts.vapiAssistantId });
+    } catch (err) {
+      console.warn(
+        `[delete-vapi] assistant ${opts.vapiAssistantId} delete failed — ${extractVapiError(err)}`
+      );
+    }
+  }
+}
+
 // Fetches the phone number currently attached to the assistant straight from
 // Vapi (the source of truth), rather than the copy stored in our DB. Looks up by
 // phone-number id first, then falls back to scanning the account's numbers for

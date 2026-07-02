@@ -6,6 +6,7 @@ import { eq, inArray } from "drizzle-orm";
 import { clerkClient } from "@clerk/nextjs/server";
 import {
   updateVapiAssistant,
+  deleteVapiResources,
   type ProvisioningConfig,
 } from "@/lib/services/vapi-provisioning";
 
@@ -149,7 +150,25 @@ export async function DELETE(
     await db.delete(users).where(eq(users.customerId, id));
   }
 
-  // 2. Delete bookings before calls (FK: bookings.call_id → calls.id)
+  // 2. Tear down the customer's Vapi resources (assistant + phone number) before
+  //    dropping the DB rows, so nothing is orphaned in the Vapi account. Non-fatal.
+  const [agent] = await db
+    .select({
+      vapiAssistantId: vapiAgents.vapiAssistantId,
+      vapiPhoneNumberId: vapiAgents.vapiPhoneNumberId,
+    })
+    .from(vapiAgents)
+    .where(eq(vapiAgents.customerId, id))
+    .limit(1);
+
+  if (agent) {
+    await deleteVapiResources({
+      vapiAssistantId: agent.vapiAssistantId,
+      vapiPhoneNumberId: agent.vapiPhoneNumberId,
+    });
+  }
+
+  // 3. Delete bookings before calls (FK: bookings.call_id → calls.id)
   const customerCalls = await db
     .select({ id: calls.id })
     .from(calls)
@@ -160,7 +179,7 @@ export async function DELETE(
     await db.delete(bookings).where(inArray(bookings.callId, callIds));
   }
 
-  // 3. calls → vapiAgents → customer (pending_invites cascade automatically)
+  // 4. calls → vapiAgents → customer (pending_invites cascade automatically)
   await db.delete(calls).where(eq(calls.customerId, id));
   await db.delete(vapiAgents).where(eq(vapiAgents.customerId, id));
   await db.delete(customers).where(eq(customers.id, id));
