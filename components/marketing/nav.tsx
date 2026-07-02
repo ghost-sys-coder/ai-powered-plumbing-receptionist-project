@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { useUser } from "@clerk/nextjs";
+import Calcom from "./calcom";
 
 export function Nav() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -60,9 +61,7 @@ export function Nav() {
                 {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "Dashboard"}
               </Link>
             ) : (
-              <Link href={bookingUrl} target="_blank" rel="noopener noreferrer">
-                Book a call
-              </Link>
+              <Calcom className="bg-[#2563EB] text-white hover:bg-[#1d4ed8] px-2 py-2 rounded-md shadow-lg" />  
             )}
           </Button>)}
       </div>

@@ -52,7 +52,7 @@ export function Hero() {
               variant="outline"
               className="border-white bg-transparent px-8 text-base font-semibold text-white hover:bg-white hover:text-black"
             >
-              <Link href={dashboardUrl} target="_blank" rel="noopener noreferrer">
+              <Link href={dashboardUrl}>
                 {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "User Dashboard"}
               </Link>
             </Button>
