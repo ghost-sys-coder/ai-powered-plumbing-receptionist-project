@@ -1,8 +1,14 @@
+"use client";
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import Calcom from "./calcom";
+import { Skeleton } from "../ui/skeleton";
 
 export function Hero() {
+  const { isLoaded, isSignedIn, user } = useUser();
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_NUMBER ?? "+15717438660";
-  const bookingUrl = process.env.NEXT_PUBLIC_BOOKING_URL ?? "#";
+  const dashboardUrl = user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard";
   const telLink = `tel:${demoNumber.replace(/\s/g, "")}`;
   const displayNumber = demoNumber;
 
@@ -20,7 +26,7 @@ export function Hero() {
         className="animate-hero-fade-up mt-6 max-w-xl text-base leading-relaxed sm:text-lg"
         style={{ color: "#A1A1AA", animationDelay: "150ms" }}
       >
-        We built an AI receptionist that answers every call, triages emergencies,
+        An AI receptionist that answers every call, triages emergencies,
         and books jobs on your calendar.
         <br />
         Done-for-you in 48 hours. $250/month.
@@ -38,16 +44,21 @@ export function Hero() {
           <a href={telLink}>Call the demo — hear it yourself</a>
         </Button>
 
-        <Button
-          asChild
-          size="lg"
-          variant="outline"
-          className="border-white bg-transparent px-8 text-base font-semibold text-white hover:bg-white hover:text-black"
-        >
-          <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
-            Book a setup call
-          </a>
-        </Button>
+        {!isLoaded ? (<Skeleton className="w-full rounded-md bg-gray-600" />)
+          : isSignedIn ? (
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="border-white bg-transparent px-8 text-base font-semibold text-white hover:bg-white hover:text-black"
+            >
+              <Link href={dashboardUrl} target="_blank" rel="noopener noreferrer">
+                {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "User Dashboard"}
+              </Link>
+            </Button>
+          ) : (
+            <Calcom className="w-full bg-[#2563EB] text-white hover:bg-[#1d4ed8] px-2 py-2 rounded-md shadow-lg" />
+          )}
       </div>
 
       <p

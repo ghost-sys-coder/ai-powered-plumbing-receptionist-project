@@ -1,7 +1,13 @@
+"use client";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import Calcom from "./calcom";
+import Link from "next/link";
+import { Skeleton } from "../ui/skeleton";
 
 export function Pricing() {
-  const bookingUrl = process.env.NEXT_PUBLIC_BOOKING_URL ?? "#";
+  const { isLoaded, isSignedIn, user } = useUser();
+  const dashboardUrl = user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard";
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_NUMBER ?? "+15717438660";
 
   return (
@@ -52,14 +58,20 @@ export function Pricing() {
             </ul>
 
             <div className="mt-8">
-              <Button
-                asChild
-                className="w-full bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
-              >
-                <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
-                  Book a setup call
-                </a>
-              </Button>
+              {!isLoaded ? (<Skeleton className="h-8 w-32 rounded-md w-full bg-blue-100" />)
+                : isSignedIn ? (
+                  <Button
+                    asChild
+                    className="w-full bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
+                  >
+                    <Link href={dashboardUrl}>
+                      {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "Dashboard"}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Calcom className="w-full bg-[#2563EB] text-white hover:bg-[#1d4ed8] px-2 py-2 rounded-md shadow-lg" />
+                )}
+
             </div>
           </div>
         </div>

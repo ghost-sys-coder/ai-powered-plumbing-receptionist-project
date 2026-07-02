@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@calcom/embed-react": "^1.5.3",
     "@clerk/nextjs": "^7.5.7",
     "@googleapis/calendar": "^15.0.0",
     "@neondatabase/serverless": "^1.1.0",
