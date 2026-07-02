@@ -8,7 +8,7 @@ import {
 import { CallsTableRow } from "@/components/calls/calls-table-row";
 import type { Call } from "@/db/schema/calls";
 
-export function CallsTable({ calls }: { calls: Call[] }) {
+export function CallsTable({ calls, timezone }: { calls: Call[]; timezone: string }) {
   if (calls.length === 0) {
     return (
       <div className="rounded-lg border py-16 text-center">
@@ -32,7 +32,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
         </TableHeader>
         <TableBody>
           {calls.map((call) => (
-            <CallsTableRow key={call.id} call={call} />
+            <CallsTableRow key={call.id} call={call} timezone={timezone} />
           ))}
         </TableBody>
       </Table>

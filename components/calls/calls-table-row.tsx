@@ -6,19 +6,9 @@ import { OutcomeBadge } from "@/components/calls/outcome-badge";
 import { UrgencyBadge } from "@/components/calls/urgency-badge";
 import { CallDuration } from "@/components/calls/call-duration";
 import type { Call } from "@/db/schema/calls";
+import { formatDateTimeShort } from "@/lib/format-time";
 
-function formatCallTime(date: Date): string {
-  return date.toLocaleString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-export function CallsTableRow({ call }: { call: Call }) {
+export function CallsTableRow({ call, timezone }: { call: Call; timezone: string }) {
   const router = useRouter();
 
   return (
@@ -27,12 +17,12 @@ export function CallsTableRow({ call }: { call: Call }) {
       onClick={() => router.push(`/dashboard/calls/${call.id}`)}
     >
       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-        {formatCallTime(call.startedAt)}
+        {formatDateTimeShort(call.startedAt, timezone)}
       </TableCell>
       <TableCell className="font-medium">
         {call.callerName ?? call.callerPhone ?? "Unknown"}
       </TableCell>
-      <TableCell className="max-w-[240px]">
+      <TableCell className="max-w-60">
         <span className="line-clamp-1 text-sm text-muted-foreground">
           {call.issueSummary
             ? call.issueSummary.slice(0, 60) + (call.issueSummary.length > 60 ? "…" : "")

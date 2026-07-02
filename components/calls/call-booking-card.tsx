@@ -1,20 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Booking } from "@/db/schema/bookings";
+import { formatDateTimeFull } from "@/lib/format-time";
 
-function formatDateTime(date: Date | null): string {
-  if (!date) return "Time TBD";
-  return date.toLocaleString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-export function CallBookingCard({ booking }: { booking: Booking }) {
+export function CallBookingCard({
+  booking,
+  timezone,
+}: {
+  booking: Booking;
+  timezone: string;
+}) {
   return (
     <Card className="border-blue-200 dark:border-blue-900">
       <CardHeader>
@@ -25,7 +19,11 @@ export function CallBookingCard({ booking }: { booking: Booking }) {
       <CardContent className="space-y-2 text-sm">
         <div>
           <span className="text-muted-foreground">Scheduled</span>
-          <p className="mt-0.5 font-medium">{formatDateTime(booking.scheduledAt)}</p>
+          <p className="mt-0.5 font-medium">
+            {booking.scheduledAt
+              ? formatDateTimeFull(booking.scheduledAt, timezone)
+              : "Time TBD"}
+          </p>
         </div>
         {booking.calendarEventId && (
           <div className="flex justify-between gap-2">

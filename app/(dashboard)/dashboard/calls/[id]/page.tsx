@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getCustomerId } from "@/lib/auth/get-customer-id";
+import { getCustomerContext } from "@/lib/auth/get-customer-id";
 import { getCallWithBooking } from "@/lib/services/dashboard";
+import { formatDateTimeFull } from "@/lib/format-time";
 import { PageHeader } from "@/components/layout/page-header";
 import { CallTranscript } from "@/components/calls/call-transcript";
 import { CallSummaryCard } from "@/components/calls/call-summary-card";
@@ -15,8 +16,9 @@ interface Props {
 
 const CallDetailPage = async ({ params }: Props) => {
   const { id } = await params;
-  const customerId = await getCustomerId();
-  if (!customerId) redirect("/dashboard");
+  const ctx = await getCustomerContext();
+  if (!ctx) redirect("/dashboard");
+  const { customerId, timezone } = ctx;
 
   const result = await getCallWithBooking(customerId, id);
 
@@ -36,15 +38,7 @@ const CallDetailPage = async ({ params }: Props) => {
 
       <PageHeader
         title={caller}
-        description={call.startedAt.toLocaleString("en-US", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })}
+        description={formatDateTimeFull(call.startedAt, timezone)}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -53,7 +47,7 @@ const CallDetailPage = async ({ params }: Props) => {
             <CardHeader>
               <CardTitle className="text-base">Transcript</CardTitle>
             </CardHeader>
-            <CardContent className="max-h-[560px] overflow-y-auto">
+            <CardContent className="max-h-140 overflow-y-auto">
               <CallTranscript transcript={call.transcript} />
             </CardContent>
           </Card>
@@ -69,9 +63,9 @@ const CallDetailPage = async ({ params }: Props) => {
         </div>
 
         <div className="space-y-4">
-          <CallSummaryCard call={call} />
+          <CallSummaryCard call={call} timezone={timezone} />
           {booking && call.outcome === "booked" && (
-            <CallBookingCard booking={booking} />
+            <CallBookingCard booking={booking} timezone={timezone} />
           )}
         </div>
       </div>

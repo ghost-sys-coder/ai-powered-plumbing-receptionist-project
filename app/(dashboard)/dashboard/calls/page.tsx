@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getCustomerId } from "@/lib/auth/get-customer-id";
+import { getCustomerContext } from "@/lib/auth/get-customer-id";
 import { getCallsPage } from "@/lib/services/dashboard";
 import { PageHeader } from "@/components/layout/page-header";
 import { CallsTable } from "@/components/calls/calls-table";
@@ -18,8 +18,9 @@ interface Props {
 
 const CallsPage = async ({ searchParams }: Props) => {
   const params = await searchParams;
-  const customerId = await getCustomerId();
-  if (!customerId) redirect("/dashboard");
+  const ctx = await getCustomerContext();
+  if (!ctx) redirect("/dashboard");
+  const { customerId, timezone } = ctx;
 
   const { calls, total, page, pageCount } = await getCallsPage(customerId, {
     outcome: params.outcome,
@@ -45,7 +46,7 @@ const CallsPage = async ({ searchParams }: Props) => {
         <CallsFilterBar />
       </Suspense>
 
-      <CallsTable calls={calls} />
+      <CallsTable calls={calls} timezone={timezone} />
 
       {pageCount > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">

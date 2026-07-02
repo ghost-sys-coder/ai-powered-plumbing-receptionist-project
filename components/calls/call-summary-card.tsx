@@ -3,20 +3,9 @@ import { OutcomeBadge } from "@/components/calls/outcome-badge";
 import { UrgencyBadge } from "@/components/calls/urgency-badge";
 import { CallDuration } from "@/components/calls/call-duration";
 import type { Call } from "@/db/schema/calls";
+import { formatDateTimeFull } from "@/lib/format-time";
 
-function formatFullDate(date: Date): string {
-  return date.toLocaleString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-export function CallSummaryCard({ call }: { call: Call }) {
+export function CallSummaryCard({ call, timezone }: { call: Call; timezone: string }) {
   return (
     <Card>
       <CardHeader>
@@ -55,7 +44,7 @@ export function CallSummaryCard({ call }: { call: Call }) {
           </div>
           <div>
             <dt className="mb-0.5 text-muted-foreground">Time</dt>
-            <dd className="font-medium">{formatFullDate(call.startedAt)}</dd>
+            <dd className="font-medium">{formatDateTimeFull(call.startedAt, timezone)}</dd>
           </div>
         </dl>
       </CardContent>
