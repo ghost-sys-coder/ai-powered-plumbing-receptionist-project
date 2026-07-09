@@ -24,6 +24,7 @@ export function CallsTable({ calls, timezone }: { calls: Call[]; timezone: strin
           <TableRow>
             <TableHead>Time</TableHead>
             <TableHead>Caller</TableHead>
+            <TableHead>Phone</TableHead>
             <TableHead>Issue</TableHead>
             <TableHead>Urgency</TableHead>
             <TableHead>Outcome</TableHead>

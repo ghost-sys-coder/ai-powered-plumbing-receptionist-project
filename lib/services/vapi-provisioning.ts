@@ -150,7 +150,7 @@ const CALL_DATA_SCHEMA = {
     callback_number: {
       type: "string",
       description:
-        "The callback phone number the caller provided, digits only (e.g. '5805551234'). Empty string if not provided.",
+        "A callback number ONLY if the caller asked to be reached on a number different from the one they are calling from — digits only (e.g. '5805551234'). Leave empty if they want to be called back on the number they are calling from, or if no number was given.",
     },
     outcome: {
       type: "string",

@@ -19,9 +19,18 @@ export function CallSummaryCard({ call, timezone }: { call: Call; timezone: stri
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Caller</dt>
+            <dd className="text-right font-medium">{call.callerName ?? "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">Callback number</dt>
             <dd className="text-right font-medium">
-              {call.callerName ?? "—"}
-              {call.callerPhone ? ` · ${call.callerPhone}` : ""}
+              {call.callerPhone ? (
+                <a href={`tel:${call.callerPhone}`} className="hover:underline">
+                  {call.callerPhone}
+                </a>
+              ) : (
+                "—"
+              )}
             </dd>
           </div>
           {call.issueSummary && (

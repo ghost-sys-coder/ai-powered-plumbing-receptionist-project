@@ -16,26 +16,37 @@ export function CallsTableRow({ call, timezone }: { call: Call; timezone: string
       className="cursor-pointer hover:bg-accent/30"
       onClick={() => router.push(`/dashboard/calls/${call.id}`)}
     >
-      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+      <TableCell className="whitespace-nowrap align-top text-sm text-muted-foreground">
         {formatDateTimeShort(call.startedAt, timezone)}
       </TableCell>
-      <TableCell className="font-medium">
-        {call.callerName ?? call.callerPhone ?? "Unknown"}
+      <TableCell className="align-top font-medium">
+        {call.callerName ?? "Unknown"}
       </TableCell>
-      <TableCell className="max-w-60">
-        <span className="line-clamp-1 text-sm text-muted-foreground">
-          {call.issueSummary
-            ? call.issueSummary.slice(0, 60) + (call.issueSummary.length > 60 ? "…" : "")
-            : "—"}
+      <TableCell className="whitespace-nowrap align-top text-sm">
+        {call.callerPhone ? (
+          <a
+            href={`tel:${call.callerPhone}`}
+            onClick={(e) => e.stopPropagation()}
+            className="hover:underline"
+          >
+            {call.callerPhone}
+          </a>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="max-w-[12rem] align-top">
+        <span className="whitespace-normal break-words text-sm text-muted-foreground">
+          {call.issueSummary ?? "—"}
         </span>
       </TableCell>
-      <TableCell>
+      <TableCell className="align-top">
         <UrgencyBadge urgency={call.urgencyLevel} />
       </TableCell>
-      <TableCell>
+      <TableCell className="align-top">
         <OutcomeBadge outcome={call.outcome} />
       </TableCell>
-      <TableCell className="text-sm">
+      <TableCell className="whitespace-nowrap align-top text-sm">
         <CallDuration seconds={call.durationSeconds} />
       </TableCell>
     </TableRow>

@@ -275,9 +275,11 @@ export async function finalizeCall(input: FinalizeCallInput): Promise<FinalizedC
             callerName,
             issueSummary,
             serviceAddress,
-            // Prefer the real caller ID; fall back to the callback number the
-            // agent collected (web/test calls have no caller ID).
-            callerPhone: existing[0].callerPhone ?? callbackNumber,
+            // The number to reach the caller on: use the callback number when
+            // they asked to be reached on a different one; otherwise keep the
+            // caller ID Vapi captured (or, for web calls with no caller ID, the
+            // callback number is the only value we have).
+            callerPhone: callbackNumber ?? existing[0].callerPhone,
         })
         .where(eq(calls.vapiCallId, input.vapiCallId));
 
