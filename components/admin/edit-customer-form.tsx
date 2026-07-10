@@ -202,7 +202,10 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
       }
 
       setSuccess(true);
-      setTimeout(() => router.push(`/admin/customers/${customerId}`), 1200);
+      setTimeout(() => {
+        router.push(`/admin/customers/${customerId}`);
+        router.refresh(); // invalidate cached detail + list so edits show immediately
+      }, 1200);
     } catch {
       setError("Unexpected error. Please try again.");
     } finally {

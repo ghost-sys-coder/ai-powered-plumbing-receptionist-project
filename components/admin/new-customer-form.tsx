@@ -247,6 +247,7 @@ export function NewCustomerForm() {
 
       await new Promise((r) => setTimeout(r, 600));
       router.push(`/admin/customers/${data.customerId}`);
+      router.refresh(); // invalidate cached lists so the new customer appears
     } catch {
       setError("Unexpected error. Please try again.");
       setIsSubmitting(false);

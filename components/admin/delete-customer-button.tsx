@@ -43,6 +43,7 @@ export function DeleteCustomerButton({ customerId, businessName }: Props) {
       }
 
       router.push("/admin");
+      router.refresh(); // invalidate the cached list so the deleted row is gone
     } catch {
       setError("Network error — please try again");
       setDeleting(false);
