@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function MarketingV2Page() {
   return (
-    <div className="min-h-screen bg-[#0b1326] text-white selection:bg-[#0070f3] selection:text-white font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen selection:bg-[#0070f3] selection:text-white font-sans antialiased overflow-x-hidden" style={{ backgroundColor: "var(--v2-bg)", color: "var(--v2-text)" }}>
       <NavV2 />
       <main>
         <HeroV2 />

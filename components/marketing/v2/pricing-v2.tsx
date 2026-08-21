@@ -25,58 +25,84 @@ export function PricingV2() {
   ];
 
   return (
-    <section id="pricing" className="py-32 md:py-40 bg-[#0b1326] relative overflow-hidden">
+    <section id="pricing" className="py-32 md:py-40 relative overflow-hidden" style={{ backgroundColor: "var(--v2-bg)" }}>
       {/* Background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#0070f3]/10 rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[140px] pointer-events-none -z-10"
+        style={{ backgroundColor: "var(--v2-primary-glow)" }}
+      />
 
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold text-blue-300 mb-4">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-semibold mb-4"
+            style={{
+              border: `1px solid var(--v2-badge-blue-border)`,
+              backgroundColor: "var(--v2-badge-blue-bg)",
+              color: "var(--v2-badge-blue-text)",
+            }}
+          >
             <Sparkles className="h-3.5 w-3.5" />
             <span>Straightforward Pricing</span>
           </div>
 
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--v2-text)" }}>
             Simple, predictable pricing. No lock-in.
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg text-slate-400 leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg leading-relaxed" style={{ color: "var(--v2-text-muted)" }}>
             One extra booked water heater replacement covers your AI receptionist for an entire year.
           </p>
         </div>
 
         {/* Pricing Card */}
         <div className="mx-auto max-w-xl">
-          <div className="relative rounded-3xl border-2 border-[#0070f3] bg-[#0f172a] p-8 sm:p-10 shadow-2xl shadow-blue-500/10">
+          <div
+            className="relative rounded-3xl p-8 sm:p-10"
+            style={{
+              border: `2px solid var(--v2-primary)`,
+              backgroundColor: "var(--v2-bg-card)",
+              boxShadow: "var(--v2-shadow-elevated)",
+            }}
+          >
             {/* Top Badge */}
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-[#0070f3] px-4 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-md">
+            <div
+              className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full px-4 py-1 text-xs font-bold uppercase tracking-wider shadow-md"
+              style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}
+            >
               Most Popular · Plumber Pro Package
             </div>
 
             <div className="flex flex-col items-center text-center">
-              <span className="text-sm font-semibold uppercase tracking-widest text-blue-400">
+              <span className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--v2-primary)" }}>
                 Complete AI Receptionist
               </span>
 
               <div className="mt-4 flex items-baseline justify-center gap-2">
-                <span className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                <span className="text-4xl sm:text-5xl font-extrabold tracking-tight" style={{ color: "var(--v2-text)" }}>
                   $250
                 </span>
-                <span className="text-lg font-medium text-slate-400">/ month</span>
+                <span className="text-lg font-medium" style={{ color: "var(--v2-text-muted)" }}>/ month</span>
               </div>
 
-              <p className="mt-2 text-xs sm:text-sm font-medium text-slate-400">
+              <p className="mt-2 text-xs sm:text-sm font-medium" style={{ color: "var(--v2-text-muted)" }}>
                 +$2,500 one-time white-glove setup & custom training
               </p>
             </div>
 
             {/* Inclusions List */}
-            <div className="mt-8 border-t border-slate-800 pt-8">
+            <div className="mt-8 pt-8" style={{ borderTop: `1px solid var(--v2-border)` }}>
               <ul className="space-y-3.5">
                 {inclusions.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
-                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-blue-400 mt-0.5">
+                  <li key={item} className="flex items-start gap-3 text-sm" style={{ color: "var(--v2-text-secondary)" }}>
+                    <div
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full mt-0.5"
+                      style={{
+                        backgroundColor: "var(--v2-badge-blue-bg)",
+                        color: "var(--v2-primary)",
+                      }}
+                    >
                       <Check className="h-3.5 w-3.5" />
                     </div>
                     <span>{item}</span>
@@ -88,11 +114,12 @@ export function PricingV2() {
             {/* CTA Button */}
             <div className="mt-10">
               {!isLoaded ? (
-                <Skeleton className="h-12 w-full rounded-xl bg-slate-800" />
+                <Skeleton className="h-12 w-full rounded-xl" />
               ) : isSignedIn ? (
                 <Button
                   asChild
-                  className="w-full bg-[#0070f3] hover:bg-[#0058c3] text-white py-6 rounded-xl font-bold text-base shadow-lg shadow-blue-500/20"
+                  className="w-full py-6 rounded-xl font-bold text-base shadow-lg"
+                  style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}
                 >
                   <Link href={dashboardUrl} className="flex items-center justify-center gap-2">
                     <span>{user?.publicMetadata?.role === "admin" ? "Admin Console" : "Open Dashboard"}</span>
@@ -100,12 +127,14 @@ export function PricingV2() {
                   </Link>
                 </Button>
               ) : (
-                <Calcom className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#0070f3] py-3.5 text-base font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-[#0058c3] transition-all cursor-pointer" />
+                <Calcom
+                  className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-base font-bold shadow-lg transition-all cursor-pointer v2-btn-primary"
+                />
               )}
             </div>
 
-            <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate-400">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-xs" style={{ color: "var(--v2-text-muted)" }}>
+              <ShieldCheck className="h-4 w-4" style={{ color: "var(--v2-icon-emerald)" }} />
               <span>30-Day Money-Back Satisfaction Guarantee</span>
             </div>
           </div>
@@ -113,11 +142,12 @@ export function PricingV2() {
 
         {/* Call Demo Fallback */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm" style={{ color: "var(--v2-text-muted)" }}>
             Want to test the voice quality first?{" "}
             <a
               href={telLink}
-              className="inline-flex items-center gap-1.5 font-semibold text-blue-400 hover:text-blue-300 underline underline-offset-4"
+              className="inline-flex items-center gap-1.5 font-semibold underline underline-offset-4"
+              style={{ color: "var(--v2-primary)" }}
             >
               <PhoneCall className="h-3.5 w-3.5" />
               <span>Call the live demo: {demoNumber}</span>

@@ -132,6 +132,105 @@
     --grid-line: oklch(0.96 0.008 80 / 0.05);
 }
 
+/* ── V2 Landing Page Design Tokens ─────────────────────────────── */
+/* Light theme (default for v2) – Stitch PlumberAnswered Professional */
+:root {
+    --v2-bg: #f7f9fb;
+    --v2-bg-alt: #eef1f5;
+    --v2-bg-card: #ffffff;
+    --v2-bg-card-hover: #f8fafc;
+    --v2-bg-elevated: #f1f5f9;
+    --v2-bg-inverse: #0a192f;
+
+    --v2-text: #191c1e;
+    --v2-text-secondary: #414754;
+    --v2-text-muted: #64748b;
+    --v2-text-on-primary: #ffffff;
+    --v2-text-on-inverse: #e2e8f0;
+
+    --v2-primary: #0070f3;
+    --v2-primary-hover: #0058c3;
+    --v2-primary-glow: rgba(0, 112, 243, 0.12);
+    --v2-primary-subtle: rgba(0, 112, 243, 0.08);
+
+    --v2-border: #e2e8f0;
+    --v2-border-hover: #cbd5e1;
+    --v2-border-accent: rgba(0, 112, 243, 0.30);
+
+    --v2-badge-rose-bg: rgba(225, 29, 72, 0.08);
+    --v2-badge-rose-text: #be123c;
+    --v2-badge-rose-border: rgba(225, 29, 72, 0.20);
+    --v2-badge-amber-bg: rgba(245, 158, 11, 0.08);
+    --v2-badge-amber-text: #b45309;
+    --v2-badge-amber-border: rgba(245, 158, 11, 0.20);
+    --v2-badge-blue-bg: rgba(0, 112, 243, 0.08);
+    --v2-badge-blue-text: #0058c3;
+    --v2-badge-blue-border: rgba(0, 112, 243, 0.20);
+    --v2-badge-emerald-bg: rgba(16, 185, 129, 0.08);
+    --v2-badge-emerald-text: #047857;
+    --v2-badge-emerald-border: rgba(16, 185, 129, 0.30);
+
+    --v2-icon-rose: #e11d48;
+    --v2-icon-amber: #f59e0b;
+    --v2-icon-blue: #0070f3;
+    --v2-icon-emerald: #10b981;
+
+    --v2-shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --v2-shadow-elevated: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+
+    --v2-phone-body: #0b1326;
+    --v2-phone-border: #1e293b;
+}
+
+/* Dark theme for v2 */
+.dark {
+    --v2-bg: #0b1326;
+    --v2-bg-alt: #081020;
+    --v2-bg-card: #0f172a;
+    --v2-bg-card-hover: #131d35;
+    --v2-bg-elevated: #1e293b;
+    --v2-bg-inverse: #0a192f;
+
+    --v2-text: #f1f5f9;
+    --v2-text-secondary: #cbd5e1;
+    --v2-text-muted: #94a3b8;
+    --v2-text-on-primary: #ffffff;
+    --v2-text-on-inverse: #e2e8f0;
+
+    --v2-primary: #0070f3;
+    --v2-primary-hover: #0058c3;
+    --v2-primary-glow: rgba(0, 112, 243, 0.20);
+    --v2-primary-subtle: rgba(0, 112, 243, 0.10);
+
+    --v2-border: #1e293b;
+    --v2-border-hover: #334155;
+    --v2-border-accent: rgba(0, 112, 243, 0.30);
+
+    --v2-badge-rose-bg: rgba(244, 63, 94, 0.10);
+    --v2-badge-rose-text: #fb7185;
+    --v2-badge-rose-border: rgba(244, 63, 94, 0.20);
+    --v2-badge-amber-bg: rgba(251, 191, 36, 0.10);
+    --v2-badge-amber-text: #fbbf24;
+    --v2-badge-amber-border: rgba(251, 191, 36, 0.20);
+    --v2-badge-blue-bg: rgba(0, 112, 243, 0.10);
+    --v2-badge-blue-text: #93c5fd;
+    --v2-badge-blue-border: rgba(0, 112, 243, 0.30);
+    --v2-badge-emerald-bg: rgba(16, 185, 129, 0.10);
+    --v2-badge-emerald-text: #6ee7b7;
+    --v2-badge-emerald-border: rgba(16, 185, 129, 0.40);
+
+    --v2-icon-rose: #fb7185;
+    --v2-icon-amber: #fbbf24;
+    --v2-icon-blue: #60a5fa;
+    --v2-icon-emerald: #6ee7b7;
+
+    --v2-shadow-card: 0 1px 3px rgba(0,0,0,0.30);
+    --v2-shadow-elevated: 0 4px 12px rgba(0,0,0,0.40);
+
+    --v2-phone-body: #0b1326;
+    --v2-phone-border: #1e293b;
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;
@@ -144,6 +243,7 @@
         font-feature-settings: "ss01", "cv11";
     }
 }
+
 
 @layer utilities {
     .bg-grid {
@@ -168,6 +268,14 @@
 
     .text-balance {
         text-wrap: balance;
+    }
+
+    .v2-btn-primary {
+        background-color: var(--v2-primary);
+        color: var(--v2-text-on-primary);
+    }
+    .v2-btn-primary:hover {
+        background-color: var(--v2-primary-hover);
     }
 }
 

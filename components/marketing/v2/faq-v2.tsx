@@ -37,20 +37,34 @@ export function FaqV2() {
   ];
 
   return (
-    <section id="faq" className="py-32 md:py-40 bg-[#081020] border-t border-slate-800">
+    <section
+      id="faq"
+      className="py-32 md:py-40"
+      style={{
+        backgroundColor: "var(--v2-bg-alt)",
+        borderTop: `1px solid var(--v2-border)`,
+      }}
+    >
       <div className="mx-auto max-w-4xl px-6 sm:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold text-blue-300 mb-4">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-semibold mb-4"
+            style={{
+              border: `1px solid var(--v2-badge-blue-border)`,
+              backgroundColor: "var(--v2-badge-blue-bg)",
+              color: "var(--v2-badge-blue-text)",
+            }}
+          >
             <HelpCircle className="h-3.5 w-3.5" />
             <span>Frequently Asked Questions</span>
           </div>
 
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--v2-text)" }}>
             Everything you need to know
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg text-slate-400 leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg leading-relaxed" style={{ color: "var(--v2-text-muted)" }}>
             Got questions about how PlumberAnswered works in the field? Here are the answers.
           </p>
         </div>
@@ -61,12 +75,22 @@ export function FaqV2() {
             <AccordionItem
               key={i}
               value={`item-${i}`}
-              className="rounded-2xl border border-slate-800 bg-[#0f172a]/80 px-6 transition-all duration-200 hover:border-slate-700"
+              className="rounded-2xl px-6 transition-all duration-200"
+              style={{
+                border: `1px solid var(--v2-border)`,
+                backgroundColor: "var(--v2-bg-card)",
+              }}
             >
-              <AccordionTrigger className="py-5 text-left text-base font-semibold text-white hover:text-blue-400 hover:no-underline">
+              <AccordionTrigger
+                className="py-5 text-left text-base font-semibold hover:no-underline"
+                style={{ color: "var(--v2-text)" }}
+              >
                 {faq.q}
               </AccordionTrigger>
-              <AccordionContent className="pb-5 text-sm leading-relaxed text-slate-300">
+              <AccordionContent
+                className="pb-5 text-sm leading-relaxed"
+                style={{ color: "var(--v2-text-secondary)" }}
+              >
                 {faq.a}
               </AccordionContent>
             </AccordionItem>
