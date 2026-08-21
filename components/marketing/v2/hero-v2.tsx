@@ -15,7 +15,7 @@ export function HeroV2() {
   const telLink = `tel:${demoNumber.replace(/[^0-9+]/g, "")}`;
 
   return (
-    <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-28">
+    <section className="relative overflow-hidden pt-36 pb-28 md:pt-48 md:pb-36">
       {/* Background gradients */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none -z-10">
         <div className="absolute top-10 left-1/4 h-[350px] w-[350px] rounded-full bg-[#0070f3]/15 blur-[120px]" />

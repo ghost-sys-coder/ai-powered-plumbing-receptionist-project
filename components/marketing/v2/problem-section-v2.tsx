@@ -35,10 +35,10 @@ export function ProblemSectionV2() {
   ];
 
   return (
-    <section id="problem" className="relative py-24 bg-[#081020] border-t border-b border-slate-800/80">
+    <section id="problem" className="relative py-32 md:py-40 bg-[#081020] border-t border-b border-slate-800/80">
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-20">
           <div className="inline-flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/10 px-3.5 py-1 text-xs font-semibold text-rose-300 mb-4">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>The Reality of Solo & Pro Plumbing</span>
@@ -54,7 +54,7 @@ export function ProblemSectionV2() {
         </div>
 
         {/* 3 Problem Cards Grid */}
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:gap-10 md:grid-cols-3">
           {problems.map((prob) => {
             const Icon = prob.icon;
             return (
@@ -88,7 +88,7 @@ export function ProblemSectionV2() {
         </div>
 
         {/* Bottom Banner */}
-        <div className="mt-12 rounded-2xl border border-blue-500/30 bg-gradient-to-r from-blue-950/60 via-[#0b1b38]/70 to-blue-950/60 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="mt-16 rounded-2xl border border-blue-500/30 bg-gradient-to-r from-blue-950/60 via-[#0b1b38]/70 to-blue-950/60 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
           <div>
             <h4 className="text-lg font-bold text-white">
               Stop bleeding revenue to unanswered calls

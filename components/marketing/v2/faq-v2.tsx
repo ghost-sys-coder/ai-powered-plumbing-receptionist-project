@@ -37,10 +37,10 @@ export function FaqV2() {
   ];
 
   return (
-    <section id="faq" className="py-24 bg-[#081020] border-t border-slate-800">
+    <section id="faq" className="py-32 md:py-40 bg-[#081020] border-t border-slate-800">
       <div className="mx-auto max-w-4xl px-6 sm:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-20">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold text-blue-300 mb-4">
             <HelpCircle className="h-3.5 w-3.5" />
             <span>Frequently Asked Questions</span>
@@ -56,7 +56,7 @@ export function FaqV2() {
         </div>
 
         {/* Accordion */}
-        <Accordion type="single" collapsible className="space-y-4">
+        <Accordion type="single" collapsible className="space-y-5">
           {faqs.map((faq, i) => (
             <AccordionItem
               key={i}

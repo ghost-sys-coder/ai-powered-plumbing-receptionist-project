@@ -77,10 +77,10 @@ export function TriageFeaturesV2() {
   ];
 
   return (
-    <section id="features" className="py-24 bg-[#081020] border-t border-slate-800">
+    <section id="features" className="py-32 md:py-40 bg-[#081020] border-t border-slate-800">
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-20">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold text-blue-300 mb-4">
             <Zap className="h-3.5 w-3.5" />
             <span>Built Specifically for Plumbing</span>
@@ -96,7 +96,7 @@ export function TriageFeaturesV2() {
         </div>
 
         {/* Triage Side-by-Side Cards */}
-        <div className="grid gap-8 lg:grid-cols-2 mb-16">
+        <div className="grid gap-8 md:gap-10 lg:grid-cols-2 mb-20">
           {triageRules.map((triage) => (
             <div
               key={triage.category}

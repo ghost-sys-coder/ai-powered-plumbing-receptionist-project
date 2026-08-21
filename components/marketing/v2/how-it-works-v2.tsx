@@ -29,10 +29,10 @@ export function HowItWorksV2() {
   ];
 
   return (
-    <section id="how-it-works" className="relative py-24 bg-[#0b1326]">
+    <section id="how-it-works" className="relative py-32 md:py-40 bg-[#0b1326]">
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-20">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-semibold text-blue-300 mb-4">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Turnkey Implementation</span>
@@ -48,7 +48,7 @@ export function HowItWorksV2() {
         </div>
 
         {/* 3 Step Cards with Connectors */}
-        <div className="relative grid gap-8 lg:grid-cols-3">
+        <div className="relative grid gap-8 md:gap-10 lg:grid-cols-3">
           {steps.map((step, idx) => {
             const Icon = step.icon;
             return (

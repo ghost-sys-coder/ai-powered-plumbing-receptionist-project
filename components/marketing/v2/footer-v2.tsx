@@ -5,7 +5,7 @@ export function FooterV2() {
   const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@plumberanswered.com";
 
   return (
-    <footer className="border-t border-slate-800 bg-[#060c18] py-16 text-slate-400">
+    <footer className="border-t border-slate-800 bg-[#060c18] py-20 md:py-24 text-slate-400">
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Brand Info */}
