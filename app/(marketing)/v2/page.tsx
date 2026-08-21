@@ -21,7 +21,12 @@ export const metadata: Metadata = {
 
 export default function MarketingV2Page() {
   return (
-    <div className="min-h-screen selection:bg-[#0070f3] selection:text-white font-sans antialiased overflow-x-hidden" style={{ backgroundColor: "var(--v2-bg)", color: "var(--v2-text)" }}>
+    <div className="relative min-h-screen selection:bg-[#0070f3] selection:text-white font-sans antialiased overflow-x-hidden" style={{ backgroundColor: "var(--v2-bg)", color: "var(--v2-text)" }}>
+      {/* Subtle blue perimeter wrapper fading inwards */}
+      <div
+        className="pointer-events-none fixed inset-0 z-50 border border-[#0070f3]/30 shadow-[inset_0_0_12px_rgba(0,112,243,0.18)] dark:border-[#0070f3]/40 dark:shadow-[inset_0_0_16px_rgba(0,112,243,0.28)]"
+        aria-hidden="true"
+      />
       <NavV2 />
       <main>
         <HeroV2 />
