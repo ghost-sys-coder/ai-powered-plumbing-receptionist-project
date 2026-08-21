@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
     // router.refresh() to invalidate this cache so lists never show stale data.
     staleTimes: { dynamic: 60 },
   },
+
+  redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/v2",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
