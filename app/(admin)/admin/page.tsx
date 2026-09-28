@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllCustomers, getCustomerStats } from "@/lib/services/admin-dashboard";
+import { getAllCustomers, summarizeCustomerStatuses } from "@/lib/services/admin-dashboard";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/layout/stat-card";
 import { CustomersTable } from "@/components/admin/customers-table";
@@ -7,10 +7,8 @@ import { SeedControls } from "@/components/admin/seed-controls";
 import { Button } from "@/components/ui/button";
 
 const AdminPage = async () => {
-  const [customerList, stats] = await Promise.all([
-    getAllCustomers(),
-    getCustomerStats(),
-  ]);
+  const customerList = await getAllCustomers();
+  const stats = summarizeCustomerStatuses(customerList);
 
   return (
     <div className="animate-fade-in space-y-6">

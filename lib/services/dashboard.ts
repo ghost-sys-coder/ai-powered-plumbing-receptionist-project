@@ -1,43 +1,47 @@
 import { db } from "@/db/drizzle";
 import { calls, bookings, vapiAgents } from "@/db/schema";
-import { eq, and, gte, inArray, desc, count } from "drizzle-orm";
+import { eq, and, gte, desc, count, sql } from "drizzle-orm";
+import { DateTime } from "luxon";
 
-function startOfToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+// "Today" and "this week" are measured in the business's own timezone, not the
+// server's (Vercel runs in UTC). Luxon weeks start on Monday.
+function periodStarts(timezone: string) {
+  let now = DateTime.now().setZone(timezone);
+  if (!now.isValid) now = DateTime.now().setZone("UTC");
+  return {
+    todayStart: now.startOf("day").toJSDate(),
+    weekStart: now.startOf("week").toJSDate(),
+  };
 }
 
-function startOfWeek() {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+// All four stat cards come from one query: a single pass over this week's
+// calls, with FILTER clauses splitting out each count.
+export async function getDashboardStats(customerId: string, timezone: string) {
+  const { todayStart, weekStart } = periodStarts(timezone);
 
-export async function getDashboardStats(customerId: string) {
-  const todayStart = startOfToday();
-  const weekStart = startOfWeek();
-
-  const [callsToday, callsThisWeek, bookedThisWeek, missedThisWeek] = await Promise.all([
-    db.select({ count: count() }).from(calls)
-      .where(and(eq(calls.customerId, customerId), gte(calls.startedAt, todayStart))),
-    db.select({ count: count() }).from(calls)
-      .where(and(eq(calls.customerId, customerId), gte(calls.startedAt, weekStart))),
-    db.select({ count: count() }).from(calls)
-      .where(and(eq(calls.customerId, customerId), gte(calls.startedAt, weekStart), eq(calls.outcome, "booked"))),
-    db.select({ count: count() }).from(calls)
-      .where(and(eq(calls.customerId, customerId), gte(calls.startedAt, weekStart), inArray(calls.outcome, ["dropped", "abandoned"]))),
-  ]);
+  const [row] = await db
+    .select({
+      callsToday: sql<number>`count(*) filter (where ${calls.startedAt} >= ${todayStart.toISOString()})`.mapWith(Number),
+      callsThisWeek: count(),
+      bookedThisWeek: sql<number>`count(*) filter (where ${calls.outcome} = 'booked')`.mapWith(Number),
+      missedThisWeek: sql<number>`count(*) filter (where ${calls.outcome} in ('dropped', 'abandoned'))`.mapWith(Number),
+    })
+    .from(calls)
+    .where(and(eq(calls.customerId, customerId), gte(calls.startedAt, weekStart)));
 
   return {
-    callsToday: callsToday[0]?.count ?? 0,
-    callsThisWeek: callsThisWeek[0]?.count ?? 0,
-    bookedThisWeek: bookedThisWeek[0]?.count ?? 0,
-    missedThisWeek: missedThisWeek[0]?.count ?? 0,
+    callsToday: row?.callsToday ?? 0,
+    callsThisWeek: row?.callsThisWeek ?? 0,
+    bookedThisWeek: row?.bookedThisWeek ?? 0,
+    missedThisWeek: row?.missedThisWeek ?? 0,
   };
+}
+
+export async function getOwnerName(customerId: string) {
+  const [agent] = await db.select({ ownerName: vapiAgents.ownerName }).from(vapiAgents)
+    .where(eq(vapiAgents.customerId, customerId))
+    .limit(1);
+  return agent?.ownerName ?? null;
 }
 
 export async function getRecentCalls(customerId: string, limit = 5) {
