@@ -15,6 +15,8 @@ export type AgentBookingContext = {
     calendarType: "google_calendar" | "manual";
     appointmentDurationMinutes: number;
     appointmentBufferMinutes: number;
+    minLeadMinutes: number;
+    emergencyLeadMinutes: number;
     businessHours: unknown;
     timezone: string;
 };
@@ -31,6 +33,8 @@ export async function getAgentBookingContext(
             calendarType: vapiAgents.calendarType,
             appointmentDurationMinutes: vapiAgents.appointmentDurationMinutes,
             appointmentBufferMinutes: vapiAgents.appointmentBufferMinutes,
+            minLeadMinutes: vapiAgents.minLeadMinutes,
+            emergencyLeadMinutes: vapiAgents.emergencyLeadMinutes,
             businessHours: vapiAgents.businessHours,
             timezone: customers.timezone,
         })

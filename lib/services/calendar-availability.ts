@@ -4,11 +4,12 @@ import { db } from "@/db/drizzle";
 import { bookings } from "@/db/schema";
 import { getCalendarClient } from "@/lib/google/calendar-client";
 
-// Slot policy. Duration/buffer are per-customer (passed in); lead time and window
-// are global for v1 — promote to per-customer later if needed.
-const MIN_LEAD_MINUTES = 120;
-// bookSlot's own floor. Lower than MIN_LEAD_MINUTES so a slot offered near the
-// lead-time edge can still be booked a minute or two later in the same call.
+// Slot policy. Duration, buffer and lead time are per-customer (passed in); the
+// booking window is global for v1.
+const DEFAULT_MIN_LEAD_MINUTES = 120;
+// bookSlot's own floor, capped at the customer's lead time so it never rejects a
+// slot that was legitimately offered. Lower than the default lead so a slot
+// offered near the lead-time edge can still be booked a minute later in the call.
 const BOOKING_MIN_LEAD_MINUTES = 60;
 const BOOKING_WINDOW_DAYS = 14;
 const SLOT_INCREMENT_MINUTES = 30; // candidate starts land on :00 / :30
@@ -47,6 +48,9 @@ export type GetAvailableSlotsInput = {
   businessHours: unknown;
   fromDate?: Date;
   preferredTime?: string | null; // e.g. "2 PM", "afternoon", "14:00"
+  // Minimum notice before a slot can be offered — the customer's standard or
+  // emergency lead time. Defaults to DEFAULT_MIN_LEAD_MINUTES.
+  minLeadMinutes?: number;
 };
 
 function parseBusinessHours(value: unknown): BusinessHours {
@@ -219,7 +223,9 @@ export async function getAvailableSlots(
     // Lead time always counts from the real current time. fromDate is the start
     // of the requested day (midnight for "today"), so measuring from it offered
     // slots that had already passed.
-    const earliest = realNow.plus({ minutes: MIN_LEAD_MINUTES });
+    const earliest = realNow.plus({
+      minutes: input.minLeadMinutes ?? DEFAULT_MIN_LEAD_MINUTES,
+    });
     const windowStart = now.startOf("day");
     const windowEnd = now.plus({ days: BOOKING_WINDOW_DAYS }).endOf("day");
 
@@ -306,6 +312,9 @@ export type BookSlotInput = {
   callerPhone: string | null;
   issueSummary: string | null;
   serviceAddress: string | null;
+  // The shortest lead time this customer could have been offered (usually the
+  // emergency lead). Caps the booking floor so offered slots stay bookable.
+  minLeadMinutes?: number;
 };
 
 export type BookSlotResult = {
@@ -322,7 +331,11 @@ export async function bookSlot(input: BookSlotInput): Promise<BookSlotResult> {
   // Never book a slot that has passed or is about to — the AI can echo back a
   // stale or wrong time. Reported as "no longer available" so the route offers
   // fresh options in the same reply.
-  if (start < DateTime.now().plus({ minutes: BOOKING_MIN_LEAD_MINUTES })) {
+  const floorMinutes = Math.min(
+    BOOKING_MIN_LEAD_MINUTES,
+    input.minLeadMinutes ?? BOOKING_MIN_LEAD_MINUTES
+  );
+  if (start < DateTime.now().plus({ minutes: floorMinutes })) {
     return {
       success: false,
       calendarEventId: null,

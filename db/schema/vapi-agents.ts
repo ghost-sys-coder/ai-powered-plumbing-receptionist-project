@@ -34,6 +34,10 @@ export const vapiAgents = pgTable(
     appointmentBufferMinutes: integer("appointment_buffer_minutes")
       .notNull()
       .default(30),
+    // Minimum notice before a bookable slot: standard jobs, and jobs the AI has
+    // flagged as emergencies (shorter, so urgent callers get the soonest visit).
+    minLeadMinutes: integer("min_lead_minutes").notNull().default(120),
+    emergencyLeadMinutes: integer("emergency_lead_minutes").notNull().default(60),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

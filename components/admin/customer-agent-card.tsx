@@ -43,6 +43,8 @@ export function CustomerAgentCard({
           calendarId={agent.calendarId}
           appointmentDurationMinutes={agent.appointmentDurationMinutes}
           appointmentBufferMinutes={agent.appointmentBufferMinutes}
+          minLeadMinutes={agent.minLeadMinutes}
+          emergencyLeadMinutes={agent.emergencyLeadMinutes}
         />
       </CardHeader>
       <CardContent>
@@ -78,6 +80,12 @@ export function CustomerAgentCard({
           <div className="flex justify-between gap-2">
             <dt className="text-muted-foreground">Buffer time</dt>
             <dd className="font-medium">{agent.appointmentBufferMinutes} minutes</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">Booking notice</dt>
+            <dd className="font-medium">
+              {agent.minLeadMinutes} min · emergency {agent.emergencyLeadMinutes} min
+            </dd>
           </div>
           {isGoogle && (
             <div className="flex justify-between gap-2">

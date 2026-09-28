@@ -30,6 +30,8 @@ type Props = {
   calendarId: string | null;
   appointmentDurationMinutes: number;
   appointmentBufferMinutes: number;
+  minLeadMinutes: number;
+  emergencyLeadMinutes: number;
 };
 
 export function EditAgentConfig({
@@ -38,6 +40,8 @@ export function EditAgentConfig({
   calendarId: initialCalendarId,
   appointmentDurationMinutes,
   appointmentBufferMinutes,
+  minLeadMinutes,
+  emergencyLeadMinutes,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -48,6 +52,8 @@ export function EditAgentConfig({
   const [calendarId, setCalendarId] = useState(initialCalendarId ?? "");
   const [duration, setDuration] = useState(String(appointmentDurationMinutes));
   const [buffer, setBuffer] = useState(String(appointmentBufferMinutes));
+  const [minLead, setMinLead] = useState(String(minLeadMinutes));
+  const [emergencyLead, setEmergencyLead] = useState(String(emergencyLeadMinutes));
 
   async function handleSave() {
     setSaving(true);
@@ -61,6 +67,8 @@ export function EditAgentConfig({
           calendarId,
           appointmentDurationMinutes: Number(duration),
           appointmentBufferMinutes: Number(buffer),
+          minLeadMinutes: Number(minLead),
+          emergencyLeadMinutes: Number(emergencyLead),
         }),
       });
       const data = await res.json();
@@ -154,6 +162,39 @@ export function EditAgentConfig({
               onChange={(e) => setBuffer(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">Travel/prep time between jobs.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="minLead">Minimum booking notice (minutes)</Label>
+            <Input
+              id="minLead"
+              type="number"
+              min={15}
+              max={1440}
+              step={15}
+              value={minLead}
+              onChange={(e) => setMinLead(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              The soonest the AI will book a standard job. Default 120 (2 hours).
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="emergencyLead">Emergency booking notice (minutes)</Label>
+            <Input
+              id="emergencyLead"
+              type="number"
+              min={15}
+              max={1440}
+              step={15}
+              value={emergencyLead}
+              onChange={(e) => setEmergencyLead(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shorter notice for calls the AI flags as emergencies. Default 60. Can&apos;t exceed
+              the standard notice.
+            </p>
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

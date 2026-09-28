@@ -49,6 +49,11 @@ const CALENDAR_TOOL_DEFS = [
           description:
             "The caller's preferred time of day if they mention one, e.g. '2 PM', 'morning', 'afternoon'. Omit if not stated.",
         },
+        urgent: {
+          type: "boolean",
+          description:
+            "true if the caller's issue is an emergency under the business's emergency definition. Offers the soonest visits with shorter notice. Omit or false otherwise.",
+        },
       },
       required: [] as string[],
     },

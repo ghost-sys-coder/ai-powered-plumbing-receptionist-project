@@ -49,6 +49,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const args = parseToolArgs(toolCall?.function?.arguments);
   const fromDate = parsePreferredDate(args.preferred_date, ctx.timezone);
+  // Vapi may send the flag as a boolean or the string "true".
+  const urgent = String(args.urgent).toLowerCase() === "true";
 
   const slots = await getAvailableSlots({
     calendarId: ctx.calendarId,
@@ -59,10 +61,11 @@ export async function POST(request: Request): Promise<Response> {
     businessHours: ctx.businessHours,
     fromDate,
     preferredTime: args.preferred_time ?? null,
+    minLeadMinutes: urgent ? ctx.emergencyLeadMinutes : ctx.minLeadMinutes,
   });
 
   console.log(
-    `[tool] check_availability -> ${slots.length} slots in ${Date.now() - t0}ms (date="${args.preferred_date ?? ""}" time="${args.preferred_time ?? ""}")`
+    `[tool] check_availability -> ${slots.length} slots in ${Date.now() - t0}ms (date="${args.preferred_date ?? ""}" time="${args.preferred_time ?? ""}" urgent=${urgent})`
   );
 
   if (slots.length === 0) {

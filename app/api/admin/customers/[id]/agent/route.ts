@@ -6,7 +6,8 @@ import { vapiAgents, customers } from "@/db/schema";
 import { updateVapiAssistant, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
 
 // Updates a customer's agent booking config (calendar type, calendar id,
-// appointment duration/buffer) and re-syncs the Vapi assistant prompt + tools.
+// appointment duration/buffer, standard/emergency booking notice) and re-syncs
+// the Vapi assistant prompt + tools.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,12 +20,26 @@ export async function PATCH(
   const calendarId: string | null = body.calendarId?.trim() || null;
   const duration = Number(body.appointmentDurationMinutes);
   const buffer = Number(body.appointmentBufferMinutes);
+  const minLead = Number(body.minLeadMinutes);
+  const emergencyLead = Number(body.emergencyLeadMinutes);
 
   if (!Number.isFinite(duration) || duration < 30 || duration > 480) {
     return NextResponse.json({ error: "Duration must be 30–480 minutes" }, { status: 400 });
   }
   if (!Number.isFinite(buffer) || buffer < 0 || buffer > 120) {
     return NextResponse.json({ error: "Buffer must be 0–120 minutes" }, { status: 400 });
+  }
+  if (!Number.isFinite(minLead) || minLead < 15 || minLead > 1440) {
+    return NextResponse.json(
+      { error: "Minimum booking notice must be 15–1440 minutes" },
+      { status: 400 }
+    );
+  }
+  if (!Number.isFinite(emergencyLead) || emergencyLead < 15 || emergencyLead > minLead) {
+    return NextResponse.json(
+      { error: "Emergency notice must be at least 15 minutes and no more than the standard notice" },
+      { status: 400 }
+    );
   }
   if (calendarType === "google_calendar" && !calendarId) {
     return NextResponse.json(
@@ -62,6 +77,8 @@ export async function PATCH(
       calendarId,
       appointmentDurationMinutes: duration,
       appointmentBufferMinutes: buffer,
+      minLeadMinutes: minLead,
+      emergencyLeadMinutes: emergencyLead,
     })
     .where(eq(vapiAgents.customerId, id));
 

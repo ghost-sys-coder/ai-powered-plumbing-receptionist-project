@@ -84,6 +84,8 @@ export async function POST(request: Request): Promise<Response> {
     callerPhone: args.caller_phone ?? null,
     issueSummary: args.issue_summary ?? null,
     serviceAddress: args.service_address ?? null,
+    // The slot may have been offered under the (shorter) emergency lead time.
+    minLeadMinutes: Math.min(ctx.minLeadMinutes, ctx.emergencyLeadMinutes),
   });
 
   if (result.success) {
@@ -106,6 +108,7 @@ export async function POST(request: Request): Promise<Response> {
       timezone: ctx.timezone,
       businessHours: ctx.businessHours,
       fromDate: start,
+      minLeadMinutes: ctx.minLeadMinutes,
     });
     if (slots.length > 0) {
       const options = slots
