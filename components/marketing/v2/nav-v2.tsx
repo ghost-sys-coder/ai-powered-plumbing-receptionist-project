@@ -37,7 +37,7 @@ export function NavV2() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 sm:px-8">
         {/* Brand Logo */}
-        <Link href="/v2" className="flex items-center gap-2.5 group">
+        <Link href="/marketing/v2" className="flex items-center gap-2.5 group">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-lg shadow-md group-hover:opacity-90 transition-opacity"
             style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}

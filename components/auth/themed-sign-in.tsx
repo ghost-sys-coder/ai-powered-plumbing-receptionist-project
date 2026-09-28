@@ -6,7 +6,14 @@ import { useTheme } from "next-themes";
 
 import { clerkAppearance } from "@/components/auth/clerk-appearance";
 
-export function ThemedSignIn() {
+type ThemedSignInProps = {
+    // Hash routing lets <SignIn> mount on a plain route (e.g. /v2) instead of
+    // requiring an optional catch-all segment like /sign-in/[[...sign-in]].
+    hashRouting?: boolean;
+    fallbackRedirectUrl?: string;
+};
+
+export function ThemedSignIn({ hashRouting = false, fallbackRedirectUrl }: ThemedSignInProps) {
     const { resolvedTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
 
@@ -19,6 +26,8 @@ export function ThemedSignIn() {
             key={isDark ? "dark" : "light"}
             appearance={clerkAppearance(isDark)}
             signUpUrl="/sign-up"
+            fallbackRedirectUrl={fallbackRedirectUrl}
+            {...(hashRouting ? { routing: "hash" as const } : {})}
         />
     );
 }

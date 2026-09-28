@@ -17,7 +17,7 @@ export function FooterV2() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Brand Info */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left gap-3">
-            <Link href="/v2" className="flex items-center gap-2.5">
+            <Link href="/marketing/v2" className="flex items-center gap-2.5">
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
                 style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}

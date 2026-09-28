@@ -18,7 +18,7 @@ export function ThemedSignUp() {
         <SignUp
             key={isDark ? "dark" : "light"}
             appearance={clerkAppearance(isDark)}
-            signInUrl="/sign-in"
+            signInUrl="/v2"
         />
     );
 }
