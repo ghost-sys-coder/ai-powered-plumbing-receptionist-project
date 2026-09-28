@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Settings2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,9 @@ export function EditAgentConfig({
         setError(data.error ?? "Failed to save");
         setSaving(false);
         return;
+      }
+      for (const warning of (data.warnings as string[] | undefined) ?? []) {
+        toast.warning(warning, { duration: 12000 });
       }
       setOpen(false);
       setSaving(false);

@@ -302,6 +302,33 @@ export async function getAvailableSlots(
   }
 }
 
+export type CalendarCheckResult =
+  | { ok: true; timeZone: string | null }
+  | { ok: false; unreachable: boolean; message: string };
+
+// Confirms the service account can open the calendar and reports the calendar's
+// own timezone. `unreachable` distinguishes "not shared / doesn't exist" (a real
+// config error) from a transient Google failure (can't tell either way).
+export async function checkCalendarAccess(calendarId: string): Promise<CalendarCheckResult> {
+  try {
+    const calendar = getCalendarClient();
+    const res = await calendar.calendars.get({ calendarId }, { timeout: GOOGLE_TIMEOUT_MS });
+    return { ok: true, timeZone: res.data.timeZone ?? null };
+  } catch (err) {
+    const status = (err as { status?: number; code?: number | string }).status ??
+      Number((err as { code?: number | string }).code);
+    if (status === 404 || status === 403) {
+      return {
+        ok: false,
+        unreachable: false,
+        message:
+          "The calendar can't be opened — check the Calendar ID and that it's shared with the service account (\"Make changes to events\").",
+      };
+    }
+    return { ok: false, unreachable: true, message: `Couldn't verify the calendar right now: ${(err as Error).message}` };
+  }
+}
+
 export type BookSlotInput = {
   calendarId: string;
   customerId: string;
@@ -315,6 +342,9 @@ export type BookSlotInput = {
   // The shortest lead time this customer could have been offered (usually the
   // emergency lead). Caps the booking floor so offered slots stay bookable.
   minLeadMinutes?: number;
+  // Business timezone (IANA). The event is written in local time with this zone
+  // attached, so every calendar app shows it in the business's time.
+  timezone: string;
 };
 
 export type BookSlotResult = {
@@ -379,8 +409,8 @@ export async function bookSlot(input: BookSlotInput): Promise<BookSlotResult> {
         requestBody: {
           summary: `Plumbing job — ${input.callerName ?? "Customer"}`,
           description: descriptionLines.join("\n"),
-          start: { dateTime: input.slot.start.toISOString() },
-          end: { dateTime: input.slot.end.toISOString() },
+          start: { dateTime: start.setZone(input.timezone).toISO() ?? undefined, timeZone: input.timezone },
+          end: { dateTime: end.setZone(input.timezone).toISO() ?? undefined, timeZone: input.timezone },
         },
       },
       { timeout: GOOGLE_TIMEOUT_MS }

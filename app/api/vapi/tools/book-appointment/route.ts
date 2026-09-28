@@ -86,6 +86,7 @@ export async function POST(request: Request): Promise<Response> {
     serviceAddress: args.service_address ?? null,
     // The slot may have been offered under the (shorter) emergency lead time.
     minLeadMinutes: Math.min(ctx.minLeadMinutes, ctx.emergencyLeadMinutes),
+    timezone: ctx.timezone,
   });
 
   if (result.success) {

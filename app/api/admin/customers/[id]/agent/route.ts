@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { db } from "@/db/drizzle";
 import { vapiAgents, customers } from "@/db/schema";
 import { updateVapiAssistant, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
+import { checkCalendarAccess } from "@/lib/services/calendar-availability";
 
 // Updates a customer's agent booking config (calendar type, calendar id,
 // appointment duration/buffer, standard/emergency booking notice) and re-syncs
@@ -87,6 +88,26 @@ export async function PATCH(
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
+  // Verify the calendar before saving: an unshared or mistyped ID would make
+  // every booking fail mid-call, and a timezone mismatch makes the calendar
+  // read hours off from what the AI tells callers.
+  const warnings: string[] = [];
+  if (calendarType === "google_calendar" && calendarId) {
+    const check = await checkCalendarAccess(calendarId);
+    if (!check.ok && !check.unreachable) {
+      return NextResponse.json({ error: check.message }, { status: 400 });
+    }
+    if (!check.ok) {
+      warnings.push(check.message);
+    } else if (check.timeZone && check.timeZone !== row.timezone) {
+      warnings.push(
+        `The calendar's timezone is ${check.timeZone} but the business is ${row.timezone}. ` +
+          `Bookings are still correct, but the calendar will show them in ${check.timeZone} time — ` +
+          `change the calendar's timezone in Google Calendar settings to match.`
+      );
+    }
+  }
+
   await db
     .update(vapiAgents)
     .set({
@@ -126,5 +147,5 @@ export async function PATCH(
     );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, warnings });
 }
