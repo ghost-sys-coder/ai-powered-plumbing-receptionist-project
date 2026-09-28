@@ -25,7 +25,7 @@ const AgentPage = async () => {
   });
 
   const supportEmail =
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@plumberanswered.com";
+    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "frank@veilcode.studio";
 
   return (
     <div className="animate-fade-in space-y-6">

@@ -1,5 +1,5 @@
 export function Footer() {
-  const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@plumberanswered.com";
+  const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "frank@veilcode.studio";
 
   return (
     <footer
