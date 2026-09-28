@@ -58,10 +58,12 @@ export function clerkAppearance(isDark: boolean): Appearance {
                 "text-brand hover:text-brand hover:underline text-[12px]",
             formButtonPrimary:
                 "bg-brand text-brand-foreground hover:brightness-110 rounded-lg h-10 font-medium tracking-tight normal-case shadow-[inset_0_1px_0_color-mix(in_oklch,white_18%,transparent),0_10px_30px_-14px_var(--brand)] transition-all",
-            footer: "hidden",
-            footerAction: "hidden",
-            footerActionText: "text-muted-foreground text-[13px]",
-            footerActionLink: "text-brand hover:underline font-medium",
+            // Access is invite-only, so Clerk's "Don't have an account? Sign up"
+            // footer must never render. Style objects are used (not Tailwind
+            // "hidden") because Tailwind v4 utilities sit in a CSS layer, and
+            // Clerk's unlayered styles always win over layered ones.
+            footer: { display: "none" },
+            footerAction: { display: "none" },
             identityPreview:
                 "bg-muted/40 border-border rounded-lg",
             identityPreviewText: "text-foreground",
