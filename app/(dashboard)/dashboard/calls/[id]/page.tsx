@@ -57,7 +57,7 @@ const CallDetailPage = async ({ params }: Props) => {
               <CardTitle className="text-base">Recording</CardTitle>
             </CardHeader>
             <CardContent>
-              <CallAudioPlayer audioUrl={call.audioUrl} />
+              <CallAudioPlayer callId={call.id} hasRecording={!!call.audioUrl} />
             </CardContent>
           </Card>
         </div>
