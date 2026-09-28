@@ -73,6 +73,7 @@ export async function PATCH(
       vapiAssistantId: vapiAgents.vapiAssistantId,
       calendarType: vapiAgents.calendarType,
       appointmentDurationMinutes: vapiAgents.appointmentDurationMinutes,
+      transferEnabled: vapiAgents.transferEnabled,
     })
     .from(vapiAgents)
     .where(eq(vapiAgents.customerId, id))
@@ -104,6 +105,8 @@ export async function PATCH(
           pricing: pricing ?? {},
           emergencyDefinition,
           businessHours: businessHours ?? {},
+          // Preserve live transfer — omitting it would detach the transfer tool.
+          liveTransferEnabled: agent.transferEnabled,
         };
         await updateVapiAssistant(agent.vapiAssistantId, config);
       } catch {

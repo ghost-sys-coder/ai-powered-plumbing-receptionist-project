@@ -46,6 +46,9 @@ export function CustomerAgentCard({
           minLeadMinutes={agent.minLeadMinutes}
           emergencyLeadMinutes={agent.emergencyLeadMinutes}
           alertPhone={agent.alertPhone}
+          transferEnabled={agent.transferEnabled}
+          transferPhone={agent.transferPhone}
+          transferAfterHours={agent.transferAfterHours}
         />
       </CardHeader>
       <CardContent>
@@ -92,6 +95,14 @@ export function CustomerAgentCard({
             <dt className="text-muted-foreground">Emergency alerts to</dt>
             <dd className="font-mono font-medium">
               {agent.alertPhone ?? "not set — no alerts"}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">Live transfer</dt>
+            <dd className="text-right font-medium">
+              {agent.transferEnabled
+                ? `${agent.transferPhone ?? agent.alertPhone ?? "—"} · ${agent.transferAfterHours ? "any time" : "business hours"}`
+                : "off"}
             </dd>
           </div>
           {isGoogle && (

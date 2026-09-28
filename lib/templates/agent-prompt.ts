@@ -14,6 +14,13 @@ interface PromptConfig {
   };
   emergencyDefinition: string;
   businessHours: Record<string, { open?: string; close?: string; closed?: boolean }>;
+  liveTransferEnabled?: boolean;
+}
+
+// Appended to the emergency step only for businesses with live transfer on.
+function transferInstructions(config: PromptConfig): string {
+  if (!config.liveTransferEnabled) return "";
+  return ` After that, offer to connect them to ${config.ownerName} right now: "Would you like me to try connecting you to ${config.ownerName} directly?" If they say yes, call transferCall. If the transfer can't be made, you will be told — do not transfer again; continue by offering to book the soonest visit. Only offer a transfer for emergencies.`;
 }
 
 function bookingInstructions(config: PromptConfig): string {
@@ -96,7 +103,7 @@ INSTRUCTIONS:
 2. Collect the caller's name and describe their plumbing issue. Let the caller describe the issue in full, even if it takes several sentences with pauses, before you ask any follow-up question.
 3. Always collect the full service address where the work is needed — street number and name, city, and state. Do not skip this; if the caller hasn't given it, ask for it directly: "What's the full address where you need the work done?" Read it back to confirm you have it right. Wait until the caller has finished saying the entire address before reading it back; do not read back or question a partial address while they are still speaking.
 4. Assess urgency based on the emergency definition above.
-5. If the issue is an emergency, acknowledge it immediately. As soon as you have confirmed their callback number (step 7) — and the address, if they have given it — call notify_owner_emergency ONCE to text ${config.ownerName} the details. Do this right away, before booking or wrapping up. Then tell the caller what the tool result says: that ${config.ownerName} has been alerted and will call back as soon as possible, or, if the alert could not be sent, that the team will call back as soon as possible.
+5. If the issue is an emergency, acknowledge it immediately. As soon as you have confirmed their callback number (step 7) — and the address, if they have given it — call notify_owner_emergency ONCE to text ${config.ownerName} the details. Do this right away, before booking or wrapping up. Then tell the caller what the tool result says: that ${config.ownerName} has been alerted and will call back as soon as possible, or, if the alert could not be sent, that the team will call back as soon as possible.${transferInstructions(config)}
 6. Whenever the caller wants to schedule a visit — whether the issue is an emergency or routine — book it using the BOOKING INSTRUCTIONS below. (Still flag emergencies per step 5; urgency does not replace booking, it accompanies it.) When the caller gives a relative day or time (e.g. "this Friday", "tomorrow at 2"), resolve it against the CURRENT DATE & TIME above and pick the next upcoming occurrence — never guess the year. Always read the full date, time, and time zone back to confirm.
 7. Confirm the best callback number. The number the caller is dialing from (caller ID) is: {{customer.number}}
    - If a real phone number appears above, ask: "Should we call you back on the number you're calling from, or would you prefer a different number?"

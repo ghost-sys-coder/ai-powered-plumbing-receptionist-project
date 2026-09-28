@@ -24,6 +24,8 @@ export interface ProvisioningConfig {
   };
   emergencyDefinition: string;
   businessHours: Record<string, { open?: string; close?: string; closed?: boolean }>;
+  // Attaches the shared live-transfer tool and its prompt instructions.
+  liveTransferEnabled?: boolean;
 }
 
 // Definitions for the two calendar function tools. These are created as
@@ -114,6 +116,35 @@ function toolDefsFor(calendarType: ProvisioningConfig["calendarType"]): ToolDef[
   return calendarType === "google_calendar"
     ? [...CALENDAR_TOOL_DEFS, NOTIFY_OWNER_TOOL_DEF]
     : [NOTIFY_OWNER_TOOL_DEF];
+}
+
+// The shared live-transfer tool: a transferCall tool with NO destinations, so
+// on each use Vapi sends "transfer-destination-request" to the org webhook
+// (authenticated by the org credential), which answers with that business's
+// owner number — see lib/services/live-transfer.ts. Created once, reused.
+async function ensureTransferToolId(vapi: VapiClient): Promise<string> {
+  const listResp = await vapi.tools.list();
+  const existing = (
+    Array.isArray(listResp) ? listResp : ((listResp as { data?: unknown[] })?.data ?? [])
+  ) as Array<{ id?: string; type?: string; destinations?: unknown[] }>;
+
+  const found = existing.find(
+    (t) => t.type === "transferCall" && (!t.destinations || t.destinations.length === 0)
+  );
+  if (found?.id) return found.id;
+
+  const created = (await vapi.tools.create({
+    type: "transferCall",
+    destinations: [],
+  } as never)) as { id: string };
+  return created.id;
+}
+
+// Every tool id an assistant should reference.
+async function toolIdsFor(vapi: VapiClient, config: ProvisioningConfig): Promise<string[]> {
+  const ids = await ensureToolIds(vapi, toolDefsFor(config.calendarType));
+  if (config.liveTransferEnabled) ids.push(await ensureTransferToolId(vapi));
+  return ids;
 }
 
 // Upserts the given tools in the Vapi account (create if missing, update the
@@ -311,7 +342,7 @@ export async function createVapiAssistant(
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
-  const toolIds = await ensureToolIds(vapi, toolDefsFor(config.calendarType));
+  const toolIds = await toolIdsFor(vapi, config);
 
   let assistantId: string;
   try {
@@ -375,7 +406,7 @@ export async function updateVapiAssistant(
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
-  const toolIds = await ensureToolIds(vapi, toolDefsFor(config.calendarType));
+  const toolIds = await toolIdsFor(vapi, config);
 
   await vapi.assistants.update({
     id: assistantId,

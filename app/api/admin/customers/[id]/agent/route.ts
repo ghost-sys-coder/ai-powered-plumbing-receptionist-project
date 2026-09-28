@@ -28,6 +28,13 @@ export async function PATCH(
     typeof body.alertPhone === "string" && body.alertPhone.trim()
       ? body.alertPhone.replace(/[\s()-]/g, "")
       : null;
+  // Live transfer. Number is optional and falls back to the alert phone.
+  const transferEnabled = body.transferEnabled === true;
+  const transferAfterHours = body.transferAfterHours === true;
+  const transferPhone: string | null =
+    typeof body.transferPhone === "string" && body.transferPhone.trim()
+      ? body.transferPhone.replace(/[\s()-]/g, "")
+      : null;
 
   if (!Number.isFinite(duration) || duration < 30 || duration > 480) {
     return NextResponse.json({ error: "Duration must be 30–480 minutes" }, { status: 400 });
@@ -56,6 +63,18 @@ export async function PATCH(
   if (alertPhone && alertPhone === process.env.TWILIO_FROM_NUMBER) {
     return NextResponse.json(
       { error: "Alert phone can't be the number alerts are sent from — use the owner's mobile" },
+      { status: 400 }
+    );
+  }
+  if (transferPhone && !/^\+[1-9]\d{7,14}$/.test(transferPhone)) {
+    return NextResponse.json(
+      { error: "Transfer phone must be in international format, e.g. +15125550123" },
+      { status: 400 }
+    );
+  }
+  if (transferEnabled && !transferPhone && !alertPhone) {
+    return NextResponse.json(
+      { error: "Live transfer needs a number to ring — set a transfer phone or an emergency alert phone" },
       { status: 400 }
     );
   }
@@ -118,6 +137,9 @@ export async function PATCH(
       minLeadMinutes: minLead,
       emergencyLeadMinutes: emergencyLead,
       alertPhone,
+      transferEnabled,
+      transferPhone,
+      transferAfterHours,
     })
     .where(eq(vapiAgents.customerId, id));
 
@@ -134,6 +156,7 @@ export async function PATCH(
       pricing: (row.pricingTable as ProvisioningConfig["pricing"]) ?? {},
       emergencyDefinition: row.emergencyDefinition ?? "",
       businessHours: (row.businessHours as ProvisioningConfig["businessHours"]) ?? {},
+      liveTransferEnabled: transferEnabled,
     };
     await updateVapiAssistant(row.vapiAssistantId, config);
   } catch (err) {

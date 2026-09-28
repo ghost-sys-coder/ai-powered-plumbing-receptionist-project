@@ -34,6 +34,9 @@ type Props = {
   minLeadMinutes: number;
   emergencyLeadMinutes: number;
   alertPhone: string | null;
+  transferEnabled: boolean;
+  transferPhone: string | null;
+  transferAfterHours: boolean;
 };
 
 export function EditAgentConfig({
@@ -45,6 +48,9 @@ export function EditAgentConfig({
   minLeadMinutes,
   emergencyLeadMinutes,
   alertPhone: initialAlertPhone,
+  transferEnabled: initialTransferEnabled,
+  transferPhone: initialTransferPhone,
+  transferAfterHours: initialTransferAfterHours,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -58,6 +64,9 @@ export function EditAgentConfig({
   const [minLead, setMinLead] = useState(String(minLeadMinutes));
   const [emergencyLead, setEmergencyLead] = useState(String(emergencyLeadMinutes));
   const [alertPhone, setAlertPhone] = useState(initialAlertPhone ?? "");
+  const [transferEnabled, setTransferEnabled] = useState(initialTransferEnabled);
+  const [transferPhone, setTransferPhone] = useState(initialTransferPhone ?? "");
+  const [transferAfterHours, setTransferAfterHours] = useState(initialTransferAfterHours);
 
   async function handleSave() {
     setSaving(true);
@@ -74,6 +83,9 @@ export function EditAgentConfig({
           minLeadMinutes: Number(minLead),
           emergencyLeadMinutes: Number(emergencyLead),
           alertPhone,
+          transferEnabled,
+          transferPhone,
+          transferAfterHours,
         }),
       });
       const data = await res.json();
@@ -219,6 +231,60 @@ export function EditAgentConfig({
               format. Not the AI receptionist&apos;s number. Leave blank to send no alerts.
             </p>
           </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="transferEnabled">Live transfer for emergencies</Label>
+            <Select
+              value={transferEnabled ? "on" : "off"}
+              onValueChange={(v) => setTransferEnabled(v === "on")}
+            >
+              <SelectTrigger id="transferEnabled">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="off">Off — text alert only</SelectItem>
+                <SelectItem value="on">On — offer to connect caller to owner</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              The owner is rung and briefed first. If they don&apos;t answer, the AI stays on and
+              books the soonest visit.
+            </p>
+          </div>
+
+          {transferEnabled && (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="transferPhone">Transfer phone</Label>
+                <Input
+                  id="transferPhone"
+                  type="tel"
+                  value={transferPhone}
+                  onChange={(e) => setTransferPhone(e.target.value)}
+                  placeholder={alertPhone || "+15125550123"}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Number to ring. Leave blank to use the emergency alert phone.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="transferAfterHours">Transfer outside business hours</Label>
+                <Select
+                  value={transferAfterHours ? "yes" : "no"}
+                  onValueChange={(v) => setTransferAfterHours(v === "yes")}
+                >
+                  <SelectTrigger id="transferAfterHours">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no">No — business hours only (text alert after hours)</SelectItem>
+                    <SelectItem value="yes">Yes — ring the owner any time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>

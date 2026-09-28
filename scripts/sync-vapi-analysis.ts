@@ -44,6 +44,7 @@ async function run(): Promise<void> {
       emergencyDefinition: vapiAgents.emergencyDefinition,
       calendarType: vapiAgents.calendarType,
       appointmentDurationMinutes: vapiAgents.appointmentDurationMinutes,
+      transferEnabled: vapiAgents.transferEnabled,
       businessName: customers.businessName,
       ownerNameCustomer: customers.ownerName,
       serviceArea: customers.serviceArea,
@@ -86,6 +87,7 @@ async function run(): Promise<void> {
         emergencyDefinition: r.emergencyDefinition ?? "",
         businessHours:
           (r.businessHours as ProvisioningConfig["businessHours"]) ?? {},
+        liveTransferEnabled: r.transferEnabled,
       };
 
       await updateVapiAssistant(r.assistantId, cfg);

@@ -129,6 +129,23 @@ function parseHhMm(value: string | undefined): { hour: number; minute: number } 
   return { hour, minute };
 }
 
+// Whether `at` (default now) falls inside the business's open hours, evaluated
+// in its own timezone. Used to decide if a live transfer may ring the owner.
+export function isWithinBusinessHours(
+  businessHours: unknown,
+  timezone: string,
+  at: Date = new Date()
+): boolean {
+  const local = DateTime.fromJSDate(at).setZone(timezone || "America/New_York");
+  const day = parseBusinessHours(businessHours)[DAY_NAMES[local.weekday % 7]];
+  if (!day || day.closed) return false;
+  const open = parseHhMm(day.open);
+  const close = parseHhMm(day.close);
+  if (!open || !close) return false;
+  const minute = local.hour * 60 + local.minute;
+  return minute >= open.hour * 60 + open.minute && minute < close.hour * 60 + close.minute;
+}
+
 // Google freebusy busy periods for the calendar within [start, end].
 async function fetchGoogleBusy(
   calendarId: string,

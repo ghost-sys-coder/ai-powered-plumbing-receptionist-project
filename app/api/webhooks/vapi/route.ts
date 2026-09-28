@@ -10,6 +10,7 @@ import {
 import { createBookingFromCall } from "@/lib/services/bookings";
 import { getAgentByVapiAssistantId } from "@/lib/services/vapi-agents";
 import { checkVapiSignature } from "@/lib/vapi/verify-signature";
+import { resolveTransferDestination } from "@/lib/services/live-transfer";
 
 type VapiMessage = {
     type?: string;
@@ -61,6 +62,16 @@ export async function POST(request: Request): Promise<Response> {
     if (!type || !vapiCallId || !assistantId) {
         console.warn("[vapi-webhook] missing required fields", { type, vapiCallId, assistantId });
         return new Response("ok", { status: 200 });
+    }
+
+    // Live transfer: the shared transferCall tool has no fixed destination, so
+    // Vapi asks here for this business's owner number. Needs a JSON reply.
+    if (type === "transfer-destination-request") {
+        const response = await resolveTransferDestination(assistantId);
+        console.log(
+            `[vapi-webhook] transfer-destination-request for ${vapiCallId} -> ${"error" in response ? `refused (${response.error.slice(0, 60)}…)` : "owner number"}`
+        );
+        return Response.json(response);
     }
 
     const agent = await getAgentByVapiAssistantId(assistantId);

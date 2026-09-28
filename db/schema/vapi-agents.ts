@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb, integer, boolean, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { vapiAgentStatusEnum, phoneNumberSourceEnum, calendarTypeEnum } from "./enums";
 import { customers } from "./customers";
@@ -41,6 +41,12 @@ export const vapiAgents = pgTable(
     // Mobile (E.164) texted the moment the AI flags an emergency. No alert is
     // sent when unset.
     alertPhone: text("alert_phone"),
+    // Live transfer: on an emergency the AI offers to connect the caller to the
+    // owner (warm transfer — owner is briefed first; if they don't answer the AI
+    // stays on and books). Number falls back to alertPhone. Off by default.
+    transferEnabled: boolean("transfer_enabled").notNull().default(false),
+    transferPhone: text("transfer_phone"),
+    transferAfterHours: boolean("transfer_after_hours").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
