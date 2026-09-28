@@ -134,6 +134,10 @@ async function ensureToolIds(vapi: VapiClient, defs: ToolDef[]): Promise<string[
   if (!appUrl) {
     throw new Error("VAPI_TOOLS_BASE_URL (or NEXT_PUBLIC_APP_URL) must be set to register tools");
   }
+  const webhookSecret = process.env.VAPI_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.warn("[vapi-tools] VAPI_WEBHOOK_SECRET not set — tools registered without an auth header");
+  }
   const listResp = await vapi.tools.list();
   const existing = (
     Array.isArray(listResp) ? listResp : ((listResp as { data?: unknown[] })?.data ?? [])
@@ -150,7 +154,13 @@ async function ensureToolIds(vapi: VapiClient, defs: ToolDef[]): Promise<string[
         description: def.description,
         parameters: def.parameters,
       },
-      server: { url: `${appUrl}${def.path}` },
+      // X-Vapi-Secret authenticates every tool call (see lib/vapi/verify-signature).
+      // Tools carry their own server URL, so the org webhook's credential doesn't
+      // apply to them — the header is attached here instead.
+      server: {
+        url: `${appUrl}${def.path}`,
+        ...(webhookSecret ? { headers: { "X-Vapi-Secret": webhookSecret } } : {}),
+      },
     };
     const found = existing.find((t) => t?.function?.name === def.name);
     if (found?.id) {
