@@ -22,6 +22,11 @@ export async function PATCH(
   const buffer = Number(body.appointmentBufferMinutes);
   const minLead = Number(body.minLeadMinutes);
   const emergencyLead = Number(body.emergencyLeadMinutes);
+  // Optional. Stored in E.164 (what Twilio requires); blank disables alerts.
+  const alertPhone: string | null =
+    typeof body.alertPhone === "string" && body.alertPhone.trim()
+      ? body.alertPhone.replace(/[\s()-]/g, "")
+      : null;
 
   if (!Number.isFinite(duration) || duration < 30 || duration > 480) {
     return NextResponse.json({ error: "Duration must be 30–480 minutes" }, { status: 400 });
@@ -38,6 +43,18 @@ export async function PATCH(
   if (!Number.isFinite(emergencyLead) || emergencyLead < 15 || emergencyLead > minLead) {
     return NextResponse.json(
       { error: "Emergency notice must be at least 15 minutes and no more than the standard notice" },
+      { status: 400 }
+    );
+  }
+  if (alertPhone && !/^\+[1-9]\d{7,14}$/.test(alertPhone)) {
+    return NextResponse.json(
+      { error: "Alert phone must be in international format, e.g. +15125550123" },
+      { status: 400 }
+    );
+  }
+  if (alertPhone && alertPhone === process.env.TWILIO_FROM_NUMBER) {
+    return NextResponse.json(
+      { error: "Alert phone can't be the number alerts are sent from — use the owner's mobile" },
       { status: 400 }
     );
   }
@@ -79,6 +96,7 @@ export async function PATCH(
       appointmentBufferMinutes: buffer,
       minLeadMinutes: minLead,
       emergencyLeadMinutes: emergencyLead,
+      alertPhone,
     })
     .where(eq(vapiAgents.customerId, id));
 

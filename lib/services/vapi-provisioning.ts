@@ -81,7 +81,42 @@ const CALENDAR_TOOL_DEFS = [
   },
 ];
 
-// Upserts the calendar tools in the Vapi account (create if missing, update the
+type ToolDef = (typeof CALENDAR_TOOL_DEFS)[number] | typeof NOTIFY_OWNER_TOOL_DEF;
+
+// Texts the business owner mid-call when the AI flags an emergency. Attached to
+// every assistant, whatever its calendar type.
+const NOTIFY_OWNER_TOOL_DEF = {
+  name: "notify_owner_emergency",
+  path: "/api/vapi/tools/notify-owner",
+  description:
+    "Immediately text the business owner about an emergency call. Call exactly once per call, as soon as you have confirmed the issue is an emergency and have the caller's callback number.",
+  parameters: {
+    type: "object",
+    properties: {
+      caller_name: { type: "string", description: "The caller's name, if given" },
+      callback_number: {
+        type: "string",
+        description: "The number to call the caller back on. Omit to use the number they are calling from.",
+      },
+      service_address: { type: "string", description: "Address where the work is needed, if given" },
+      issue_summary: {
+        type: "string",
+        description: "One sentence on the emergency, e.g. 'Burst pipe under kitchen sink, water spreading'",
+      },
+    },
+    required: ["issue_summary"] as string[],
+  },
+};
+
+// Tools for an assistant: the owner alert always, plus the calendar tools when
+// it books directly into Google Calendar.
+function toolDefsFor(calendarType: ProvisioningConfig["calendarType"]): ToolDef[] {
+  return calendarType === "google_calendar"
+    ? [...CALENDAR_TOOL_DEFS, NOTIFY_OWNER_TOOL_DEF]
+    : [NOTIFY_OWNER_TOOL_DEF];
+}
+
+// Upserts the given tools in the Vapi account (create if missing, update the
 // server URL + definition if present) and returns their ids. Idempotent, keyed
 // by function name, so re-running it refreshes the tool server URLs without
 // creating duplicates.
@@ -90,14 +125,14 @@ const CALENDAR_TOOL_DEFS = [
 // app. VAPI_TOOLS_BASE_URL pins it independently of NEXT_PUBLIC_APP_URL: a local
 // sync run with NEXT_PUBLIC_APP_URL set to a dev tunnel would otherwise repoint
 // every customer's booking tools at that tunnel.
-async function ensureCalendarToolIds(vapi: VapiClient): Promise<string[]> {
+async function ensureToolIds(vapi: VapiClient, defs: ToolDef[]): Promise<string[]> {
   const appUrl = (
     process.env.VAPI_TOOLS_BASE_URL ??
     process.env.NEXT_PUBLIC_APP_URL ??
     ""
   ).replace(/\/$/, "");
   if (!appUrl) {
-    throw new Error("VAPI_TOOLS_BASE_URL (or NEXT_PUBLIC_APP_URL) must be set to register calendar tools");
+    throw new Error("VAPI_TOOLS_BASE_URL (or NEXT_PUBLIC_APP_URL) must be set to register tools");
   }
   const listResp = await vapi.tools.list();
   const existing = (
@@ -105,7 +140,7 @@ async function ensureCalendarToolIds(vapi: VapiClient): Promise<string[]> {
   ) as Array<{ id?: string; function?: { name?: string } }>;
 
   const ids: string[] = [];
-  for (const def of CALENDAR_TOOL_DEFS) {
+  for (const def of defs) {
     // `type` is required on create but rejected on update — keep it out of the
     // shared body and add it only for the create call.
     const body = {
@@ -266,8 +301,7 @@ export async function createVapiAssistant(
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
-  const toolIds =
-    config.calendarType === "google_calendar" ? await ensureCalendarToolIds(vapi) : [];
+  const toolIds = await ensureToolIds(vapi, toolDefsFor(config.calendarType));
 
   let assistantId: string;
   try {
@@ -331,8 +365,7 @@ export async function updateVapiAssistant(
   const systemPrompt = buildAgentPrompt(config);
   const vapi = getVapi();
 
-  const toolIds =
-    config.calendarType === "google_calendar" ? await ensureCalendarToolIds(vapi) : [];
+  const toolIds = await ensureToolIds(vapi, toolDefsFor(config.calendarType));
 
   await vapi.assistants.update({
     id: assistantId,

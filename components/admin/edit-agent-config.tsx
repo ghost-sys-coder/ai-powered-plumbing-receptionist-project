@@ -32,6 +32,7 @@ type Props = {
   appointmentBufferMinutes: number;
   minLeadMinutes: number;
   emergencyLeadMinutes: number;
+  alertPhone: string | null;
 };
 
 export function EditAgentConfig({
@@ -42,6 +43,7 @@ export function EditAgentConfig({
   appointmentBufferMinutes,
   minLeadMinutes,
   emergencyLeadMinutes,
+  alertPhone: initialAlertPhone,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,6 +56,7 @@ export function EditAgentConfig({
   const [buffer, setBuffer] = useState(String(appointmentBufferMinutes));
   const [minLead, setMinLead] = useState(String(minLeadMinutes));
   const [emergencyLead, setEmergencyLead] = useState(String(emergencyLeadMinutes));
+  const [alertPhone, setAlertPhone] = useState(initialAlertPhone ?? "");
 
   async function handleSave() {
     setSaving(true);
@@ -69,6 +72,7 @@ export function EditAgentConfig({
           appointmentBufferMinutes: Number(buffer),
           minLeadMinutes: Number(minLead),
           emergencyLeadMinutes: Number(emergencyLead),
+          alertPhone,
         }),
       });
       const data = await res.json();
@@ -194,6 +198,21 @@ export function EditAgentConfig({
             <p className="text-xs text-muted-foreground">
               Shorter notice for calls the AI flags as emergencies. Default 60. Can&apos;t exceed
               the standard notice.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="alertPhone">Emergency alert phone</Label>
+            <Input
+              id="alertPhone"
+              type="tel"
+              value={alertPhone}
+              onChange={(e) => setAlertPhone(e.target.value)}
+              placeholder="+15125550123"
+            />
+            <p className="text-xs text-muted-foreground">
+              The owner&apos;s mobile — texted the moment the AI flags an emergency. International
+              format. Not the AI receptionist&apos;s number. Leave blank to send no alerts.
             </p>
           </div>
 

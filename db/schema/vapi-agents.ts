@@ -38,6 +38,9 @@ export const vapiAgents = pgTable(
     // flagged as emergencies (shorter, so urgent callers get the soonest visit).
     minLeadMinutes: integer("min_lead_minutes").notNull().default(120),
     emergencyLeadMinutes: integer("emergency_lead_minutes").notNull().default(60),
+    // Mobile (E.164) texted the moment the AI flags an emergency. No alert is
+    // sent when unset.
+    alertPhone: text("alert_phone"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

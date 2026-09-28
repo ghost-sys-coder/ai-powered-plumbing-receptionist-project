@@ -35,6 +35,9 @@ export const calls = pgTable(
     serviceAddress: text("service_address"),
     transcript: text("transcript"),
     audioUrl: text("audio_url"),
+    // Set when the owner was texted about this emergency — guarantees one alert
+    // per call even if the model invokes the tool more than once.
+    ownerAlertedAt: timestamp("owner_alerted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -46,6 +46,35 @@ export async function getAgentBookingContext(
     return rows[0] ?? null;
 }
 
+export type AgentAlertContext = {
+    vapiAgentId: string;
+    customerId: string;
+    businessName: string;
+    // Only the explicitly configured alert mobile. Deliberately no fallback to
+    // customers.phone: that is often the AI receptionist's own number, so an
+    // alert sent there would never reach a person.
+    alertPhone: string | null;
+};
+
+// Who to text when the AI flags an emergency, resolved from the assistant id.
+export async function getAgentAlertContext(
+    vapiAssistantId: string
+): Promise<AgentAlertContext | null> {
+    const [row] = await db
+        .select({
+            vapiAgentId: vapiAgents.id,
+            customerId: vapiAgents.customerId,
+            businessName: customers.businessName,
+            alertPhone: vapiAgents.alertPhone,
+        })
+        .from(vapiAgents)
+        .innerJoin(customers, eq(vapiAgents.customerId, customers.id))
+        .where(eq(vapiAgents.vapiAssistantId, vapiAssistantId))
+        .limit(1);
+
+    return row ?? null;
+}
+
 const requestCache = new Map<string, AgentLookup | null>();
 
 export async function getAgentByVapiAssistantId(

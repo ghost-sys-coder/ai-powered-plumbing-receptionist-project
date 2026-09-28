@@ -45,6 +45,7 @@ export function CustomerAgentCard({
           appointmentBufferMinutes={agent.appointmentBufferMinutes}
           minLeadMinutes={agent.minLeadMinutes}
           emergencyLeadMinutes={agent.emergencyLeadMinutes}
+          alertPhone={agent.alertPhone}
         />
       </CardHeader>
       <CardContent>
@@ -85,6 +86,12 @@ export function CustomerAgentCard({
             <dt className="text-muted-foreground">Booking notice</dt>
             <dd className="font-medium">
               {agent.minLeadMinutes} min · emergency {agent.emergencyLeadMinutes} min
+            </dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt className="text-muted-foreground">Emergency alerts to</dt>
+            <dd className="font-mono font-medium">
+              {agent.alertPhone ?? "not set — no alerts"}
             </dd>
           </div>
           {isGoogle && (
