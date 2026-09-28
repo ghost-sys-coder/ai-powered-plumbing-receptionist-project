@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Wrench, Mail, ShieldCheck } from "lucide-react";
 
 export function FooterV2() {
-  const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@plumberanswered.com";
+  const email = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "frank@veilcode.studio";
 
   return (
     <footer
@@ -70,9 +70,11 @@ export function FooterV2() {
             <span>&copy; {new Date().getFullYear()} PlumberAnswered. All rights reserved. Built for professional plumbing services.</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="cursor-pointer hover:opacity-80">Privacy Policy</span>
+            <Link href="/privacy" className="hover:opacity-80">Privacy Policy</Link>
             <span>&middot;</span>
-            <span className="cursor-pointer hover:opacity-80">Terms of Service</span>
+            <Link href="/terms" className="hover:opacity-80">Terms of Service</Link>
+            <span>&middot;</span>
+            <Link href="/data-deletion" className="hover:opacity-80">Data Deletion</Link>
           </div>
         </div>
       </div>
