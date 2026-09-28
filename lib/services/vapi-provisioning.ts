@@ -78,10 +78,22 @@ const CALENDAR_TOOL_DEFS = [
 
 // Upserts the calendar tools in the Vapi account (create if missing, update the
 // server URL + definition if present) and returns their ids. Idempotent, keyed
-// by function name — so it also refreshes the tool server URLs after an ngrok
-// rotation without creating duplicates.
+// by function name, so re-running it refreshes the tool server URLs without
+// creating duplicates.
+//
+// The tools are shared by every assistant, so their URL must be the production
+// app. VAPI_TOOLS_BASE_URL pins it independently of NEXT_PUBLIC_APP_URL: a local
+// sync run with NEXT_PUBLIC_APP_URL set to a dev tunnel would otherwise repoint
+// every customer's booking tools at that tunnel.
 async function ensureCalendarToolIds(vapi: VapiClient): Promise<string[]> {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+  const appUrl = (
+    process.env.VAPI_TOOLS_BASE_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    ""
+  ).replace(/\/$/, "");
+  if (!appUrl) {
+    throw new Error("VAPI_TOOLS_BASE_URL (or NEXT_PUBLIC_APP_URL) must be set to register calendar tools");
+  }
   const listResp = await vapi.tools.list();
   const existing = (
     Array.isArray(listResp) ? listResp : ((listResp as { data?: unknown[] })?.data ?? [])
@@ -222,30 +234,23 @@ async function verifyAnalysisPlan(
 // then smartEndpointingPlan — so both are set explicitly rather than relying on
 // the transcriber's built-in endpointing. Tuned so callers can pause while
 // reading a phone number or address without being cut off.
+//
+// waitSeconds is left at Vapi's default (0.4s). An assistant-side "address"
+// rule (2s wait) and voiceSeconds 0.3 were tried and removed: with them, a
+// caller's short "yes" to the address read-back never registered and calls
+// ended on silence timeout. Keep rules narrow and test short answers.
 const START_SPEAKING_PLAN: Vapi.StartSpeakingPlan = {
-  // Minimum pause before the assistant speaks (Vapi default 0.4s).
-  waitSeconds: 0.6,
   // Semantic end-of-turn model: waits longer when the words suggest the caller
   // isn't done ("my number is 555…"), replies quickly after a finished thought.
   smartEndpointingPlan: { provider: "livekit" },
   customEndpointingRules: [
     // Caller's speech ends in a digit — likely reading a number in chunks.
     { type: "customer", regex: "\\d[\\s.,-]*$", timeoutSeconds: 2.0 },
-    // Assistant just asked for the address — allow pauses while spelling it.
-    {
-      type: "assistant",
-      regex: "address",
-      regexOptions: [{ type: "ignore-case", enabled: true }],
-      timeoutSeconds: 2.0,
-    },
   ],
 };
 
 // Barge-in: when the caller talks over the assistant.
 const STOP_SPEAKING_PLAN: Vapi.StopSpeakingPlan = {
-  // Caller must speak this long before the assistant stops, so background noise
-  // doesn't cut it off (Vapi default 0.2s).
-  voiceSeconds: 0.3,
   // Pause before the assistant resumes after being interrupted (Vapi default 1s).
   backoffSeconds: 1.5,
 };
