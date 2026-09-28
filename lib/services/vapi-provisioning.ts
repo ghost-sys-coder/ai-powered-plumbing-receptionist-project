@@ -1,4 +1,4 @@
-import { VapiClient } from "@vapi-ai/server-sdk";
+import { VapiClient, type Vapi } from "@vapi-ai/server-sdk";
 import { buildAgentPrompt } from "@/lib/templates/agent-prompt";
 import { CALL_DATA_KEY } from "@/lib/services/calls";
 
@@ -217,6 +217,39 @@ async function verifyAnalysisPlan(
   }
 }
 
+// Turn-taking: when the assistant decides the caller has finished speaking.
+// Vapi resolves endpointing in order — customEndpointingRules (if one matches),
+// then smartEndpointingPlan — so both are set explicitly rather than relying on
+// the transcriber's built-in endpointing. Tuned so callers can pause while
+// reading a phone number or address without being cut off.
+const START_SPEAKING_PLAN: Vapi.StartSpeakingPlan = {
+  // Minimum pause before the assistant speaks (Vapi default 0.4s).
+  waitSeconds: 0.6,
+  // Semantic end-of-turn model: waits longer when the words suggest the caller
+  // isn't done ("my number is 555…"), replies quickly after a finished thought.
+  smartEndpointingPlan: { provider: "livekit" },
+  customEndpointingRules: [
+    // Caller's speech ends in a digit — likely reading a number in chunks.
+    { type: "customer", regex: "\\d[\\s.,-]*$", timeoutSeconds: 2.0 },
+    // Assistant just asked for the address — allow pauses while spelling it.
+    {
+      type: "assistant",
+      regex: "address",
+      regexOptions: [{ type: "ignore-case", enabled: true }],
+      timeoutSeconds: 2.0,
+    },
+  ],
+};
+
+// Barge-in: when the caller talks over the assistant.
+const STOP_SPEAKING_PLAN: Vapi.StopSpeakingPlan = {
+  // Caller must speak this long before the assistant stops, so background noise
+  // doesn't cut it off (Vapi default 0.2s).
+  voiceSeconds: 0.3,
+  // Pause before the assistant resumes after being interrupted (Vapi default 1s).
+  backoffSeconds: 1.5,
+};
+
 export async function createVapiAssistant(
   config: ProvisioningConfig
 ): Promise<{ vapiAssistantId: string }> {
@@ -239,6 +272,8 @@ export async function createVapiAssistant(
       voice: { provider: "11labs", voiceId: "paula" } as any,
       firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
       analysisPlan: CALL_ANALYSIS_PLAN as any,
+      startSpeakingPlan: START_SPEAKING_PLAN,
+      stopSpeakingPlan: STOP_SPEAKING_PLAN,
     });
     assistantId = assistant.id;
   } catch (err) {
@@ -300,6 +335,8 @@ export async function updateVapiAssistant(
     } as any,
     firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
     analysisPlan: CALL_ANALYSIS_PLAN as any,
+    startSpeakingPlan: START_SPEAKING_PLAN,
+    stopSpeakingPlan: STOP_SPEAKING_PLAN,
   } as any);
 
   await verifyAnalysisPlan(vapi, assistantId);
