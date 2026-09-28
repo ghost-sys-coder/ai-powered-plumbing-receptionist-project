@@ -78,9 +78,11 @@ export async function POST(request: Request): Promise<Response> {
     .map((s, i) => `(${i + 1}) ${s.label} [${s.startIso}]`)
     .join("; ");
 
+  // These are a sample, not the full schedule — say so explicitly, or the model
+  // tells callers nothing else is open and refuses times it never checked.
   return vapiToolResult(
     toolCallId,
     name,
-    `I have these times available: ${options}. Which works best for you? When you book, use the exact bracketed time as slot_start.`
+    `Some open times: ${options}. These are a sample, not every opening. If the caller wants a different time or day, call check_availability again with that preferred_time and preferred_date — never tell them other times are unavailable without checking. When you book, use the exact bracketed time as slot_start.`
   );
 }

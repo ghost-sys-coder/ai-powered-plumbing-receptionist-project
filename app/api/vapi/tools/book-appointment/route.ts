@@ -115,7 +115,7 @@ export async function POST(request: Request): Promise<Response> {
       return vapiToolResult(
         toolCallId,
         name,
-        `That time was just taken. I now have: ${options}. Which works? Use the exact bracketed time as slot_start.`
+        `That time is no longer available. Some open times: ${options}. These are a sample, not every opening — if none suit the caller, call check_availability with their preferred time. Use the exact bracketed time as slot_start.`
       );
     }
   }

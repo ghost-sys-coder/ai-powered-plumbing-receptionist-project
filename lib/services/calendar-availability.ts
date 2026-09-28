@@ -7,8 +7,12 @@ import { getCalendarClient } from "@/lib/google/calendar-client";
 // Slot policy. Duration/buffer are per-customer (passed in); lead time and window
 // are global for v1 — promote to per-customer later if needed.
 const MIN_LEAD_MINUTES = 120;
+// bookSlot's own floor. Lower than MIN_LEAD_MINUTES so a slot offered near the
+// lead-time edge can still be booked a minute or two later in the same call.
+const BOOKING_MIN_LEAD_MINUTES = 60;
 const BOOKING_WINDOW_DAYS = 14;
 const SLOT_INCREMENT_MINUTES = 30; // candidate starts land on :00 / :30
+const SPREAD_MINUTES = 120; // min gap between options when no time was requested
 const MAX_SLOTS = 6;
 const GOOGLE_TIMEOUT_MS = 8000; // bound each Google call well under Vapi's 20s tool timeout
 
@@ -58,6 +62,8 @@ export function parseTimeOfDay(text: string | null | undefined): number | null {
   if (t.includes("noon") || t.includes("midday")) return 12 * 60;
   if (t.includes("afternoon")) return 14 * 60;
   if (t.includes("evening") || t.includes("night")) return 17 * 60;
+  // "later", "later in the day", "something late" — lean toward the afternoon.
+  if (t.includes("late")) return 14 * 60;
 
   const m = /(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/.exec(t);
   if (m) {
@@ -182,6 +188,25 @@ function overlapsBusy(
   return busy.some((b) => slotStart < b.end && slotEndWithBuffer > b.start);
 }
 
+// Greedy pass over day-then-time sorted candidates: keep a slot only if it's at
+// least SPREAD_MINUTES after the last one kept on the same day, then top up with
+// the remaining slots in order if spacing left too few.
+function spreadAcrossDay<T extends { dayOffset: number; minOfDay: number }>(sorted: T[]): T[] {
+  const picked: T[] = [];
+  for (const c of sorted) {
+    if (picked.length >= MAX_SLOTS) break;
+    const last = picked[picked.length - 1];
+    if (!last || c.dayOffset !== last.dayOffset || c.minOfDay - last.minOfDay >= SPREAD_MINUTES) {
+      picked.push(c);
+    }
+  }
+  for (const c of sorted) {
+    if (picked.length >= MAX_SLOTS) break;
+    if (!picked.includes(c)) picked.push(c);
+  }
+  return picked;
+}
+
 export async function getAvailableSlots(
   input: GetAvailableSlotsInput
 ): Promise<TimeSlot[]> {
@@ -189,10 +214,12 @@ export async function getAvailableSlots(
     const zone = input.timezone || "America/New_York";
     const hours = parseBusinessHours(input.businessHours);
 
-    const now = input.fromDate
-      ? DateTime.fromJSDate(input.fromDate).setZone(zone)
-      : DateTime.now().setZone(zone);
-    const earliest = now.plus({ minutes: MIN_LEAD_MINUTES });
+    const realNow = DateTime.now().setZone(zone);
+    const now = input.fromDate ? DateTime.fromJSDate(input.fromDate).setZone(zone) : realNow;
+    // Lead time always counts from the real current time. fromDate is the start
+    // of the requested day (midnight for "today"), so measuring from it offered
+    // slots that had already passed.
+    const earliest = realNow.plus({ minutes: MIN_LEAD_MINUTES });
     const windowStart = now.startOf("day");
     const windowEnd = now.plus({ days: BOOKING_WINDOW_DAYS }).endOf("day");
 
@@ -258,7 +285,11 @@ export async function getAvailableSlots(
       return a.minOfDay - b.minOfDay;
     });
 
-    return candidates.slice(0, MAX_SLOTS).map((c) => c.slot);
+    // With a stated time, the closest slots are what the caller wants. Without
+    // one, spread the options across the day (e.g. 12:00, 2:00, 4:00) instead
+    // of three back-to-back slots, so the caller hears the range that's open.
+    const picked = targetMin != null ? candidates : spreadAcrossDay(candidates);
+    return picked.slice(0, MAX_SLOTS).map((c) => c.slot);
   } catch (err) {
     console.error("[calendar-availability] getAvailableSlots failed", err);
     return [];
@@ -287,6 +318,18 @@ export type BookSlotResult = {
 export async function bookSlot(input: BookSlotInput): Promise<BookSlotResult> {
   const start = DateTime.fromJSDate(input.slot.start);
   const end = DateTime.fromJSDate(input.slot.end);
+
+  // Never book a slot that has passed or is about to — the AI can echo back a
+  // stale or wrong time. Reported as "no longer available" so the route offers
+  // fresh options in the same reply.
+  if (start < DateTime.now().plus({ minutes: BOOKING_MIN_LEAD_MINUTES })) {
+    return {
+      success: false,
+      calendarEventId: null,
+      scheduledAt: input.slot.start,
+      error: "That time is no longer available",
+    };
+  }
 
   try {
     // 1. Targeted collision re-check for exactly this slot (Google + DB).
