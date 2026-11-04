@@ -66,10 +66,10 @@ export async function sendCustomerInvite(customerId: string): Promise<InviteResu
   // look it up regardless of Clerk metadata propagation timing.
   await db
     .insert(pendingInvites)
-    .values({ email: customer.email, customerId: customer.id })
+    .values({ email: customer.email, role: "client", customerId: customer.id })
     .onConflictDoUpdate({
       target: pendingInvites.email,
-      set: { customerId: customer.id, createdAt: new Date() },
+      set: { role: "client", customerId: customer.id, organizationId: null, createdAt: new Date() },
     });
 
   return { ok: true };

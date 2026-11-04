@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { eq, inArray } from "drizzle-orm";
 
 import { db } from "../db/drizzle";
+import { getHouseAgencyId } from "../lib/services/house-agency";
 import {
     bookings,
     calls,
@@ -221,6 +222,7 @@ async function main(): Promise<void> {
     const [customer] = await db
         .insert(customers)
         .values({
+            organizationId: await getHouseAgencyId(),
             businessName: "Hightower Plumbing",
             ownerName: "Ray Hightower",
             email: HIGHTOWER_EMAIL,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireStaff } from "@/lib/auth/staff";
+import { getAgency, getHouseAgencyId } from "@/lib/services/agencies";
 import { db } from "@/db/drizzle";
 import { customers, vapiAgents } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -29,7 +30,7 @@ function findPgError(
 }
 
 export async function POST(req: NextRequest) {
-  await requireAdmin();
+  const viewer = await requireStaff();
 
   const body = await req.json();
   const {
@@ -74,12 +75,27 @@ export async function POST(req: NextRequest) {
   const profile = profileInput.value;
   const resolvedTimezone: string = timezone || getRegion(profile.country).defaultTimezone;
 
+  // Owning agency: agency staff always create in their own agency; platform
+  // admins pick one (default: the house agency for direct customers).
+  let organizationId: string;
+  if (viewer.kind === "agency") {
+    organizationId = viewer.organizationId;
+  } else if (typeof body.organizationId === "string" && body.organizationId) {
+    if (!(await getAgency(body.organizationId))) {
+      return NextResponse.json({ error: "Agency not found" }, { status: 400 });
+    }
+    organizationId = body.organizationId;
+  } else {
+    organizationId = await getHouseAgencyId();
+  }
+
   // Step 1: Create customer row
   let customerId: string;
   try {
     const [customer] = await db
       .insert(customers)
       .values({
+        organizationId,
         businessName,
         ownerName,
         email,

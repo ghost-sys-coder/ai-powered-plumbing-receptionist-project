@@ -43,6 +43,13 @@
       "when": 1793790868758,
       "tag": "0005_omniscient_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793792561199,
+      "tag": "0006_stormy_vindicator",
+      "breakpoints": true
     }
   ]
 }

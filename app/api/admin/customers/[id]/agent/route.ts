@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireStaff, canAccessCustomer, customerNotFound } from "@/lib/auth/staff";
 import { db } from "@/db/drizzle";
 import { vapiAgents, customers } from "@/db/schema";
 import { updateVapiAssistant, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
@@ -14,8 +14,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await requireAdmin();
+  const viewer = await requireStaff();
   const { id } = await params;
+  if (!(await canAccessCustomer(viewer, id))) return customerNotFound();
 
   const body = await req.json();
   const calendarType = body.calendarType === "manual" ? "manual" : "google_calendar";

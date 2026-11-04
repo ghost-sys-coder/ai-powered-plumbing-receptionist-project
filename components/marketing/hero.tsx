@@ -4,11 +4,12 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import Calcom from "./calcom";
 import { Skeleton } from "../ui/skeleton";
+import { isStaffRole } from "@/lib/auth/roles";
 
 export function Hero() {
   const { isLoaded, isSignedIn, user } = useUser();
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_NUMBER ?? "+15717438660";
-  const dashboardUrl = user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard";
+  const dashboardUrl = isStaffRole(user?.publicMetadata?.role) ? "/admin" : "/dashboard";
   const telLink = `tel:${demoNumber.replace(/\s/g, "")}`;
   const displayNumber = demoNumber;
 
@@ -53,7 +54,7 @@ export function Hero() {
               className="border-white bg-transparent px-8 text-base font-semibold text-white hover:bg-white hover:text-black"
             >
               <Link href={dashboardUrl}>
-                {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "User Dashboard"}
+                {isStaffRole(user?.publicMetadata?.role) ? "Admin Dashboard" : "User Dashboard"}
               </Link>
             </Button>
           ) : (

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { useUser } from "@clerk/nextjs";
 import Calcom from "./calcom";
+import { isStaffRole } from "@/lib/auth/roles";
 
 export function Nav() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -57,8 +58,8 @@ export function Nav() {
             className="bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
           >
             {isSignedIn ? (
-              <Link href={user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard"}>
-                {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "Dashboard"}
+              <Link href={isStaffRole(user?.publicMetadata?.role) ? "/admin" : "/dashboard"}>
+                {isStaffRole(user?.publicMetadata?.role) ? "Admin Dashboard" : "Dashboard"}
               </Link>
             ) : (
               <Calcom className="bg-[#2563EB] text-white hover:bg-[#1d4ed8] px-2 py-2 rounded-md shadow-lg" />  

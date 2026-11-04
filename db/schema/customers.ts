@@ -5,6 +5,7 @@ import {
   planEnum,
   customerStatusEnum,
 } from "./enums";
+import { organizations } from "./organizations";
 
 export const customers = pgTable(
   "customers",
@@ -12,6 +13,11 @@ export const customers = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
+    // The agency that owns this customer. Every query from agency staff is
+    // scoped by this column (lib/auth/staff.ts).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     businessName: text("business_name").notNull(),
     ownerName: text("owner_name").notNull(),
     email: text("email").notNull(),
@@ -49,6 +55,7 @@ export const customers = pgTable(
   (t) => [
     index("customers_stripe_customer_id_idx").on(t.stripeCustomerId),
     index("customers_status_idx").on(t.status),
+    index("customers_organization_id_idx").on(t.organizationId),
   ]
 );
 

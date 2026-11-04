@@ -1,12 +1,13 @@
 import { Webhook } from "svix";
 import { db } from "@/db/drizzle";
 import { pendingInvites } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   syncClerkUserCreated,
   syncClerkUserUpdated,
   softDeleteClerkUser,
   type ClerkUserPayload,
+  type InviteLink,
 } from "@/lib/services/users";
 
 type ClerkWebhookEvent =
@@ -59,26 +60,32 @@ export async function POST(request: Request): Promise<Response> {
         const data = event.data as ClerkUserPayload;
         const email = primaryEmail(data);
 
-        let customerId: string | null = null;
-        let role: "admin" | "client" = "client";
+        let link: InviteLink | null = null;
 
         if (email) {
-          // Look up our own pending_invites table — reliable, no Clerk metadata timing issues
+          // Look up our own pending_invites table — reliable, no Clerk metadata
+          // timing issues. Case-insensitive: Clerk may normalise the address.
           const [invite] = await db
-            .select({ customerId: pendingInvites.customerId })
+            .select({
+              id: pendingInvites.id,
+              role: pendingInvites.role,
+              customerId: pendingInvites.customerId,
+              organizationId: pendingInvites.organizationId,
+            })
             .from(pendingInvites)
-            .where(eq(pendingInvites.email, email))
+            .where(sql`lower(${pendingInvites.email}) = lower(${email})`)
             .limit(1);
 
-          if (invite) {
-            customerId = invite.customerId;
-            role = "client";
-            // Clean up — invite is consumed
-            await db.delete(pendingInvites).where(eq(pendingInvites.email, email));
+          if (invite?.role === "agency" && invite.organizationId) {
+            link = { role: "agency", organizationId: invite.organizationId };
+          } else if (invite?.customerId) {
+            link = { role: "client", customerId: invite.customerId };
           }
+          // Clean up — invite is consumed
+          if (invite) await db.delete(pendingInvites).where(eq(pendingInvites.id, invite.id));
         }
 
-        await syncClerkUserCreated(data, customerId, role);
+        await syncClerkUserCreated(data, link);
         break;
       }
       case "user.updated":

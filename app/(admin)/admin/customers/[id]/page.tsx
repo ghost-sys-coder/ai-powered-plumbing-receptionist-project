@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { users } from "@/db/schema";
 import { getCustomerDetail } from "@/lib/services/admin-dashboard";
+import { requireStaff } from "@/lib/auth/staff";
 import { getCachedLiveAssistantPhoneNumber } from "@/lib/services/live-phone";
 import { PageHeader } from "@/components/layout/page-header";
 import { CustomerAccountCard } from "@/components/admin/customer-account-card";
@@ -20,9 +21,10 @@ interface Props {
 
 const CustomerDetailPage = async ({ params }: Props) => {
   const { id } = await params;
+  const viewer = await requireStaff();
 
   const [data, linkedUserRows] = await Promise.all([
-    getCustomerDetail(id),
+    getCustomerDetail(id, viewer),
     db
       .select({ id: users.id, email: users.email })
       .from(users)

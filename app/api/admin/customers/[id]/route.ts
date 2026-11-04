@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireStaff, canAccessCustomer, customerNotFound } from "@/lib/auth/staff";
 import { db } from "@/db/drizzle";
 import { customers, vapiAgents, calls, bookings, users } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -15,8 +15,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await requireAdmin();
+  const viewer = await requireStaff();
   const { id } = await params;
+  if (!(await canAccessCustomer(viewer, id))) return customerNotFound();
 
   const body = await req.json();
   const {
@@ -154,8 +155,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await requireAdmin();
+  const viewer = await requireStaff();
   const { id } = await params;
+  if (!(await canAccessCustomer(viewer, id))) return customerNotFound();
 
   const [customer] = await db
     .select({ id: customers.id, businessName: customers.businessName })

@@ -6,6 +6,7 @@ import { EditCustomerForm } from "@/components/admin/edit-customer-form";
 import type { BusinessHoursValue } from "@/components/admin/business-hours-input";
 import type { ServiceEntry } from "@/components/admin/services-input";
 import { storedProfile } from "@/lib/services/profile-input";
+import { requireStaff } from "@/lib/auth/staff";
 
 function profileInitial(customer: Parameters<typeof storedProfile>[0]) {
   const p = storedProfile(customer);
@@ -28,7 +29,8 @@ const DEFAULT_HOURS: BusinessHoursValue = {
 
 const EditCustomerPage = async ({ params }: Props) => {
   const { id } = await params;
-  const data = await getCustomerDetail(id);
+  const viewer = await requireStaff();
+  const data = await getCustomerDetail(id, viewer);
 
   if (!data) notFound();
 

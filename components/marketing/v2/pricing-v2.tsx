@@ -6,11 +6,12 @@ import { Check, Sparkles, PhoneCall, ArrowRight, ShieldCheck } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Calcom from "@/components/marketing/calcom";
+import { isStaffRole } from "@/lib/auth/roles";
 
 export function PricingV2() {
   const { isLoaded, isSignedIn, user } = useUser();
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_NUMBER ?? "+1 (571) 743-8660";
-  const dashboardUrl = user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard";
+  const dashboardUrl = isStaffRole(user?.publicMetadata?.role) ? "/admin" : "/dashboard";
   const telLink = `tel:${demoNumber.replace(/[^0-9+]/g, "")}`;
 
   const inclusions = [
@@ -122,7 +123,7 @@ export function PricingV2() {
                   style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}
                 >
                   <Link href={dashboardUrl} className="flex items-center justify-center gap-2">
-                    <span>{user?.publicMetadata?.role === "admin" ? "Admin Console" : "Open Dashboard"}</span>
+                    <span>{isStaffRole(user?.publicMetadata?.role) ? "Admin Console" : "Open Dashboard"}</span>
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>

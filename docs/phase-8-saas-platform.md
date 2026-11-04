@@ -26,7 +26,42 @@ Platform (us)  ─┬─ Agency A ─┬─ Client business ─ callers
 - Every admin query is scoped to the caller's organization. This is the
   largest change: today all admin pages read every customer.
 - Client businesses keep their own dashboard logins (as plumbers have today).
-- Consider Clerk Organizations for agency membership and roles.
+
+### Built (step 2)
+
+- Migration `0006_stormy_vindicator.sql` (hand-edited): `user_role` gains
+  `agency`; `organizations.is_house` (at most one house agency);
+  `customers.organization_id` NOT NULL, backfilled to a new **"Direct
+  customers"** house agency; `pending_invites` gains `role` and
+  `organization_id` (client invites link a customer, agency invites an
+  organization, enforced by a check constraint).
+- Roles stay in Clerk `publicMetadata.role` (`admin` = platform, `agency`,
+  `client`). Agency membership is read from `users.organization_id`, never
+  from the session token. Kept our own tables rather than Clerk
+  Organizations: fewer moving parts, and billing will hang off
+  `organizations` anyway.
+- `lib/auth/staff.ts` is the single access layer: `requireStaff`,
+  `requirePlatformAdmin`, `customerScope`, `canAccessCustomer`. Every admin
+  page and `/api/admin/*` route goes through it; customers outside the
+  viewer's agency return 404. Seeding and agency management are
+  platform-only. Recordings follow the same scope.
+- `/admin/agencies` (platform only): create agencies, invite staff by email.
+  The Clerk webhook links new staff to their agency via `pending_invites`.
+  Invite links now also apply if Clerk's `user.updated` arrives before
+  `user.created`.
+- New customers: agency staff create in their own agency; platform admins pick
+  the agency (default: the house agency).
+
+**Deploy order:** the migration makes `customers.organization_id` required,
+and the currently deployed code doesn't set it, so creating a customer fails
+between migrating and deploying. Run the migration and deploy back to back.
+
+### Not built yet
+
+- Removing staff from an agency, renaming agencies, moving a customer between
+  agencies.
+- Owner vs member roles within an agency (needed with billing).
+- Agency staff managing their own team (today platform admins send invites).
 
 ## 2. Non-technical setup
 

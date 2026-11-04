@@ -1,6 +1,11 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
-export const userRoleEnum = pgEnum("user_role", ["admin", "client"]);
+// admin  — platform staff (us); sees every agency.
+// agency — staff of one agency (users.organization_id); sees only its customers.
+// client — a business owner; sees only their own customer's dashboard.
+// The authoritative role is Clerk publicMetadata.role (read from session
+// claims); agency membership is read from users.organization_id.
+export const userRoleEnum = pgEnum("user_role", ["admin", "client", "agency"]);
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "trialing",

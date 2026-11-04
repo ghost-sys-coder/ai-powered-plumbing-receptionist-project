@@ -9,10 +9,12 @@ import { CustomersTableRow } from "@/components/admin/customers-table-row";
 import type { Customer } from "@/db/schema/customers";
 
 interface Props {
-  customers: (Customer & { callsLast7d: number })[];
+  customers: (Customer & { callsLast7d: number; agencyName: string })[];
+  // Platform admins see which agency owns each customer.
+  showAgency?: boolean;
 }
 
-export function CustomersTable({ customers }: Props) {
+export function CustomersTable({ customers, showAgency = false }: Props) {
   if (customers.length === 0) {
     return (
       <div className="rounded-lg border py-16 text-center">
@@ -29,6 +31,7 @@ export function CustomersTable({ customers }: Props) {
         <TableHeader>
           <TableRow>
             <TableHead>Business</TableHead>
+            {showAgency && <TableHead>Agency</TableHead>}
             <TableHead>Owner</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Plan</TableHead>
@@ -39,7 +42,7 @@ export function CustomersTable({ customers }: Props) {
         </TableHeader>
         <TableBody>
           {customers.map((c) => (
-            <CustomersTableRow key={c.id} customer={c} />
+            <CustomersTableRow key={c.id} customer={c} showAgency={showAgency} />
           ))}
         </TableBody>
       </Table>

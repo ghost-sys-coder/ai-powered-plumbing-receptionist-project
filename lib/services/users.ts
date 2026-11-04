@@ -27,21 +27,42 @@ function fullName(payload: ClerkUserPayload): string | null {
   return name.length > 0 ? name : null;
 }
 
+// What a pending invite links the new user to.
+export type InviteLink =
+  | { role: "client"; customerId: string }
+  | { role: "agency"; organizationId: string };
+
 export async function syncClerkUserCreated(
   payload: ClerkUserPayload,
-  customerId: string | null = null,
-  role: "admin" | "client" = "client"
+  link: InviteLink | null = null
 ): Promise<void> {
   const row: NewUser = {
     clerkId: payload.id,
     email: primaryEmail(payload),
     name: fullName(payload),
-    role,
-    customerId: customerId ?? undefined,
+    role: link?.role ?? "client",
+    customerId: link?.role === "client" ? link.customerId : undefined,
+    organizationId: link?.role === "agency" ? link.organizationId : undefined,
   };
 
   try {
-    await db.insert(users).values(row).onConflictDoNothing({ target: users.clerkId });
+    if (link) {
+      // user.updated can arrive first and insert a bare row; the invite link
+      // must still apply, so update on conflict instead of ignoring it.
+      await db
+        .insert(users)
+        .values(row)
+        .onConflictDoUpdate({
+          target: users.clerkId,
+          set: {
+            role: row.role,
+            customerId: row.customerId ?? null,
+            organizationId: row.organizationId ?? null,
+          },
+        });
+    } else {
+      await db.insert(users).values(row).onConflictDoNothing({ target: users.clerkId });
+    }
   } catch (err) {
     throw new Error(
       `Failed to insert user for clerk_id ${payload.id}: ${(err as Error).message}`

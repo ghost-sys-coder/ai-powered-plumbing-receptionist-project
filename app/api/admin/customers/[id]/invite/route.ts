@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requireStaff, canAccessCustomer, customerNotFound } from "@/lib/auth/staff";
 import { sendCustomerInvite, revokeCustomerInvite } from "@/lib/services/invitations";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await requireAdmin();
+  const viewer = await requireStaff();
   const { id } = await params;
+  if (!(await canAccessCustomer(viewer, id))) return customerNotFound();
 
   const result = await sendCustomerInvite(id);
 
@@ -25,8 +26,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  await requireAdmin();
+  const viewer = await requireStaff();
   const { id } = await params;
+  if (!(await canAccessCustomer(viewer, id))) return customerNotFound();
 
   const result = await revokeCustomerInvite(id);
 

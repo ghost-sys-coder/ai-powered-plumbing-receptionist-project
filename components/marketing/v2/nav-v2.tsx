@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import Calcom from "@/components/marketing/calcom";
+import { isStaffRole } from "@/lib/auth/roles";
 
 export function NavV2() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -15,7 +16,7 @@ export function NavV2() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_NUMBER ?? "+15717438660";
-  const dashboardUrl = user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard";
+  const dashboardUrl = isStaffRole(user?.publicMetadata?.role) ? "/admin" : "/dashboard";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 15);
@@ -90,7 +91,7 @@ export function NavV2() {
               style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}
             >
               <Link href={dashboardUrl}>
-                {user?.publicMetadata?.role === "admin" ? "Admin Console" : "Dashboard"}
+                {isStaffRole(user?.publicMetadata?.role) ? "Admin Console" : "Dashboard"}
               </Link>
             </Button>
           ) : (
@@ -153,7 +154,7 @@ export function NavV2() {
                   style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}
                 >
                   <Link href={dashboardUrl}>
-                    {user?.publicMetadata?.role === "admin" ? "Admin Console" : "Dashboard"}
+                    {isStaffRole(user?.publicMetadata?.role) ? "Admin Console" : "Dashboard"}
                   </Link>
                 </Button>
               ) : (

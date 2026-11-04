@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { PortalShell } from "@/components/auth/portal-shell";
 import { ThemedSignIn } from "@/components/auth/themed-sign-in";
+import { homeForRole, roleFromClaims } from "@/lib/auth/staff";
 
 export const metadata: Metadata = {
     title: "Sign in — Client portal",
@@ -11,15 +12,13 @@ export const metadata: Metadata = {
     robots: { index: false },
 };
 
-type RoleClaims = { role?: "admin" | "client" } | undefined;
-
 const PortalPage = async () => {
     const { userId, sessionClaims } = await auth();
 
-    // Signed-in users skip the portal and go straight to their workspace.
+    // Signed-in users skip the portal and go straight to their workspace:
+    // platform admins and agency staff to /admin, clients to /dashboard.
     if (userId) {
-        const role = (sessionClaims?.metadata as RoleClaims)?.role;
-        redirect(role === "admin" ? "/admin" : "/dashboard");
+        redirect(homeForRole(roleFromClaims(sessionClaims)));
     }
 
     return (

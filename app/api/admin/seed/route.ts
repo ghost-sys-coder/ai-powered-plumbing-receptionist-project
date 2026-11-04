@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, inArray, like } from "drizzle-orm";
 import { clerkClient } from "@clerk/nextjs/server";
-import { requireAdmin } from "@/lib/auth/require-admin";
+import { requirePlatformAdmin } from "@/lib/auth/staff";
+import { getHouseAgencyId } from "@/lib/services/agencies";
 import { db } from "@/db/drizzle";
 import { customers, vapiAgents, calls, bookings, users } from "@/db/schema";
 
@@ -307,7 +308,7 @@ async function wipeHightower(): Promise<void> {
 // POST — seed demo data (wipes first so it's idempotent)
 // Accepts an optional JSON body to override defaults — see SeedConfig type above.
 export async function POST(req: NextRequest) {
-  await requireAdmin();
+  await requirePlatformAdmin();
 
   let cfg: SeedConfig = SEED_DEFAULTS;
   try {
@@ -330,6 +331,7 @@ export async function POST(req: NextRequest) {
   const [customer] = await db
     .insert(customers)
     .values({
+      organizationId: await getHouseAgencyId(),
       businessName: cfg.businessName,
       ownerName: cfg.ownerName,
       email: cfg.email,
@@ -427,7 +429,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE — wipe Hightower demo data only
 export async function DELETE() {
-  await requireAdmin();
+  await requirePlatformAdmin();
   try {
     await wipeHightower();
   } catch (err) {

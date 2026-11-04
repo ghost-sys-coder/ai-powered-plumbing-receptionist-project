@@ -3,19 +3,18 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { calls, users } from "@/db/schema";
 import { getSignedRecordingUrl } from "@/lib/vapi/recording-url";
-
-type RoleClaims = { role?: "admin" | "client" } | undefined;
+import { canAccessCustomer, getStaffViewer } from "@/lib/auth/staff";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Streams a call recording to the portal's <audio> player by redirecting to a
 // fresh signed URL from Vapi. Clients may only play their own business's calls;
-// admins may play any. The Vapi private key never reaches the browser.
+// staff may play those in their scope. The Vapi private key never reaches the browser.
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;
@@ -28,8 +27,14 @@ export async function GET(
     .limit(1);
   if (!call?.audioUrl) return new Response("Not found", { status: 404 });
 
-  const isAdmin = (sessionClaims?.metadata as RoleClaims)?.role === "admin";
-  if (!isAdmin) {
+  // Staff may play recordings of customers in their scope (all for platform
+  // admins, their agency's for agency staff); clients only their own.
+  const staff = await getStaffViewer();
+  if (staff) {
+    if (!(await canAccessCustomer(staff, call.customerId))) {
+      return new Response("Not found", { status: 404 });
+    }
+  } else {
     const [user] = await db
       .select({ customerId: users.customerId })
       .from(users)

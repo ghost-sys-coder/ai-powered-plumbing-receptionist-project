@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import Calcom from "./calcom";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
+import { isStaffRole } from "@/lib/auth/roles";
 
 export function Pricing() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const dashboardUrl = user?.publicMetadata?.role === "admin" ? "/admin" : "/dashboard";
+  const dashboardUrl = isStaffRole(user?.publicMetadata?.role) ? "/admin" : "/dashboard";
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_NUMBER ?? "+15717438660";
 
   return (
@@ -65,7 +66,7 @@ export function Pricing() {
                     className="w-full bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
                   >
                     <Link href={dashboardUrl}>
-                      {user?.publicMetadata?.role === "admin" ? "Admin Dashboard" : "Dashboard"}
+                      {isStaffRole(user?.publicMetadata?.role) ? "Admin Dashboard" : "Dashboard"}
                     </Link>
                   </Button>
                 ) : (

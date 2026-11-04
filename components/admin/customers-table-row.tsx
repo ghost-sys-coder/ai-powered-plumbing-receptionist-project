@@ -37,10 +37,11 @@ const subStatusClass: Record<string, string> = {
 };
 
 interface Props {
-  customer: Customer & { callsLast7d: number };
+  customer: Customer & { callsLast7d: number; agencyName: string };
+  showAgency: boolean;
 }
 
-export function CustomersTableRow({ customer }: Props) {
+export function CustomersTableRow({ customer, showAgency }: Props) {
   const router = useRouter();
   const status = statusConfig[customer.status];
 
@@ -50,6 +51,9 @@ export function CustomersTableRow({ customer }: Props) {
       onClick={() => router.push(`/admin/customers/${customer.id}`)}
     >
       <TableCell className="font-medium">{customer.businessName}</TableCell>
+      {showAgency && (
+        <TableCell className="text-sm text-muted-foreground">{customer.agencyName}</TableCell>
+      )}
       <TableCell className="text-sm text-muted-foreground">
         {customer.ownerName}
       </TableCell>

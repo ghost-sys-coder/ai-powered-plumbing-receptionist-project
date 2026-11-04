@@ -105,8 +105,16 @@ const INITIAL_STEPS: ProvisioningStep[] = [
   { label: "Done ✓", status: "pending" },
 ];
 
-export function NewCustomerForm() {
+type AgencyOption = { id: string; name: string; isHouse: boolean };
+
+// `agencies` is passed only to platform admins, who choose the owning agency
+// (default: the house agency for direct customers). Agency staff get null and
+// the server assigns their own agency.
+export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null }) {
   const router = useRouter();
+  const [organizationId, setOrganizationId] = useState(
+    agencies?.find((a) => a.isHouse)?.id ?? agencies?.[0]?.id ?? ""
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [steps, setSteps] = useState<ProvisioningStep[]>(INITIAL_STEPS);
   const [error, setError] = useState<string | null>(null);
@@ -247,6 +255,7 @@ export function NewCustomerForm() {
           state,
           timezone,
           serviceArea,
+          organizationId: agencies ? organizationId : undefined,
           industry,
           country,
           businessDescription,
@@ -388,6 +397,23 @@ export function NewCustomerForm() {
           <CardTitle>Business info</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          {agencies && (
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="agency">Agency *</Label>
+              <Select value={organizationId} onValueChange={setOrganizationId}>
+                <SelectTrigger id="agency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {agencies.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.isHouse ? `${a.name} (direct)` : a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <IndustryCountryFields
             industry={industry}
             country={country}
