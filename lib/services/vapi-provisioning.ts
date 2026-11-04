@@ -208,7 +208,7 @@ async function ensureToolIds(vapi: VapiClient, defs: ToolDef[]): Promise<string[
 //
 // The core keys are the same for every industry; descriptions and the extra
 // intake fields come from the industry profile.
-function callDataSchema(industry: IndustryProfile) {
+export function callDataSchema(industry: IndustryProfile) {
   const intakeProperties = Object.fromEntries(
     industry.intakeFields.map((f) => [
       f.key,

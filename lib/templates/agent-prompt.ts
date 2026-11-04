@@ -65,10 +65,12 @@ Do not attempt to book appointments directly. Collect the caller's preferred day
 function pricingLines(config: PromptConfig, industry: IndustryProfile): string {
   const l = industry.pricingLabels;
   const p = config.pricing;
+  // Blank form fields arrive as "" — treat them like unset values so the
+  // receptionist never reads out an empty price.
   return [
-    l.serviceCallFee && `- ${l.serviceCallFee}: ${p.serviceCallFee ?? "Call for quote"}`,
-    l.hourlyRate && `- ${l.hourlyRate}: ${p.hourlyRate ?? "Call for quote"}`,
-    l.afterHoursSurcharge && `- ${l.afterHoursSurcharge}: ${p.afterHoursSurcharge ?? "Applies"}`,
+    l.serviceCallFee && `- ${l.serviceCallFee}: ${p.serviceCallFee?.trim() || "Call for quote"}`,
+    l.hourlyRate && `- ${l.hourlyRate}: ${p.hourlyRate?.trim() || "Call for quote"}`,
+    l.afterHoursSurcharge && `- ${l.afterHoursSurcharge}: ${p.afterHoursSurcharge?.trim() || "Applies"}`,
     l.freeEstimates && `- ${l.freeEstimates}: ${p.freeEstimates ? "Yes" : "No"}`,
   ]
     .filter(Boolean)

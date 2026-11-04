@@ -5,6 +5,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EditCustomerForm } from "@/components/admin/edit-customer-form";
 import type { BusinessHoursValue } from "@/components/admin/business-hours-input";
 import type { ServiceEntry } from "@/components/admin/services-input";
+import { storedProfile } from "@/lib/services/profile-input";
+
+function profileInitial(customer: Parameters<typeof storedProfile>[0]) {
+  const p = storedProfile(customer);
+  return { ...p, businessDescription: p.businessDescription ?? "" };
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -39,6 +45,7 @@ const EditCustomerPage = async ({ params }: Props) => {
     state:               customer.state ?? "",
     timezone:            customer.timezone,
     serviceArea:         customer.serviceArea ?? "",
+    ...profileInitial(customer),
     emergencyDefinition: agent?.emergencyDefinition ?? "",
     businessHours:       (agent?.businessHours as BusinessHoursValue | null) ?? DEFAULT_HOURS,
     servicesOffered:     (agent?.servicesOffered as ServiceEntry[] | null) ?? [],
@@ -61,7 +68,7 @@ const EditCustomerPage = async ({ params }: Props) => {
 
       <PageHeader
         title={`Edit — ${customer.businessName}`}
-        description="Changes are saved to the database and synced to the Vapi assistant."
+        description="Changes are saved to the database and synced to the AI receptionist."
       />
 
       <EditCustomerForm customerId={id} initial={initial} />

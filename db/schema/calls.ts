@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   integer,
+  jsonb,
   index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -33,6 +34,9 @@ export const calls = pgTable(
     urgencyLevel: urgencyLevelEnum("urgency_level"),
     issueSummary: text("issue_summary"),
     serviceAddress: text("service_address"),
+    // Industry-specific fields extracted from the call (e.g. matter_type,
+    // patient_status), keyed by IntakeField.key from the customer's profile.
+    intakeData: jsonb("intake_data").$type<Record<string, string>>(),
     transcript: text("transcript"),
     audioUrl: text("audio_url"),
     // Set when the owner was texted about this emergency — guarantees one alert

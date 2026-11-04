@@ -21,22 +21,16 @@ import {
 } from "@/components/admin/business-hours-input";
 import { ServicesInput, type ServiceEntry } from "@/components/admin/services-input";
 import { ChevronDown, ChevronUp, ClipboardPaste } from "lucide-react";
-
-const US_TIMEZONES = [
-  { value: "America/New_York", label: "Eastern Time" },
-  { value: "America/Chicago", label: "Central Time" },
-  { value: "America/Denver", label: "Mountain Time" },
-  { value: "America/Los_Angeles", label: "Pacific Time" },
-  { value: "America/Anchorage", label: "Alaska Time" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time" },
-  { value: "Africa/Kampala", label: "East Africa Time (Kampala)" },
-  { value: "Africa/Nairobi", label: "East Africa Time (Nairobi)" },
-  { value: "Africa/Lagos", label: "West Africa Time (Lagos)" },
-  { value: "Europe/London", label: "UK Time (London)" },
-];
+import { IndustryCountryFields } from "@/components/admin/industry-country-fields";
+import { PricingFields } from "@/components/admin/pricing-fields";
+import { getIndustry, isIndustryId, type IndustryId } from "@/lib/verticals";
+import { getRegion, isCountryCode, type CountryCode } from "@/lib/regions";
 
 const SAMPLE_JSON = `{
   "businessName": "Austin Pro Plumbing",
+  "industry": "plumbing",
+  "country": "US",
+  "businessDescription": "",
   "ownerName": "Mike Torres",
   "email": "mike@austinproplumbing.com",
   "phone": "512-555-0147",
@@ -84,6 +78,9 @@ export interface EditCustomerFormProps {
     state: string;
     timezone: string;
     serviceArea: string;
+    industry: IndustryId;
+    country: CountryCode;
+    businessDescription: string;
     emergencyDefinition: string;
     businessHours: BusinessHoursValue;
     servicesOffered: ServiceEntry[];
@@ -117,6 +114,9 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
   const [state, setState] = useState(initial.state);
   const [timezone, setTimezone] = useState(initial.timezone);
   const [serviceArea, setServiceArea] = useState(initial.serviceArea);
+  const [industry, setIndustry] = useState<IndustryId>(initial.industry);
+  const [country, setCountry] = useState<CountryCode>(initial.country);
+  const [businessDescription, setBusinessDescription] = useState(initial.businessDescription);
   const [emergencyDefinition, setEmergencyDefinition] = useState(initial.emergencyDefinition);
   const [businessHours, setBusinessHours] = useState<BusinessHoursValue>(initial.businessHours);
   const [services, setServices] = useState<ServiceEntry[]>(initial.servicesOffered);
@@ -127,11 +127,29 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
   const [plan, setPlan] = useState(initial.plan);
   const [stripeCustomerId, setStripeCustomerId] = useState(initial.stripeCustomerId);
 
+  const region = getRegion(country);
+  const pricingLabels = getIndustry(industry).pricingLabels;
+  // Keep a stored timezone selectable even if it isn't in this country's list.
+  const timezoneOptions = region.timezones.some((tz) => tz.value === timezone)
+    ? region.timezones
+    : [{ value: timezone, label: timezone }, ...region.timezones];
+
+  function handleCountryChange(next: CountryCode) {
+    setCountry(next);
+    const nextRegion = getRegion(next);
+    if (!nextRegion.timezones.some((tz) => tz.value === timezone)) {
+      setTimezone(nextRegion.defaultTimezone);
+    }
+  }
+
   function fillFromJson() {
     setJsonError(null);
     try {
       const parsed = JSON.parse(jsonInput);
 
+      if (isIndustryId(parsed.industry)) setIndustry(parsed.industry);
+      if (isCountryCode(parsed.country)) setCountry(parsed.country);
+      if (parsed.businessDescription !== undefined) setBusinessDescription(parsed.businessDescription ?? "");
       if (parsed.businessName)        setBusinessName(parsed.businessName);
       if (parsed.ownerName)           setOwnerName(parsed.ownerName);
       if (parsed.email)               setEmail(parsed.email);
@@ -166,6 +184,10 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
       setError("Please fill in all required fields.");
       return;
     }
+    if (industry === "general" && !businessDescription.trim()) {
+      setError('Describe what the business does, e.g. "a dog grooming salon".');
+      return;
+    }
 
     setIsSaving(true);
     setError(null);
@@ -185,6 +207,9 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
           state,
           timezone,
           serviceArea,
+          industry,
+          country,
+          businessDescription,
           emergencyDefinition,
           businessHours,
           servicesOffered: services,
@@ -287,6 +312,14 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
           <CardTitle>Business info</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          <IndustryCountryFields
+            industry={industry}
+            country={country}
+            businessDescription={businessDescription}
+            onIndustryChange={setIndustry}
+            onCountryChange={handleCountryChange}
+            onBusinessDescriptionChange={setBusinessDescription}
+          />
           <div className="space-y-1.5">
             <Label htmlFor="businessName">Business name *</Label>
             <Input
@@ -341,12 +374,11 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="state">State</Label>
+            <Label htmlFor="state">{region.subdivisionLabel}</Label>
             <Input
               id="state"
               value={state}
               onChange={(e) => setState(e.target.value)}
-              placeholder="TX"
             />
           </div>
           <div className="space-y-1.5">
@@ -356,7 +388,7 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {US_TIMEZONES.map((tz) => (
+                {timezoneOptions.map((tz) => (
                   <SelectItem key={tz.value} value={tz.value}>
                     {tz.label}
                   </SelectItem>
@@ -370,7 +402,7 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
               id="serviceArea"
               value={serviceArea}
               onChange={(e) => setServiceArea(e.target.value)}
-              placeholder="Greater Austin, TX"
+              placeholder="e.g. the city and surrounding areas you cover"
             />
           </div>
         </CardContent>
@@ -408,56 +440,17 @@ export function EditCustomerForm({ customerId, initial }: EditCustomerFormProps)
 
           <Separator />
 
-          <div className="space-y-3">
-            <Label>Pricing</Label>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="serviceCallFee" className="text-sm text-muted-foreground">
-                  Service call fee
-                </Label>
-                <Input
-                  id="serviceCallFee"
-                  value={serviceCallFee}
-                  onChange={(e) => setServiceCallFee(e.target.value)}
-                  placeholder="$95"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="hourlyRate" className="text-sm text-muted-foreground">
-                  Hourly rate
-                </Label>
-                <Input
-                  id="hourlyRate"
-                  value={hourlyRate}
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                  placeholder="$125/hr"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="afterHours" className="text-sm text-muted-foreground">
-                  After-hours surcharge
-                </Label>
-                <Input
-                  id="afterHours"
-                  value={afterHoursSurcharge}
-                  onChange={(e) => setAfterHoursSurcharge(e.target.value)}
-                  placeholder="$75"
-                />
-              </div>
-              <div className="flex items-center gap-2 pt-5">
-                <Input
-                  type="checkbox"
-                  id="freeEstimates"
-                  checked={freeEstimates}
-                  onChange={(e) => setFreeEstimates(e.target.checked)}
-                  className="h-4 w-4 rounded border-border"
-                />
-                <Label htmlFor="freeEstimates" className="text-sm">
-                  Free estimates
-                </Label>
-              </div>
-            </div>
-          </div>
+          <PricingFields
+            labels={pricingLabels}
+            serviceCallFee={serviceCallFee}
+            hourlyRate={hourlyRate}
+            afterHoursSurcharge={afterHoursSurcharge}
+            freeEstimates={freeEstimates}
+            onServiceCallFee={setServiceCallFee}
+            onHourlyRate={setHourlyRate}
+            onAfterHoursSurcharge={setAfterHoursSurcharge}
+            onFreeEstimates={setFreeEstimates}
+          />
         </CardContent>
       </Card>
 

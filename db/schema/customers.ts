@@ -21,6 +21,15 @@ export const customers = pgTable(
     state: text("state"),
     timezone: text("timezone").notNull().default("America/New_York"),
     serviceArea: text("service_area"),
+    // Prompt profile keys (lib/verticals, lib/regions). Plain text rather than
+    // pg enums so adding an industry or country needs no migration; values are
+    // validated in TS (isIndustryId / isCountryCode). Defaults match every
+    // customer created before multi-industry support.
+    industry: text("industry").notNull().default("plumbing"),
+    country: text("country").notNull().default("US"),
+    // Optional one-line self-description ("a dog grooming salon") that
+    // replaces the industry default in the prompt. Required for "general".
+    businessDescription: text("business_description"),
     stripeCustomerId: text("stripe_customer_id").unique(),
     subscriptionStatus: subscriptionStatusEnum("subscription_status")
       .notNull()

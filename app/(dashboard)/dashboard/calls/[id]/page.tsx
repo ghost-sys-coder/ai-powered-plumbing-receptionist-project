@@ -18,7 +18,7 @@ const CallDetailPage = async ({ params }: Props) => {
   const { id } = await params;
   const ctx = await getCustomerContext();
   if (!ctx) redirect("/dashboard");
-  const { customerId, timezone } = ctx;
+  const { customerId, timezone, industry } = ctx;
 
   const result = await getCallWithBooking(customerId, id);
 
@@ -63,7 +63,7 @@ const CallDetailPage = async ({ params }: Props) => {
         </div>
 
         <div className="space-y-4">
-          <CallSummaryCard call={call} timezone={timezone} />
+          <CallSummaryCard call={call} timezone={timezone} industry={industry} />
           {booking && call.outcome === "booked" && (
             <CallBookingCard booking={booking} timezone={timezone} />
           )}

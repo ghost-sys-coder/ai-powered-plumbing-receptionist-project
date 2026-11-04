@@ -2,11 +2,13 @@ import {
     createCall,
     extractStructuredData,
     finalizeCall,
+    pickIntakeData,
     recordCallEndedFallback,
     toDate,
     updateCallTranscript,
     type CreateCallInput,
 } from "@/lib/services/calls";
+import { getIndustry } from "@/lib/verticals";
 import { createBookingFromCall } from "@/lib/services/bookings";
 import { getAgentByVapiAssistantId } from "@/lib/services/vapi-agents";
 import { checkVapiSignature } from "@/lib/vapi/verify-signature";
@@ -131,6 +133,10 @@ export async function POST(request: Request): Promise<Response> {
                     transcript: message?.artifact?.transcript ?? null,
                     audioUrl: message?.artifact?.recordingUrl ?? null,
                     structured: extracted,
+                    intakeData: pickIntakeData(
+                        extracted as Record<string, unknown>,
+                        getIndustry(agent.industry).intakeFields
+                    ),
                 });
                 // For Google-Calendar customers, book_appointment is the sole
                 // source of truth (it creates the real calendar event). Creating a

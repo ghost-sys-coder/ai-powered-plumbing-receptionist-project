@@ -203,6 +203,24 @@ export function extractStructuredData(analysis: VapiAnalysis | undefined | null)
     return (match as StructuredCallData) ?? {};
 }
 
+// Picks the industry's extra intake fields out of the structured data. Only
+// declared keys are kept, values are trimmed strings, and empty values and
+// "unknown" placeholders are dropped. Returns null when nothing was captured.
+export function pickIntakeData(
+    structured: Record<string, unknown>,
+    fields: ReadonlyArray<{ key: string }>
+): Record<string, string> | null {
+    const out: Record<string, string> = {};
+    for (const { key } of fields) {
+        const value = structured[key];
+        if (typeof value !== "string") continue;
+        const trimmed = value.trim();
+        if (!trimmed || trimmed.toLowerCase() === "unknown") continue;
+        out[key] = trimmed;
+    }
+    return Object.keys(out).length > 0 ? out : null;
+}
+
 export type FinalizeCallInput = {
     vapiCallId: string;
     endedAt: Date | null;
@@ -210,6 +228,8 @@ export type FinalizeCallInput = {
     transcript: string | null;
     audioUrl: string | null;
     structured: StructuredCallData;
+    // Industry-specific values (see pickIntakeData).
+    intakeData?: Record<string, string> | null;
 };
 
 export type FinalizedCall = {
@@ -275,6 +295,7 @@ export async function finalizeCall(input: FinalizeCallInput): Promise<FinalizedC
             callerName,
             issueSummary,
             serviceAddress,
+            intakeData: input.intakeData ?? null,
             // The number to reach the caller on: use the callback number when
             // they asked to be reached on a different one; otherwise keep the
             // caller ID Vapi captured (or, for web calls with no caller ID, the

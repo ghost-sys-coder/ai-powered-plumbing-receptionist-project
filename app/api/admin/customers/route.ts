@@ -10,6 +10,8 @@ import {
   extractAreaCode,
   type ProvisioningConfig,
 } from "@/lib/services/vapi-provisioning";
+import { parseProfileInput } from "@/lib/services/profile-input";
+import { getRegion } from "@/lib/regions";
 
 // Drizzle wraps the driver error, so the real Postgres error (with code +
 // constraint) sits on `.cause`. Walk the chain to find it.
@@ -65,6 +67,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const profileInput = parseProfileInput(body);
+  if (!profileInput.ok) {
+    return NextResponse.json({ error: profileInput.error }, { status: 400 });
+  }
+  const profile = profileInput.value;
+  const resolvedTimezone: string = timezone || getRegion(profile.country).defaultTimezone;
+
   // Step 1: Create customer row
   let customerId: string;
   try {
@@ -78,8 +87,11 @@ export async function POST(req: NextRequest) {
         address: address || null,
         city: city || null,
         state: state || null,
-        timezone: timezone ?? "America/New_York",
+        timezone: resolvedTimezone,
         serviceArea: serviceArea || null,
+        industry: profile.industry,
+        country: profile.country,
+        businessDescription: profile.businessDescription,
         stripeCustomerId: stripeCustomerId || null,
         plan: (plan === "pilot" ? "pilot" : "standard") as "pilot" | "standard",
         status: "onboarding",
@@ -116,13 +128,14 @@ export async function POST(req: NextRequest) {
     businessName,
     ownerName,
     serviceArea: serviceArea ?? "",
-    timezone: timezone ?? "America/New_York",
+    timezone: resolvedTimezone,
     calendarType: resolvedCalendarType,
     appointmentDurationMinutes: durationMinutes,
     servicesOffered: servicesOffered ?? [],
     pricing: pricing ?? {},
     emergencyDefinition,
     businessHours: businessHours ?? {},
+    ...profile,
   };
 
   // Step 2: Create Vapi assistant

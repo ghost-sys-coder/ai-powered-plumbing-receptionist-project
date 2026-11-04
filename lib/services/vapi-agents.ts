@@ -6,6 +6,9 @@ export type AgentLookup = {
     id: string;
     customerId: string;
     calendarType: "google_calendar" | "manual";
+    // The customer's industry id (customers.industry) — decides which intake
+    // fields the webhook stores.
+    industry: string;
 };
 
 export type AgentBookingContext = {
@@ -89,8 +92,10 @@ export async function getAgentByVapiAssistantId(
             id: vapiAgents.id,
             customerId: vapiAgents.customerId,
             calendarType: vapiAgents.calendarType,
+            industry: customers.industry,
         })
         .from(vapiAgents)
+        .innerJoin(customers, eq(vapiAgents.customerId, customers.id))
         .where(eq(vapiAgents.vapiAssistantId, vapiAssistantId))
         .limit(1);
 

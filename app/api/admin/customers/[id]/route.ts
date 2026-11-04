@@ -9,6 +9,7 @@ import {
   deleteVapiResources,
   type ProvisioningConfig,
 } from "@/lib/services/vapi-provisioning";
+import { parseProfileInput } from "@/lib/services/profile-input";
 
 export async function PATCH(
   req: NextRequest,
@@ -43,6 +44,33 @@ export async function PATCH(
     );
   }
 
+  // Industry/country/description change only when the form sends them, so a
+  // client that omits them can't reset a customer back to the defaults.
+  const [existing] = await db
+    .select({
+      industry: customers.industry,
+      country: customers.country,
+      businessDescription: customers.businessDescription,
+    })
+    .from(customers)
+    .where(eq(customers.id, id))
+    .limit(1);
+
+  if (!existing) {
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  }
+
+  const profileInput = parseProfileInput({
+    industry: body.industry ?? existing.industry,
+    country: body.country ?? existing.country,
+    businessDescription:
+      "businessDescription" in body ? body.businessDescription : existing.businessDescription,
+  });
+  if (!profileInput.ok) {
+    return NextResponse.json({ error: profileInput.error }, { status: 400 });
+  }
+  const profile = profileInput.value;
+
   // Update customer row
   const updated = await db
     .update(customers)
@@ -56,6 +84,9 @@ export async function PATCH(
       state: state || null,
       timezone: timezone ?? "America/New_York",
       serviceArea: serviceArea || null,
+      industry: profile.industry,
+      country: profile.country,
+      businessDescription: profile.businessDescription,
       stripeCustomerId: stripeCustomerId || null,
       plan: (plan === "pilot" ? "pilot" : "standard") as "pilot" | "standard",
     })
@@ -107,6 +138,7 @@ export async function PATCH(
           businessHours: businessHours ?? {},
           // Preserve live transfer — omitting it would detach the transfer tool.
           liveTransferEnabled: agent.transferEnabled,
+          ...profile,
         };
         await updateVapiAssistant(agent.vapiAssistantId, config);
       } catch {

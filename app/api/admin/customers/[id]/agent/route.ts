@@ -5,6 +5,7 @@ import { db } from "@/db/drizzle";
 import { vapiAgents, customers } from "@/db/schema";
 import { updateVapiAssistant, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
 import { checkCalendarAccess } from "@/lib/services/calendar-availability";
+import { storedProfile } from "@/lib/services/profile-input";
 
 // Updates a customer's agent booking config (calendar type, calendar id,
 // appointment duration/buffer, standard/emergency booking notice) and re-syncs
@@ -97,6 +98,9 @@ export async function PATCH(
       ownerNameCustomer: customers.ownerName,
       serviceArea: customers.serviceArea,
       timezone: customers.timezone,
+      industry: customers.industry,
+      country: customers.country,
+      businessDescription: customers.businessDescription,
     })
     .from(vapiAgents)
     .innerJoin(customers, eq(vapiAgents.customerId, customers.id))
@@ -157,6 +161,7 @@ export async function PATCH(
       emergencyDefinition: row.emergencyDefinition ?? "",
       businessHours: (row.businessHours as ProvisioningConfig["businessHours"]) ?? {},
       liveTransferEnabled: transferEnabled,
+      ...storedProfile(row),
     };
     await updateVapiAssistant(row.vapiAssistantId, config);
   } catch (err) {

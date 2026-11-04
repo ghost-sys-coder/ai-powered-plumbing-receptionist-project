@@ -21,6 +21,7 @@ import {
   type ProvisioningConfig,
 } from "../lib/services/vapi-provisioning";
 import { CALL_DATA_KEY } from "../lib/services/calls";
+import { storedProfile } from "../lib/services/profile-input";
 
 config({ path: ".env" });
 
@@ -49,6 +50,9 @@ async function run(): Promise<void> {
       ownerNameCustomer: customers.ownerName,
       serviceArea: customers.serviceArea,
       timezone: customers.timezone,
+      industry: customers.industry,
+      country: customers.country,
+      businessDescription: customers.businessDescription,
     })
     .from(vapiAgents)
     .innerJoin(customers, eq(vapiAgents.customerId, customers.id));
@@ -88,6 +92,7 @@ async function run(): Promise<void> {
         businessHours:
           (r.businessHours as ProvisioningConfig["businessHours"]) ?? {},
         liveTransferEnabled: r.transferEnabled,
+        ...storedProfile(r),
       };
 
       await updateVapiAssistant(r.assistantId, cfg);

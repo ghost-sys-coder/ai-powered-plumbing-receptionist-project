@@ -17,22 +17,31 @@ export async function getCustomerId(): Promise<string | null> {
   return user?.customerId ?? null;
 }
 
-// Resolves the signed-in client's customer id AND business timezone in one query.
-// Used by dashboard pages that render times, so bookings/calls show in the
-// client's local time regardless of the viewer's browser.
+// Resolves the signed-in client's customer id, business timezone and industry
+// in one query. Used by dashboard pages that render times (so bookings/calls
+// show in the client's local time regardless of the viewer's browser) and
+// industry-specific call fields.
 export async function getCustomerContext(): Promise<
-  { customerId: string; timezone: string } | null
+  { customerId: string; timezone: string; industry: string } | null
 > {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   const [row] = await db
-    .select({ customerId: users.customerId, timezone: customers.timezone })
+    .select({
+      customerId: users.customerId,
+      timezone: customers.timezone,
+      industry: customers.industry,
+    })
     .from(users)
     .leftJoin(customers, eq(users.customerId, customers.id))
     .where(eq(users.clerkId, userId))
     .limit(1);
 
   if (!row?.customerId) return null;
-  return { customerId: row.customerId, timezone: row.timezone ?? "America/New_York" };
+  return {
+    customerId: row.customerId,
+    timezone: row.timezone ?? "America/New_York",
+    industry: row.industry ?? "plumbing",
+  };
 }
