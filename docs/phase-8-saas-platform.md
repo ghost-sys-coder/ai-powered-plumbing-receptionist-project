@@ -99,9 +99,33 @@ between migrating and deploying. Run the migration and deploy back to back.
   - `TOKEN_ENCRYPTION_KEY` — 32 random bytes, base64. Keep it stable:
     changing it invalidates stored connections.
 
-Still to do in step 4: automatic phone numbers outside the US (Twilio purchase
-and import; UK/AU need regulatory bundles), website import to prefill the
-wizard.
+### Built (step 4, part 2): phone numbers outside the US
+
+- `lib/voice/phone-numbers.ts` decides where a number comes from per country:
+  US → free Vapi number (unchanged); CA → bought on our Twilio account in the
+  business's area code (falls back to any Canadian local number), then
+  imported into Vapi; GB/AU → same, once `TWILIO_BUNDLE_SID_<CC>` (and
+  `TWILIO_ADDRESS_SID_<CC>` if the bundle has a separate address) is set;
+  UG → none (Twilio sells no Ugandan numbers; forward the business's line).
+- `lib/twilio/numbers.ts` searches, buys and releases numbers. If the Vapi
+  import fails the Twilio number is released straight away. Deleting a
+  customer releases its Twilio number, but only numbers on our own account.
+- When a country can't be served yet, setup still finishes without a number
+  and the wizard says why. The customer page then shows **Add phone number**
+  (`POST /api/admin/customers/[id]/phone-number`), e.g. after a bundle is
+  approved. `vapi_agents.phone_number_source` records `twilio_imported`.
+- Needs an upgraded (paid) Twilio account: trial accounts can hold one number.
+  Each Twilio number costs roughly $1–5/month depending on country, on top of
+  per-minute charges.
+
+**Getting UK/AU bundles:** Twilio Console → Phone Numbers → Regulatory
+Compliance → Bundles → Create, for "Local" numbers, end-user type "Business".
+Approval takes about 1–3 business days (sometimes weeks). Put the approved
+bundle SID (`BU…`) in Vercel as `TWILIO_BUNDLE_SID_GB` / `TWILIO_BUNDLE_SID_AU`.
+One bundle covers all of our numbers in that country, because the numbers are
+held by us, not by each end business.
+
+Still to do in step 4: website import to prefill the wizard.
 
 ## 3. Billing (proposed)
 

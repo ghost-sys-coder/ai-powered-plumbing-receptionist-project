@@ -6,6 +6,7 @@ import { customers, vapiAgents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { extractAreaCode, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
 import { DEFAULT_VOICE_PROVIDER, getProvider, type ReceptionistProvider } from "@/lib/voice";
+import { PhoneNumberUnavailableError } from "@/lib/voice/phone-numbers";
 import { parseProfileInput } from "@/lib/services/profile-input";
 import { getRegion } from "@/lib/regions";
 
@@ -181,23 +182,37 @@ export async function POST(req: NextRequest) {
 
   let vapiPhoneNumberId: string | null = null;
   let provisionedPhone: string | null = null;
+  let phoneNumberSource: "vapi_native" | "twilio_imported" = "vapi_native";
+  // Set when the business's country can't get a number automatically yet;
+  // setup still finishes and staff are told why.
+  let phoneWarning: string | null = null;
 
   if (phoneProvisioningEnabled) {
     try {
-      const result = await provider.provisionPhoneNumber(extractAreaCode(phone));
+      const result = await provider.provisionPhoneNumber({
+        country: profile.country,
+        areaCode: extractAreaCode(phone),
+        label: businessName,
+      });
       vapiPhoneNumberId = result.phoneNumberId;
       provisionedPhone = result.phoneNumber;
+      phoneNumberSource = result.source;
     } catch (err) {
-      console.error("[create-customer] step 3 (phone provisioning) failed:", err);
-      return NextResponse.json(
-        {
-          error: `Step 3 — Phone number provisioning failed. Assistant created (ID: ${vapiAssistantId}). ${(err as Error).message}`,
-          failedStep: 2,
-          customerId,
-          vapiAssistantId,
-        },
-        { status: 500 }
-      );
+      if (err instanceof PhoneNumberUnavailableError) {
+        phoneWarning = err.message;
+        console.log(`[create-customer] no automatic number for ${profile.country}: ${err.message}`);
+      } else {
+        console.error("[create-customer] step 3 (phone provisioning) failed:", err);
+        return NextResponse.json(
+          {
+            error: `Step 3 — Phone number provisioning failed. Assistant created (ID: ${vapiAssistantId}). ${(err as Error).message}`,
+            failedStep: 2,
+            customerId,
+            vapiAssistantId,
+          },
+          { status: 500 }
+        );
+      }
     }
   } else {
     console.log("[provision] VAPI_PHONE_PROVISIONING=disabled — skipping phone step");
@@ -215,7 +230,7 @@ export async function POST(req: NextRequest) {
       vapiAssistantId,
       vapiPhoneNumberId,
       phoneNumber: provisionedPhone,
-      phoneNumberSource: "vapi_native" as const,
+      phoneNumberSource,
       status: "active",
       servicesOffered: servicesOffered ?? null,
       pricingTable: pricing ?? null,
@@ -246,5 +261,5 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ customerId }, { status: 201 });
+  return NextResponse.json({ customerId, phoneWarning }, { status: 201 });
 }

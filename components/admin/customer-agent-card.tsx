@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { VapiAgent } from "@/db/schema/vapi-agents";
 import { EditAgentConfig } from "@/components/admin/edit-agent-config";
+import { AddPhoneNumberButton } from "@/components/admin/add-phone-number-button";
 
 const digitsOnly = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
 
@@ -63,7 +64,9 @@ export function CustomerAgentCard({
               Phone {livePhoneNumber ? "(live)" : "(stored)"}
             </dt>
             <dd className="font-mono font-medium">
-              {livePhoneNumber ?? agent.phoneNumber ?? "—"}
+              {livePhoneNumber ?? agent.phoneNumber ?? (
+                agent.vapiPhoneNumberId ? "—" : <AddPhoneNumberButton customerId={agent.customerId} />
+              )}
             </dd>
           </div>
           <div className="flex justify-between gap-2">

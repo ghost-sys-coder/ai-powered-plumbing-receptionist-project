@@ -405,6 +405,38 @@ export async function provisionVapiPhoneNumber(
   }
 }
 
+// Imports a number we bought on Twilio into Vapi. Vapi then points the
+// number's voice webhook at itself, so inbound calls reach the assistant.
+export async function importTwilioNumberToVapi(
+  vapi: VapiClient,
+  opts: { number: string; twilioAccountSid: string; twilioAuthToken: string; name?: string }
+): Promise<{ vapiPhoneNumberId: string; phoneNumber: string }> {
+  try {
+    const pn = await vapi.phoneNumbers.create({
+      provider: "twilio",
+      number: opts.number,
+      twilioAccountSid: opts.twilioAccountSid,
+      twilioAuthToken: opts.twilioAuthToken,
+      ...(opts.name ? { name: opts.name.slice(0, 40) } : {}),
+    } as any);
+    return { vapiPhoneNumberId: (pn as any).id, phoneNumber: (pn as any).number ?? opts.number };
+  } catch (err) {
+    throw new Error(`Failed to import ${opts.number} into Vapi — ${extractVapiError(err)}`);
+  }
+}
+
+// Provider and number for a Vapi phone-number id, or null if unreadable.
+export async function getVapiPhoneNumberInfo(
+  vapi: VapiClient,
+  id: string
+): Promise<{ provider?: string; number?: string; twilioAccountSid?: string } | null> {
+  try {
+    return (await vapi.phoneNumbers.get({ id })) as any;
+  } catch {
+    return null;
+  }
+}
+
 export async function updateVapiAssistant(
   vapi: VapiClient,
   assistantId: string,

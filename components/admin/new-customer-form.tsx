@@ -119,6 +119,8 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [steps, setSteps] = useState<ProvisioningStep[]>(INITIAL_STEPS);
   const [error, setError] = useState<string | null>(null);
+  // Setup finished but no number could be issued for the business's country.
+  const [phoneNotice, setPhoneNotice] = useState<{ customerId: string; text: string } | null>(null);
 
   const [jsonPanelOpen, setJsonPanelOpen] = useState(false);
   const [jsonInput, setJsonInput] = useState("");
@@ -345,6 +347,12 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
       }
       setStepStatus(4, "done");
 
+      if (data.phoneWarning) {
+        setPhoneNotice({ customerId: data.customerId, text: data.phoneWarning });
+        router.refresh();
+        return;
+      }
+
       await new Promise((r) => setTimeout(r, 600));
       router.push(`/admin/customers/${data.customerId}`);
       router.refresh(); // invalidate cached lists so the new customer appears
@@ -370,6 +378,20 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
             >
               Back to form
             </button>
+          </div>
+        )}
+        {phoneNotice && (
+          <div className="w-80 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+            <p className="font-medium">The receptionist is set up, but has no phone number yet.</p>
+            <p className="mt-1">{phoneNotice.text}</p>
+            <Button
+              type="button"
+              size="sm"
+              className="mt-3"
+              onClick={() => router.push(`/admin/customers/${phoneNotice.customerId}`)}
+            >
+              Go to customer
+            </Button>
           </div>
         )}
       </div>

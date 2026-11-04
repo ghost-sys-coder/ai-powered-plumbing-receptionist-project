@@ -1,4 +1,12 @@
 import type { PromptConfig } from "@/lib/templates/agent-prompt";
+import type { CountryCode } from "@/lib/regions";
+
+export type ProvisionedNumber = {
+  phoneNumberId: string;
+  phoneNumber: string;
+  // Matches vapi_agents.phone_number_source.
+  source: "vapi_native" | "twilio_imported";
+};
 
 // The voice platforms a receptionist can run on. Each customer's agent row
 // records which one it uses (vapi_agents.provider).
@@ -30,7 +38,13 @@ export interface ReceptionistProvider {
   // deleting the customer from our database.
   deleteResources(opts: { agentId?: string | null; phoneNumberId?: string | null }): Promise<void>;
 
-  provisionPhoneNumber(areaCode?: string | null): Promise<{ phoneNumberId: string; phoneNumber: string }>;
+  // Issues a local number for the business's country (see phone-numbers.ts).
+  // Throws PhoneNumberUnavailableError when the country can't be served yet.
+  provisionPhoneNumber(opts: {
+    country: CountryCode;
+    areaCode?: string | null;
+    label?: string;
+  }): Promise<ProvisionedNumber>;
   attachPhoneNumber(phoneNumberId: string, agentId: string): Promise<void>;
   // The number currently attached to the agent, read from the provider (the
   // source of truth). Never throws; null when unknown.
