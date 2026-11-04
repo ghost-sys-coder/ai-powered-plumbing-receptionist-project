@@ -125,7 +125,16 @@ bundle SID (`BU…`) in Vercel as `TWILIO_BUNDLE_SID_GB` / `TWILIO_BUNDLE_SID_AU
 One bundle covers all of our numbers in that country, because the numbers are
 held by us, not by each end business.
 
-Still to do in step 4: website import to prefill the wizard.
+### Built (step 4, part 3): website import, on any AI vendor
+
+The first wizard step has **Fill from website**: staff type the business's address and the form is prefilled (name, industry, contact details, address, country and timezone, hours, services and stated prices). Nothing is saved until staff review each step and launch.
+
+- `lib/ai/` is a provider-neutral layer: `generateStructured()` asks for output matching a JSON schema. Adapters for Anthropic (forced tool call) and OpenAI (strict `json_schema` output) use plain `fetch`, no SDKs. `AI_PROVIDER=anthropic|openai` picks the preferred vendor (default Anthropic); if it fails, the next configured vendor is tried automatically. `AI_MODEL_ANTHROPIC` / `AI_MODEL_OPENAI` override the defaults (`claude-haiku-5-5`, `gpt-5.4-mini`). A vendor is available when its key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) is set; adding a vendor is one adapter. Future AI features (call summaries, BYOK for agencies) should go through this layer.
+- `lib/website-import/fetch-site.ts` reads the page plus up to four same-site contact/about/services/pricing pages. User-supplied URLs are checked against private and internal addresses on every redirect hop, with size, time and redirect caps. The reader identifies itself honestly as a bot; sites that block bots (401/403/429) or render everything in JavaScript get a clear "fill it in by hand" message rather than a workaround.
+- `lib/website-import/extract.ts` prompts the model to use only stated facts (null otherwise, never guessed prices), treats page text as data rather than instructions, and `sanitizeImport()` keeps only well-formed values (known industry/country, a timezone belonging to that country, HH:MM hours, valid email).
+- `POST /api/admin/customers/import-website` (staff only) returns the proposed fields in the same shape as "Fill from JSON", so both share one fill routine.
+
+Tested live with both vendors against a real Australian dental practice: about 3 s (Claude) and 5 s (GPT) for the model call. Many small-business sites block bots or are JavaScript-only, so treat this as a head start, not a guarantee.
 
 ## 3. Billing (proposed)
 

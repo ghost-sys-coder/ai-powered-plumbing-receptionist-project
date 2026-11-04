@@ -24,7 +24,7 @@ import {
   ProvisioningProgress,
   type ProvisioningStep,
 } from "@/components/admin/provisioning-progress";
-import { ChevronDown, ChevronUp, ClipboardPaste } from "lucide-react";
+import { ChevronDown, ChevronUp, ClipboardPaste, Globe, Loader2 } from "lucide-react";
 import { IndustryCountryFields } from "@/components/admin/industry-country-fields";
 import { PricingFields } from "@/components/admin/pricing-fields";
 import { WizardSteps } from "@/components/admin/wizard-steps";
@@ -126,6 +126,11 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
   const [jsonInput, setJsonInput] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
 
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteLoading, setWebsiteLoading] = useState(false);
+  const [websiteError, setWebsiteError] = useState<string | null>(null);
+  const [websiteNotice, setWebsiteNotice] = useState<string | null>(null);
+
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -177,13 +182,22 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
     if (!emergencyTouched) setEmergencyDefinition(defaultEmergency(industry, next));
   }
 
-  function fillFromJson() {
-    setJsonError(null);
-    try {
-      const parsed = JSON.parse(jsonInput);
-
-      if (isIndustryId(parsed.industry)) setIndustry(parsed.industry);
-      if (isCountryCode(parsed.country)) setCountry(parsed.country);
+  // Fills the form from the "Fill from JSON" format (also what website import
+  // returns). Only keys present are applied.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function applyFields(parsed: Record<string, any>) {
+      // Industry and country together decide the default emergency definition
+      // and services, so apply both before deriving defaults.
+      const nextIndustry = isIndustryId(parsed.industry) ? parsed.industry : industry;
+      const nextCountry = isCountryCode(parsed.country) ? parsed.country : country;
+      setIndustry(nextIndustry);
+      setCountry(nextCountry);
+      const nextRegion = getRegion(nextCountry);
+      if (!nextRegion.timezones.some((tz) => tz.value === timezone)) {
+        setTimezone(nextRegion.defaultTimezone);
+      }
+      if (!emergencyTouched) setEmergencyDefinition(defaultEmergency(nextIndustry, nextCountry));
+      if (!servicesTouched) setServices(defaultServices(nextIndustry));
       if (parsed.businessDescription !== undefined) setBusinessDescription(parsed.businessDescription ?? "");
       if (parsed.businessName)          setBusinessName(parsed.businessName);
       if (parsed.ownerName)             setOwnerName(parsed.ownerName);
@@ -215,11 +229,49 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
       if (parsed.calendarId !== undefined)      setCalendarId(parsed.calendarId ?? "");
       if (parsed.appointmentDurationMinutes !== undefined) setAppointmentDuration(String(parsed.appointmentDurationMinutes));
       if (parsed.appointmentBufferMinutes !== undefined)   setAppointmentBuffer(String(parsed.appointmentBufferMinutes));
+  }
 
+  function fillFromJson() {
+    setJsonError(null);
+    try {
+      applyFields(JSON.parse(jsonInput));
       setJsonPanelOpen(false);
       setJsonInput("");
     } catch {
       setJsonError("Invalid JSON — check the format and try again.");
+    }
+  }
+
+  async function fillFromWebsite() {
+    setWebsiteError(null);
+    setWebsiteNotice(null);
+    setWebsiteLoading(true);
+    try {
+      const res = await fetch("/api/admin/customers/import-website", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: websiteUrl }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setWebsiteError(data.error ?? "Couldn't read the website.");
+        return;
+      }
+      const found = Object.keys(data.profile ?? {}).length;
+      if (found === 0) {
+        setWebsiteError("Nothing usable was found on that website. Fill the form in by hand.");
+        return;
+      }
+      applyFields(data.profile);
+      const pages = (data.pagesRead as string[] | undefined)?.length ?? 1;
+      setWebsiteNotice(
+        `Filled ${found} field${found === 1 ? "" : "s"} from ${pages} page${pages === 1 ? "" : "s"}. ` +
+          "Check every step before launching — the owner's email may still be needed."
+      );
+    } catch {
+      setWebsiteError("Couldn't read the website. Check your connection and try again.");
+    } finally {
+      setWebsiteLoading(false);
     }
   }
 
@@ -401,6 +453,60 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <WizardSteps steps={WIZARD_STEPS} current={wizardStep} onSelect={goToStep} />
+
+      {/* Website import */}
+      {wizardStep === 0 && (
+        <Card className="border-dashed">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Fill from website</span>
+              <span className="text-xs text-muted-foreground">
+                — read the business&apos;s site to prefill hours, services and contact details
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                type="text"
+                inputMode="url"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (websiteUrl.trim() && !websiteLoading) fillFromWebsite();
+                  }
+                }}
+                placeholder="www.example.com"
+                disabled={websiteLoading}
+                aria-label="Business website"
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="sm:h-9"
+                onClick={fillFromWebsite}
+                disabled={!websiteUrl.trim() || websiteLoading}
+              >
+                {websiteLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reading…
+                  </>
+                ) : (
+                  "Read website"
+                )}
+              </Button>
+            </div>
+            {websiteError && <p className="text-xs text-destructive">{websiteError}</p>}
+            {websiteNotice && (
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">{websiteNotice}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* JSON paste panel */}
       {wizardStep === 0 && (
