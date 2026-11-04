@@ -1,0 +1,111 @@
+{
+  "calendar": {
+    "businessName": "Hightower Plumbing",
+    "ownerName": "Ray",
+    "serviceArea": "Greater Austin, TX",
+    "timezone": "America/Chicago",
+    "calendarType": "google_calendar",
+    "appointmentDurationMinutes": 120,
+    "servicesOffered": [
+      {
+        "name": "Leak repair",
+        "price": "$150"
+      },
+      {
+        "name": "Drain cleaning"
+      }
+    ],
+    "pricing": {
+      "serviceCallFee": "$95",
+      "hourlyRate": "$125/hr",
+      "freeEstimates": true
+    },
+    "emergencyDefinition": "Burst pipe.",
+    "businessHours": {
+      "mon": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "sun": {
+        "closed": true
+      }
+    }
+  },
+  "manual": {
+    "businessName": "Hightower Plumbing",
+    "ownerName": "Ray",
+    "serviceArea": "Greater Austin, TX",
+    "timezone": "America/Chicago",
+    "calendarType": "manual",
+    "appointmentDurationMinutes": 120,
+    "servicesOffered": [
+      {
+        "name": "Leak repair",
+        "price": "$150"
+      },
+      {
+        "name": "Drain cleaning"
+      }
+    ],
+    "pricing": {
+      "serviceCallFee": "$95",
+      "hourlyRate": "$125/hr",
+      "freeEstimates": true
+    },
+    "emergencyDefinition": "Burst pipe.",
+    "businessHours": {
+      "mon": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "sun": {
+        "closed": true
+      }
+    }
+  },
+  "transfer": {
+    "businessName": "Hightower Plumbing",
+    "ownerName": "Ray",
+    "serviceArea": "Greater Austin, TX",
+    "timezone": "America/Chicago",
+    "calendarType": "google_calendar",
+    "appointmentDurationMinutes": 120,
+    "servicesOffered": [
+      {
+        "name": "Leak repair",
+        "price": "$150"
+      },
+      {
+        "name": "Drain cleaning"
+      }
+    ],
+    "pricing": {
+      "serviceCallFee": "$95",
+      "hourlyRate": "$125/hr",
+      "freeEstimates": true
+    },
+    "emergencyDefinition": "Burst pipe.",
+    "businessHours": {
+      "mon": {
+        "open": "08:00",
+        "close": "17:00"
+      },
+      "sun": {
+        "closed": true
+      }
+    },
+    "liveTransferEnabled": true
+  },
+  "empty": {
+    "businessName": "Hightower Plumbing",
+    "ownerName": "Ray",
+    "serviceArea": "Greater Austin, TX",
+    "timezone": "America/Chicago",
+    "calendarType": "google_calendar",
+    "appointmentDurationMinutes": 120,
+    "servicesOffered": [],
+    "pricing": {},
+    "emergencyDefinition": "Burst pipe.",
+    "businessHours": {}
+  }
+}
