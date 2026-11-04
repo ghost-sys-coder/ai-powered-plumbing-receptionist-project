@@ -95,30 +95,61 @@ official source.
 
 ---
 
-## 2. Data model changes (next step of this phase)
+## 2. Data model and wiring (done)
 
-Not yet applied. One migration:
+Migration `db/migrations/0005_omniscient_doctor_strange.sql` — additive only;
+defaults backfill every existing row as plumbing / US:
 
 - `customers.industry` — text, NOT NULL, default `'plumbing'` (validated in TS
   against `INDUSTRY_IDS`; text rather than a pg enum so adding an industry
   needs no migration).
 - `customers.country` — text, NOT NULL, default `'US'` (ISO 3166-1 alpha-2).
-- `calls.intake_data` — jsonb, nullable. Holds the industry's extra intake
-  fields from each call's structured data.
-- `vapi_agents.recording_enabled` — boolean, default true; defaults to false
-  for `clinic` (see §4).
+- `customers.business_description` — text, nullable. The business's own
+  one-line description; required for `general`.
+- `calls.intake_data` — jsonb, nullable. The industry's extra intake fields
+  from each call.
 
-`customers.state` stays; forms label it per country (State / Province /
-County / State-Territory / District).
+Wired through:
 
-Then wire through: admin create/edit forms (industry + country selects that
-prefill emergency definition, services, timezone list), the three places that
-build `ProvisioningConfig` (`app/api/admin/customers/route.ts`,
-`app/api/admin/customers/[id]/route.ts`,
-`app/api/admin/customers/[id]/agent/route.ts`) plus
-`scripts/sync-vapi-analysis.ts`, the webhook's `extractStructuredData()` (store
-intake fields), dashboard call detail (show intake fields), and `en-US`
-date formatting (use the customer's locale).
+- `lib/services/profile-input.ts` validates industry/country/description
+  (unknown values are rejected, never defaulted). The customer PATCH only
+  changes them when the form sends them.
+- Create, edit, agent-config routes and `scripts/sync-vapi-analysis.ts` pass
+  the profile into `ProvisioningConfig`.
+- The Vapi webhook stores intake fields (`pickIntakeData`) using the
+  customer's industry.
+- Admin create/edit forms: grouped industry select, country select, business
+  description, per-country timezone list and state/province label,
+  per-industry pricing labels. On create, emergency definition and services
+  prefill from the industry until the admin edits them.
+- Client dashboard call detail shows intake fields; the address row only
+  appears for industries that collect one.
+
+### Deploying
+
+**Apply the migration before deploying this code.** The new code reads the new
+columns, so deploying first would break the admin pages, the webhook and the
+sync script until the migration runs. Order:
+
+1. `npx drizzle-kit migrate` against production (after
+   `scripts/baseline-migrations.ts` if the history isn't baselined yet).
+2. Deploy.
+3. Optionally `npx tsx scripts/sync-vapi-analysis.ts` to push the small shared
+   wording changes (tool description, "message left for the business") to
+   existing assistants. Their prompts are unchanged.
+
+### Not done yet (later in phase 7)
+
+- `vapi_agents.recording_enabled` (default off for health) and a recording
+  notice in the first message — see §4.
+- Dashboard dates still format with `en-US`; switch to the country's locale.
+
+### Tests
+
+`npm test` (Vitest). Plumbing/US prompts are compared byte-for-byte with
+fixtures produced by the original builder (`lib/templates/__fixtures__`), and
+every industry × country combination is checked for unfilled values, leaked
+plumbing wording, wrong emergency numbers, transfer rules and step numbering.
 
 ---
 
