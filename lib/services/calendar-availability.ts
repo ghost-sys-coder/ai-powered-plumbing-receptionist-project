@@ -150,9 +150,10 @@ export function isWithinBusinessHours(
 async function fetchGoogleBusy(
   calendarId: string,
   start: DateTime,
-  end: DateTime
+  end: DateTime,
+  customerId: string
 ): Promise<BusyPeriod[]> {
-  const calendar = getCalendarClient();
+  const calendar = await getCalendarClient(customerId);
   const res = await calendar.freebusy.query(
     {
       requestBody: {
@@ -247,7 +248,7 @@ export async function getAvailableSlots(
     const windowEnd = now.plus({ days: BOOKING_WINDOW_DAYS }).endOf("day");
 
     const [googleBusy, dbBusy] = await Promise.all([
-      fetchGoogleBusy(input.calendarId, windowStart, windowEnd),
+      fetchGoogleBusy(input.calendarId, windowStart, windowEnd, input.customerId),
       fetchDbBusy(input.customerId, input.durationMinutes, windowStart, windowEnd),
     ]);
     const busy = [...googleBusy, ...dbBusy];
@@ -323,12 +324,16 @@ export type CalendarCheckResult =
   | { ok: true; timeZone: string | null }
   | { ok: false; unreachable: boolean; message: string };
 
-// Confirms the service account can open the calendar and reports the calendar's
-// own timezone. `unreachable` distinguishes "not shared / doesn't exist" (a real
-// config error) from a transient Google failure (can't tell either way).
-export async function checkCalendarAccess(calendarId: string): Promise<CalendarCheckResult> {
+// Confirms we can open the calendar (with the customer's connected Google
+// account if they have one, else the service account) and reports the
+// calendar's own timezone. `unreachable` distinguishes "not shared / doesn't
+// exist" (a real config error) from a transient Google failure.
+export async function checkCalendarAccess(
+  calendarId: string,
+  customerId?: string | null
+): Promise<CalendarCheckResult> {
   try {
-    const calendar = getCalendarClient();
+    const calendar = await getCalendarClient(customerId);
     const res = await calendar.calendars.get({ calendarId }, { timeout: GOOGLE_TIMEOUT_MS });
     return { ok: true, timeZone: res.data.timeZone ?? null };
   } catch (err) {
@@ -394,7 +399,7 @@ export async function bookSlot(input: BookSlotInput): Promise<BookSlotResult> {
   try {
     // 1. Targeted collision re-check for exactly this slot (Google + DB).
     const [googleBusy, dbBusy] = await Promise.all([
-      fetchGoogleBusy(input.calendarId, start, end),
+      fetchGoogleBusy(input.calendarId, start, end, input.customerId),
       fetchDbBusy(
         input.customerId,
         Math.round(end.diff(start, "minutes").minutes),
@@ -412,7 +417,7 @@ export async function bookSlot(input: BookSlotInput): Promise<BookSlotResult> {
     }
 
     // 2. Create the Google Calendar event.
-    const calendar = getCalendarClient();
+    const calendar = await getCalendarClient(input.customerId);
     const descriptionLines = [
       input.issueSummary ? `Issue: ${input.issueSummary}` : null,
       input.serviceAddress ? `Address: ${input.serviceAddress}` : null,

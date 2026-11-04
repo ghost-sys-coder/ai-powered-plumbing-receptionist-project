@@ -12,15 +12,20 @@ import { CustomerAgentCard } from "@/components/admin/customer-agent-card";
 import { CustomerRecentCalls } from "@/components/admin/customer-recent-calls";
 import { CustomerBookings } from "@/components/admin/customer-bookings";
 import { WebCallPanel } from "@/components/admin/web-call-panel";
+import { GoogleCalendarConnect } from "@/components/integrations/google-calendar-connect";
+import { getCalendarConnection } from "@/lib/services/calendar-connections";
+import { isGoogleOAuthConfigured } from "@/lib/google/oauth";
 import { DeleteCustomerButton } from "@/components/admin/delete-customer-button";
 import { Button } from "@/components/ui/button";
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ calendar?: string }>;
 }
 
-const CustomerDetailPage = async ({ params }: Props) => {
+const CustomerDetailPage = async ({ params, searchParams }: Props) => {
   const { id } = await params;
+  const { calendar: calendarNotice } = await searchParams;
   const viewer = await requireStaff();
 
   const [data, linkedUserRows] = await Promise.all([
@@ -77,6 +82,16 @@ const CustomerDetailPage = async ({ params }: Props) => {
         />
         <CustomerAgentCard agent={agent} livePhoneNumber={livePhone?.number ?? null} />
       </div>
+
+      {agent && (
+        <GoogleCalendarConnect
+          customerId={customer.id}
+          configured={isGoogleOAuthConfigured()}
+          connection={await getCalendarConnection(customer.id)}
+          returnTo={`/admin/customers/${customer.id}`}
+          notice={calendarNotice ?? null}
+        />
+      )}
 
       {agent && (
         <WebCallPanel

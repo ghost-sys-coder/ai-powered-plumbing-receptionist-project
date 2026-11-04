@@ -75,6 +75,34 @@ between migrating and deploying. Run the migration and deploy back to back.
 - **Industry templates in the database:** the phase-7 code profiles become
   seeded templates that the platform can add to or edit without a deploy.
 
+### Built (step 4, part 1)
+
+- **Setup wizard** for new customers (Business → Location → Call handling →
+  Booking → Review & launch) with per-step validation. Billing fields are
+  platform-only and ignored server-side for agency staff.
+- **"Connect Google Calendar"** (OAuth, offline access) on the admin customer
+  page and the business's own agent page. Tokens are AES-256-GCM encrypted
+  (`lib/crypto/secret-box.ts`) in `calendar_connections` (migration 0008).
+  Connecting switches the receptionist to live booking on the account's
+  primary calendar; disconnecting revokes the grant and switches to
+  message-taking. Customers without a connection keep using the service
+  account. The OAuth `state` is signed, expires in 15 minutes, and is bound
+  to the browser by an httpOnly nonce cookie; return paths are same-origin only.
+- **Switching it on** needs three environment variables (the button stays
+  hidden until all are set):
+  - `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` — a Google Cloud
+    "Web application" OAuth client with redirect URI
+    `<NEXT_PUBLIC_APP_URL>/api/integrations/google/callback` and the Google
+    Calendar API enabled. Google requires app verification for the calendar
+    scope before more than 100 users can connect; until then they see an
+    "unverified app" screen.
+  - `TOKEN_ENCRYPTION_KEY` — 32 random bytes, base64. Keep it stable:
+    changing it invalidates stored connections.
+
+Still to do in step 4: automatic phone numbers outside the US (Twilio purchase
+and import; UK/AU need regulatory bundles), website import to prefill the
+wizard.
+
 ## 3. Billing (proposed)
 
 Cost basis: ~$0.12–0.15/min all-in on Vapi, ~$0.09–0.11 on ElevenLabs; a

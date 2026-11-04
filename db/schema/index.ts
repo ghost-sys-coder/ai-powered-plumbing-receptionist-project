@@ -6,3 +6,4 @@ export * from "./vapi-agents";
 export * from "./calls";
 export * from "./bookings";
 export * from "./pending-invites";
+export * from "./calendar-connections";

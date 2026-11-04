@@ -118,7 +118,7 @@ export async function PATCH(
   // read hours off from what the AI tells callers.
   const warnings: string[] = [];
   if (calendarType === "google_calendar" && calendarId) {
-    const check = await checkCalendarAccess(calendarId);
+    const check = await checkCalendarAccess(calendarId, id);
     if (!check.ok && !check.unreachable) {
       return NextResponse.json({ error: check.message }, { status: 400 });
     }

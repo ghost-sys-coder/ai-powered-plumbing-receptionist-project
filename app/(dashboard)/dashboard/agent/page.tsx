@@ -8,8 +8,16 @@ import { BusinessHoursCard } from "@/components/agent/business-hours-card";
 import { ServicesCard } from "@/components/agent/services-card";
 import { PricingCard } from "@/components/agent/pricing-card";
 import { Card, CardContent } from "@/components/ui/card";
+import { GoogleCalendarConnect } from "@/components/integrations/google-calendar-connect";
+import { getCalendarConnection } from "@/lib/services/calendar-connections";
+import { isGoogleOAuthConfigured } from "@/lib/google/oauth";
 
-const AgentPage = async () => {
+const AgentPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ calendar?: string }>;
+}) => {
+  const { calendar: calendarNotice } = await searchParams;
   const customerId = await getCustomerId();
   if (!customerId) redirect("/dashboard");
 
@@ -42,6 +50,14 @@ const AgentPage = async () => {
           </CardContent>
         </Card>
       </div>
+
+      <GoogleCalendarConnect
+        customerId={agent.customerId}
+        configured={isGoogleOAuthConfigured()}
+        connection={await getCalendarConnection(agent.customerId)}
+        returnTo="/dashboard/agent"
+        notice={calendarNotice ?? null}
+      />
 
       <BusinessHoursCard hours={agent.businessHours} />
 
