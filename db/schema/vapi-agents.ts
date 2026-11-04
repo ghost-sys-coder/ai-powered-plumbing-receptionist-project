@@ -23,6 +23,10 @@ export const vapiAgents = pgTable(
       .notNull()
       .default("vapi_native"),
     status: vapiAgentStatusEnum("status").notNull().default("active"),
+    // Set when billing switched this receptionist off (unpaid / cancelled), so
+    // only those are switched back on when payment resumes — never one staff
+    // paused by hand.
+    billingSuspendedAt: timestamp("billing_suspended_at", { withTimezone: true }),
     servicesOffered: jsonb("services_offered"),
     pricingTable: jsonb("pricing_table"),
     businessHours: jsonb("business_hours"),

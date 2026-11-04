@@ -93,6 +93,8 @@ export function createVapiProvider(creds: ProviderCredentials): ReceptionistProv
     attachPhoneNumber: (phoneNumberId, agentId) =>
       linkPhoneNumberToAssistant(vapi, phoneNumberId, agentId),
 
+    detachPhoneNumber: (phoneNumberId) => linkPhoneNumberToAssistant(vapi, phoneNumberId, null),
+
     getLivePhoneNumber: (opts) =>
       getLiveAssistantPhoneNumber(vapi, {
         phoneNumberId: opts.phoneNumberId,

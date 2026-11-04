@@ -136,7 +136,7 @@ The first wizard step has **Fill from website**: staff type the business's addre
 
 Tested live with both vendors against a real Australian dental practice: about 3 s (Claude) and 5 s (GPT) for the model call. Many small-business sites block bots or are JavaScript-only, so treat this as a head start, not a guarantee.
 
-## 3. Billing (proposed)
+## 3. Billing
 
 Cost basis: ~$0.12–0.15/min all-in on Vapi, ~$0.09–0.11 on ElevenLabs; a
 typical small business uses 300–800 min/month.
@@ -165,6 +165,38 @@ agencies. Uganda gets separate local-currency pricing later.
 Build needs: Stripe subscriptions + metered usage, per-call cost capture
 (Vapi and ElevenLabs both report cost per call), per-plan client limits,
 margin reporting per agency and client.
+
+### Built (step 5): Stripe subscriptions and metered minutes
+
+Running in Stripe **test mode** on the VeilCode Studio account. Everything we create there is tagged `app=receptionist` (the account also sells other products, which the webhook ignores).
+
+**Who pays.** `billing_accounts` (migration 0009) has one row per payer. A *direct* account is a house-agency customer, billed individually. An *agency* account is billed once for all its clients, and the agency bills its own clients. Pilot customers are never billed. `lib/billing/accounts.ts` decides which applies to a customer.
+
+**Prices.** `lib/billing/plans.ts` is the only place prices live. Each plan has a monthly fee plus metered minutes, priced separately in USD, CAD, GBP and AUD; Uganda pays in USD. There's a 14-day trial with a card required, for first subscriptions only.
+
+`scripts/stripe-setup.ts` creates the meter, products, prices (with versioned lookup keys) and the customer-portal configuration. It's idempotent; dry-run by default, `--apply` to create. To change prices, bump `PRICE_VERSION`, edit the amounts and re-run. Existing subscribers keep their old price until moved.
+
+> **Prices are placeholders.** The current defaults (direct $149/month with 300 minutes, then $0.40/min; agency $99/month plus $0.20/min) are a single-tier simplification and don't match the tiered proposal above. Pick the final structure before going live.
+
+**Flows.**
+- *Business owners:* Dashboard → Billing goes to Stripe Checkout (start the trial) or the Stripe portal (card, invoices, cancel).
+- *Agency staff:* Admin → Billing. They pick their billing currency at first checkout.
+- *Platform staff:* a direct customer's page has a Billing card that **creates a payment link** to send to the owner, which expires after 24 hours. Admin → Billing lists every account.
+
+**Usage.** On `end-of-call-report`, `reportCallUsage()` rounds each call up to whole minutes and sends a meter event whose identifier is the call id. `calls.usage_reported_at` claims each call exactly once, and Stripe also rejects duplicate identifiers, so webhook retries never double-bill. Only subscribed accounts in good standing are metered. Calls before a subscription are marked with `billed_minutes = 0`.
+
+**Sync and suspension.** `POST /api/webhooks/stripe` verifies the signature and then re-reads the subscription from Stripe, so out-of-order or replayed events are harmless.
+- `past_due` keeps calls running while Stripe retries the payment (the grace period).
+- `unpaid`, `canceled` and other lapsed states disconnect the account's phone numbers, but only when `BILLING_ENFORCEMENT=on`. Leave it off until the pricing is final.
+- Paying again reconnects only the receptionists that billing switched off (`vapi_agents.billing_suspended_at`).
+
+**Env.** Set `STRIPE_SECRET_KEY` (a restricted key is fine) and `STRIPE_WEBHOOK_SECRET`, plus `BILLING_ENFORCEMENT=on` once ready. `scripts/stripe-webhook-setup.ts <origin>` creates the webhook endpoint and saves its secret to `.env.local`. For live mode, repeat both scripts with the live key.
+
+**Not built yet:**
+- Phone-number fees.
+- Per-plan client limits for agencies.
+- A daily sweep that re-reports calls whose meter event failed (today these are only logged).
+- Margin reporting.
 
 ## 4. Provider layer
 

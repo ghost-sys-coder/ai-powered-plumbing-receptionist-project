@@ -535,7 +535,8 @@ export async function getLiveAssistantPhoneNumber(vapi: VapiClient, opts: {
 export async function linkPhoneNumberToAssistant(
   vapi: VapiClient,
   vapiPhoneNumberId: string,
-  vapiAssistantId: string
+  // null unlinks the number from every assistant.
+  vapiAssistantId: string | null
 ): Promise<void> {
   try {
     await vapi.phoneNumbers.update({

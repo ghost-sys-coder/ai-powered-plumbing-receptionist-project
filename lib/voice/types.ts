@@ -46,6 +46,9 @@ export interface ReceptionistProvider {
     label?: string;
   }): Promise<ProvisionedNumber>;
   attachPhoneNumber(phoneNumberId: string, agentId: string): Promise<void>;
+  // Stops the number reaching any agent (the number itself is kept), e.g.
+  // while an account is suspended for non-payment.
+  detachPhoneNumber(phoneNumberId: string): Promise<void>;
   // The number currently attached to the agent, read from the provider (the
   // source of truth). Never throws; null when unknown.
   getLivePhoneNumber(opts: {

@@ -4,13 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { Phone, LayoutDashboard, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Phone, LayoutDashboard, Settings, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const links = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/calls", label: "Calls", icon: Phone },
   { href: "/dashboard/agent", label: "Agent", icon: Settings },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ];
 
 interface ClientNavProps {

@@ -1,3 +1,4 @@
+import { reportCallUsage } from "@/lib/billing/usage";
 import {
     createCall,
     extractStructuredData,
@@ -143,6 +144,7 @@ export async function POST(request: Request): Promise<Response> {
                 // booking here from the transcript would produce phantom rows with
                 // no calendar event when the caller hangs up mid-booking. Only the
                 // manual flow records bookings from the end-of-call outcome.
+                if (finalized) await reportCallUsage(finalized.callId);
                 if (
                     finalized &&
                     finalized.outcome === "booked" &&

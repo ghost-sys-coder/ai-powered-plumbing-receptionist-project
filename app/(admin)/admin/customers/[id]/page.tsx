@@ -17,6 +17,10 @@ import { getCalendarConnection } from "@/lib/services/calendar-connections";
 import { isGoogleOAuthConfigured } from "@/lib/google/oauth";
 import { DeleteCustomerButton } from "@/components/admin/delete-customer-button";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { BillingPanel } from "@/components/billing/billing-panel";
+import { billingOwnerForCustomer } from "@/lib/billing/accounts";
+import { getBillingSummary } from "@/lib/billing/summary";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -46,6 +50,9 @@ const CustomerDetailPage = async ({ params, searchParams }: Props) => {
   const livePhone = agent
     ? await getCachedLiveAssistantPhoneNumber({ customerId: agent.customerId })
     : null;
+
+  // Direct customers are billed one by one; agency clients through their agency.
+  const billingOwner = await billingOwnerForCustomer(customer.id);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -82,6 +89,21 @@ const CustomerDetailPage = async ({ params, searchParams }: Props) => {
         />
         <CustomerAgentCard agent={agent} livePhoneNumber={livePhone?.number ?? null} />
       </div>
+
+      {billingOwner?.kind === "direct" && viewer.kind === "platform" && (
+        <BillingPanel
+          summary={await getBillingSummary(billingOwner)}
+          mode="staff"
+          customerId={customer.id}
+        />
+      )}
+      {billingOwner?.kind === "agency" && viewer.kind === "platform" && (
+        <Card>
+          <CardContent className="pt-6 text-sm text-muted-foreground">
+            Billed through the agency {billingOwner.name}.
+          </CardContent>
+        </Card>
+      )}
 
       {agent && (
         <GoogleCalendarConnect

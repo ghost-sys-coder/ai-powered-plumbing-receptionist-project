@@ -4,18 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { Users, Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Building2, CreditCard, ChevronLeft, ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const CUSTOMERS = { href: "/admin", label: "Customers", icon: Users };
 const AGENCIES = { href: "/admin/agencies", label: "Agencies", icon: Building2 };
+const BILLING = { href: "/admin/billing", label: "Billing", icon: CreditCard };
 
 // isPlatform: platform admins also manage agencies. subtitle: the agency's
 // name for agency staff, "Platform admin" for us.
 export function AdminNav({ isPlatform, subtitle }: { isPlatform: boolean; subtitle: string }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  const links = isPlatform ? [CUSTOMERS, AGENCIES] : [CUSTOMERS];
+  const links = isPlatform ? [CUSTOMERS, AGENCIES, BILLING] : [CUSTOMERS, BILLING];
 
   return (
     <aside

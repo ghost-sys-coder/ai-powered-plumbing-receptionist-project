@@ -30,6 +30,10 @@ export const calls = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     durationSeconds: integer("duration_seconds"),
+    // Minutes reported to Stripe for this call, and when (lib/billing/usage.ts).
+    // Set once, so a retried webhook never bills a call twice.
+    billedMinutes: integer("billed_minutes"),
+    usageReportedAt: timestamp("usage_reported_at", { withTimezone: true }),
     outcome: callOutcomeEnum("outcome"),
     urgencyLevel: urgencyLevelEnum("urgency_level"),
     issueSummary: text("issue_summary"),
