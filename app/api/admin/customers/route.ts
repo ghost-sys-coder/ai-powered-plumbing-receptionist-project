@@ -103,8 +103,12 @@ export async function POST(req: NextRequest) {
         industry: profile.industry,
         country: profile.country,
         businessDescription: profile.businessDescription,
-        stripeCustomerId: stripeCustomerId || null,
-        plan: (plan === "pilot" ? "pilot" : "standard") as "pilot" | "standard",
+        // Billing fields are platform-only: agencies are billed per agency, not
+        // per client, so values sent by agency staff are ignored.
+        stripeCustomerId: viewer.kind === "platform" ? stripeCustomerId || null : null,
+        plan: (viewer.kind === "platform" && plan === "pilot" ? "pilot" : "standard") as
+          | "pilot"
+          | "standard",
         status: "onboarding",
       })
       .returning({ id: customers.id });

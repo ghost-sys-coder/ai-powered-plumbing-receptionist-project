@@ -27,6 +27,7 @@ import {
 import { ChevronDown, ChevronUp, ClipboardPaste } from "lucide-react";
 import { IndustryCountryFields } from "@/components/admin/industry-country-fields";
 import { PricingFields } from "@/components/admin/pricing-fields";
+import { WizardSteps } from "@/components/admin/wizard-steps";
 import {
   DEFAULT_INDUSTRY,
   getIndustry,
@@ -220,6 +221,43 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
     }
   }
 
+  // Setup wizard. Each step validates before moving on; the last step submits.
+  const WIZARD_STEPS = ["Business", "Location", "Call handling", "Booking", "Review & launch"];
+  const LAST_STEP = WIZARD_STEPS.length - 1;
+  const [wizardStep, setWizardStep] = useState(0);
+
+  function stepError(step: number): string | null {
+    if (step === 0) {
+      if (agencies && !organizationId) return "Choose which agency this customer belongs to.";
+      if (!businessName.trim() || !ownerName.trim() || !email.trim()) {
+        return "Business name, owner name and email are required.";
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return "Enter a valid email address.";
+      if (industry === "general" && !businessDescription.trim()) {
+        return 'Describe what the business does, e.g. "a dog grooming salon".';
+      }
+    }
+    if (step === 2 && !emergencyDefinition.trim()) {
+      return "Describe what counts as an emergency for this business.";
+    }
+    return null;
+  }
+
+  function goToStep(next: number) {
+    // Moving forward validates every step being skipped over.
+    for (let i = wizardStep; i < next; i++) {
+      const problem = stepError(i);
+      if (problem) {
+        setError(problem);
+        setWizardStep(i);
+        return;
+      }
+    }
+    setError(null);
+    setWizardStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function setStepStatus(index: number, status: ProvisioningStep["status"]) {
     setSteps((prev) =>
       prev.map((s, i) => (i === index ? { ...s, status } : s))
@@ -228,6 +266,15 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (wizardStep < LAST_STEP) {
+      goToStep(wizardStep + 1);
+      return;
+    }
+    const problem = [0, 1, 2, 3].map(stepError).find(Boolean);
+    if (problem) {
+      goToStep(LAST_STEP);
+      return;
+    }
     if (!businessName || !ownerName || !email || !emergencyDefinition) {
       setError("Please fill in all required fields.");
       return;
@@ -331,7 +378,10 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      <WizardSteps steps={WIZARD_STEPS} current={wizardStep} onSelect={goToStep} />
+
       {/* JSON paste panel */}
+      {wizardStep === 0 && (
       <Card className="border-dashed">
         <CardHeader className="pb-3">
           <button
@@ -385,6 +435,7 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
           </CardContent>
         )}
       </Card>
+      )}
 
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
@@ -392,6 +443,7 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
         </div>
       )}
 
+      {wizardStep === 0 && (
       <Card>
         <CardHeader>
           <CardTitle>Business info</CardTitle>
@@ -459,6 +511,16 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
               onChange={(e) => setPhone(e.target.value)}
             />
           </div>
+        </CardContent>
+      </Card>
+      )}
+
+      {wizardStep === 1 && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Location</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5 md:col-span-2">
             <Label htmlFor="address">Address</Label>
             <Input
@@ -506,13 +568,18 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
               onChange={(e) => setServiceArea(e.target.value)}
               placeholder="e.g. the city and surrounding areas you cover"
             />
+            <p className="text-xs text-muted-foreground">
+              The receptionist tells callers this is where the business works.
+            </p>
           </div>
         </CardContent>
       </Card>
+      )}
 
+      {wizardStep === 2 && (
       <Card>
         <CardHeader>
-          <CardTitle>Agent config</CardTitle>
+          <CardTitle>How the receptionist handles calls</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-1.5">
@@ -564,7 +631,9 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
           />
         </CardContent>
       </Card>
+      )}
 
+      {wizardStep === 3 && (
       <Card>
         <CardHeader>
           <CardTitle>Booking & calendar</CardTitle>
@@ -621,9 +690,55 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
             />
             <p className="text-xs text-muted-foreground">Travel/prep time between jobs.</p>
           </div>
+          {calendarType === "google_calendar" && !calendarId && (
+            <p className="text-xs text-muted-foreground md:col-span-2">
+              No calendar yet? Leave the ID blank and connect it later from the customer&apos;s
+              page — until then the receptionist takes booking requests as messages.
+            </p>
+          )}
         </CardContent>
       </Card>
+      )}
 
+      {wizardStep === 4 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Review</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid gap-x-6 gap-y-3 text-sm md:grid-cols-2">
+              {[
+                ["Business", businessName],
+                ["Industry", getIndustry(industry).label],
+                ["Country", region.label],
+                ["Owner", `${ownerName} · ${email}`],
+                ["Service area", serviceArea || "—"],
+                ["Timezone", timezone],
+                ["Services", services.map((sv) => sv.name).filter(Boolean).join(", ") || "—"],
+                [
+                  "Booking",
+                  calendarType === "manual"
+                    ? "AI takes messages; the business calls back"
+                    : calendarId
+                    ? `Google Calendar, ${appointmentDuration}-minute appointments`
+                    : "Google Calendar — connect later",
+                ],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="font-medium">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Launching creates the AI receptionist and assigns it a phone number. You can change
+              any of this afterwards.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {wizardStep === 4 && agencies && (
       <Card>
         <CardHeader>
           <CardTitle>Billing</CardTitle>
@@ -652,11 +767,26 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
           </div>
         </CardContent>
       </Card>
+      )}
 
-      <div className="flex justify-end">
-        <Button type="submit" size="lg" className="min-w-56">
-          Create customer & provision agent
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => goToStep(wizardStep - 1)}
+          disabled={wizardStep === 0}
+        >
+          Back
         </Button>
+        {wizardStep < LAST_STEP ? (
+          <Button type="submit" size="lg" className="min-w-32">
+            Next
+          </Button>
+        ) : (
+          <Button type="submit" size="lg" className="min-w-56">
+            Launch receptionist
+          </Button>
+        )}
       </div>
     </form>
   );
