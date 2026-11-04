@@ -12,6 +12,10 @@ export const vapiAgents = pgTable(
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id),
+    // Which voice platform runs this receptionist (lib/voice VoiceProviderId).
+    // The two id columns below hold that provider's agent and phone-number ids;
+    // they keep their original "vapi_" names to avoid a rename migration.
+    provider: text("provider").notNull().default("vapi"),
     vapiAssistantId: text("vapi_assistant_id").notNull().unique(),
     vapiPhoneNumberId: text("vapi_phone_number_id"),
     phoneNumber: text("phone_number"),

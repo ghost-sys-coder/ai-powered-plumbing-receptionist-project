@@ -19,10 +19,7 @@ const AgentPage = async () => {
 
   // Pull the number actually attached to the assistant in Vapi (source of
   // truth); fall back to the stored value if the live lookup fails.
-  const livePhone = await getCachedLiveAssistantPhoneNumber({
-    phoneNumberId: agent.vapiPhoneNumberId,
-    assistantId: agent.vapiAssistantId,
-  });
+  const livePhone = await getCachedLiveAssistantPhoneNumber({ customerId: agent.customerId });
 
   const supportEmail =
     process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "frank@veilcode.studio";

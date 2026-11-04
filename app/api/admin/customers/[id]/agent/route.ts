@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { requireStaff, canAccessCustomer, customerNotFound } from "@/lib/auth/staff";
 import { db } from "@/db/drizzle";
 import { vapiAgents, customers } from "@/db/schema";
-import { updateVapiAssistant, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
+import type { ProvisioningConfig } from "@/lib/services/vapi-provisioning";
+import { getCustomerReceptionist } from "@/lib/voice";
 import { checkCalendarAccess } from "@/lib/services/calendar-availability";
 import { storedProfile } from "@/lib/services/profile-input";
 
@@ -164,7 +165,9 @@ export async function PATCH(
       liveTransferEnabled: transferEnabled,
       ...storedProfile(row),
     };
-    await updateVapiAssistant(row.vapiAssistantId, config);
+    const receptionist = await getCustomerReceptionist(id);
+    if (!receptionist) throw new Error("No receptionist found for this customer");
+    await receptionist.provider.updateAgent(receptionist.agentId, config);
   } catch (err) {
     console.error("[agent-config] Vapi sync failed:", err);
     return NextResponse.json(

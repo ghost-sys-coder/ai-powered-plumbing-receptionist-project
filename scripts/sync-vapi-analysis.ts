@@ -38,6 +38,7 @@ async function run(): Promise<void> {
   const rows = await db
     .select({
       assistantId: vapiAgents.vapiAssistantId,
+      provider: vapiAgents.provider,
       ownerNameAgent: vapiAgents.ownerName,
       servicesOffered: vapiAgents.servicesOffered,
       pricingTable: vapiAgents.pricingTable,
@@ -57,9 +58,12 @@ async function run(): Promise<void> {
     .from(vapiAgents)
     .innerJoin(customers, eq(vapiAgents.customerId, customers.id));
 
+  // Only receptionists running on Vapi (this script talks to the platform's
+  // Vapi account; other providers have their own sync).
+  const vapiRows = rows.filter((r) => r.provider === "vapi");
   const targets = targetAssistantId
-    ? rows.filter((r) => r.assistantId === targetAssistantId)
-    : rows;
+    ? vapiRows.filter((r) => r.assistantId === targetAssistantId)
+    : vapiRows;
 
   if (targets.length === 0) {
     console.log(
@@ -95,7 +99,7 @@ async function run(): Promise<void> {
         ...storedProfile(r),
       };
 
-      await updateVapiAssistant(r.assistantId, cfg);
+      await updateVapiAssistant(vapi, r.assistantId, cfg);
 
       // Read back and confirm the plan actually landed on the assistant.
       const updated = await vapi.assistants.get({ id: r.assistantId });

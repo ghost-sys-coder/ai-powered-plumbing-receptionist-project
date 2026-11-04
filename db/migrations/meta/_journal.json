@@ -50,6 +50,13 @@
       "when": 1793792561199,
       "tag": "0006_stormy_vindicator",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793794537842,
+      "tag": "0007_cold_lionheart",
+      "breakpoints": true
     }
   ]
 }

@@ -39,10 +39,7 @@ const CustomerDetailPage = async ({ params }: Props) => {
 
   // Live phone number attached to the assistant in Vapi (source of truth).
   const livePhone = agent
-    ? await getCachedLiveAssistantPhoneNumber({
-        phoneNumberId: agent.vapiPhoneNumberId,
-        assistantId: agent.vapiAssistantId,
-      })
+    ? await getCachedLiveAssistantPhoneNumber({ customerId: agent.customerId })
     : null;
 
   return (

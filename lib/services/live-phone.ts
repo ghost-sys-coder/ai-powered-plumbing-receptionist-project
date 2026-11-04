@@ -1,17 +1,29 @@
 import { unstable_cache } from "next/cache";
-import { getLiveAssistantPhoneNumber } from "./vapi-provisioning";
+import { getCustomerReceptionist } from "@/lib/voice";
 
-// Caches the live Vapi phone-number lookup for 5 minutes per assistant/number,
-// so we don't hit the Vapi API on every agent-page render. The number rarely
-// changes. Kept in its own module so the `next/cache` import never reaches the
-// standalone tsx scripts that import from vapi-provisioning directly.
+// The phone number attached to a customer's receptionist, read live from its
+// voice provider and cached for 5 minutes per customer so the agent pages
+// don't hit the provider API on every render. The number rarely changes.
+// Kept in its own module so the `next/cache` import never reaches the
+// standalone tsx scripts. Never throws — pages fall back to the stored number.
 export function getCachedLiveAssistantPhoneNumber(opts: {
-  phoneNumberId?: string | null;
-  assistantId?: string | null;
+  customerId: string;
 }): Promise<{ number: string; status?: string } | null> {
   return unstable_cache(
-    () => getLiveAssistantPhoneNumber(opts),
-    ["vapi-live-phone", opts.phoneNumberId ?? "", opts.assistantId ?? ""],
+    async () => {
+      try {
+        const receptionist = await getCustomerReceptionist(opts.customerId);
+        if (!receptionist) return null;
+        return await receptionist.provider.getLivePhoneNumber({
+          phoneNumberId: receptionist.phoneNumberId,
+          agentId: receptionist.agentId,
+        });
+      } catch (err) {
+        console.error("[live-phone] lookup failed", err);
+        return null;
+      }
+    },
+    ["live-phone", opts.customerId],
     { revalidate: 300, tags: ["vapi-phone"] }
   )();
 }

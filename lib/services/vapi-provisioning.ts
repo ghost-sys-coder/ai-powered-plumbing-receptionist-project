@@ -7,8 +7,10 @@ import {
 import { CALL_DATA_KEY } from "@/lib/services/calls";
 import { getIndustry, type IndustryProfile } from "@/lib/verticals";
 
-function getVapi() {
-  const key = process.env.VAPI_API_KEY;
+// A Vapi client for the given API key (from lib/voice/credentials), or the
+// platform key when none is given (CLI scripts).
+export function getVapi(apiKey?: string): VapiClient {
+  const key = apiKey ?? process.env.VAPI_API_KEY;
   if (!key) throw new Error("VAPI_API_KEY is not set");
   return new VapiClient({ token: key });
 }
@@ -339,10 +341,10 @@ const STOP_SPEAKING_PLAN: Vapi.StopSpeakingPlan = {
 };
 
 export async function createVapiAssistant(
+  vapi: VapiClient,
   config: ProvisioningConfig
 ): Promise<{ vapiAssistantId: string }> {
   const systemPrompt = buildAgentPrompt(config);
-  const vapi = getVapi();
 
   const toolIds = await toolIdsFor(vapi, config);
 
@@ -380,11 +382,13 @@ export function extractAreaCode(phone: string | null | undefined): string | null
   return null;
 }
 
-export async function provisionVapiPhoneNumber(areaCode?: string | null): Promise<{
+export async function provisionVapiPhoneNumber(
+  vapi: VapiClient,
+  areaCode?: string | null
+): Promise<{
   vapiPhoneNumberId: string;
   phoneNumber: string;
 }> {
-  const vapi = getVapi();
 
   const payload: Record<string, unknown> = { provider: "vapi" };
   if (areaCode) payload.numberDesiredAreaCode = areaCode;
@@ -402,11 +406,11 @@ export async function provisionVapiPhoneNumber(areaCode?: string | null): Promis
 }
 
 export async function updateVapiAssistant(
+  vapi: VapiClient,
   assistantId: string,
   config: ProvisioningConfig
 ): Promise<void> {
   const systemPrompt = buildAgentPrompt(config);
-  const vapi = getVapi();
 
   const toolIds = await toolIdsFor(vapi, config);
 
@@ -433,11 +437,10 @@ export async function updateVapiAssistant(
 // assistant. Each step is non-fatal so a Vapi hiccup never blocks DB cleanup.
 // Deliberately does NOT delete the calendar tools — those are shared across all
 // assistants and referenced by other customers via toolIds.
-export async function deleteVapiResources(opts: {
+export async function deleteVapiResources(vapi: VapiClient, opts: {
   vapiAssistantId?: string | null;
   vapiPhoneNumberId?: string | null;
 }): Promise<void> {
-  const vapi = getVapi();
 
   if (opts.vapiPhoneNumberId) {
     try {
@@ -465,12 +468,11 @@ export async function deleteVapiResources(opts: {
 // phone-number id first, then falls back to scanning the account's numbers for
 // one linked to this assistant. Never throws — returns null on any failure so a
 // page render can gracefully fall back to the stored value.
-export async function getLiveAssistantPhoneNumber(opts: {
+export async function getLiveAssistantPhoneNumber(vapi: VapiClient, opts: {
   phoneNumberId?: string | null;
   assistantId?: string | null;
 }): Promise<{ number: string; status?: string } | null> {
   try {
-    const vapi = getVapi();
 
     if (opts.phoneNumberId) {
       const pn = (await vapi.phoneNumbers.get({ id: opts.phoneNumberId })) as {
@@ -499,10 +501,10 @@ export async function getLiveAssistantPhoneNumber(opts: {
 }
 
 export async function linkPhoneNumberToAssistant(
+  vapi: VapiClient,
   vapiPhoneNumberId: string,
   vapiAssistantId: string
 ): Promise<void> {
-  const vapi = getVapi();
   try {
     await vapi.phoneNumbers.update({
       id: vapiPhoneNumberId,

@@ -1,0 +1,1 @@
+ALTER TABLE "vapi_agents" ADD COLUMN "provider" text DEFAULT 'vapi' NOT NULL;

@@ -4,11 +4,8 @@ import { db } from "@/db/drizzle";
 import { customers, vapiAgents, calls, bookings, users } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { clerkClient } from "@clerk/nextjs/server";
-import {
-  updateVapiAssistant,
-  deleteVapiResources,
-  type ProvisioningConfig,
-} from "@/lib/services/vapi-provisioning";
+import type { ProvisioningConfig } from "@/lib/services/vapi-provisioning";
+import { getCustomerReceptionist } from "@/lib/voice";
 import { parseProfileInput } from "@/lib/services/profile-input";
 
 export async function PATCH(
@@ -141,7 +138,8 @@ export async function PATCH(
           liveTransferEnabled: agent.transferEnabled,
           ...profile,
         };
-        await updateVapiAssistant(agent.vapiAssistantId, config);
+        const receptionist = await getCustomerReceptionist(id);
+        if (receptionist) await receptionist.provider.updateAgent(receptionist.agentId, config);
       } catch {
         // DB is already updated; Vapi sync failure is logged but not fatal
       }
@@ -187,22 +185,19 @@ export async function DELETE(
     await db.delete(users).where(eq(users.customerId, id));
   }
 
-  // 2. Tear down the customer's Vapi resources (assistant + phone number) before
-  //    dropping the DB rows, so nothing is orphaned in the Vapi account. Non-fatal.
-  const [agent] = await db
-    .select({
-      vapiAssistantId: vapiAgents.vapiAssistantId,
-      vapiPhoneNumberId: vapiAgents.vapiPhoneNumberId,
-    })
-    .from(vapiAgents)
-    .where(eq(vapiAgents.customerId, id))
-    .limit(1);
-
-  if (agent) {
-    await deleteVapiResources({
-      vapiAssistantId: agent.vapiAssistantId,
-      vapiPhoneNumberId: agent.vapiPhoneNumberId,
-    });
+  // 2. Tear down the customer's voice-provider resources (assistant + phone
+  //    number) before dropping the DB rows, so nothing is orphaned in the
+  //    provider account. Non-fatal.
+  try {
+    const receptionist = await getCustomerReceptionist(id);
+    if (receptionist) {
+      await receptionist.provider.deleteResources({
+        agentId: receptionist.agentId,
+        phoneNumberId: receptionist.phoneNumberId,
+      });
+    }
+  } catch (err) {
+    console.warn(`[delete-customer] provider teardown failed for ${id}:`, (err as Error).message);
   }
 
   // 3. Delete bookings before calls (FK: bookings.call_id → calls.id)

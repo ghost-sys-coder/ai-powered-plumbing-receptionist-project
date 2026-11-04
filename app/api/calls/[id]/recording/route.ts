@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { calls, users } from "@/db/schema";
-import { getSignedRecordingUrl } from "@/lib/vapi/recording-url";
+import { getCustomerReceptionist } from "@/lib/voice";
 import { canAccessCustomer, getStaffViewer } from "@/lib/auth/staff";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -46,7 +46,9 @@ export async function GET(
     }
   }
 
-  const signedUrl = await getSignedRecordingUrl(call.vapiCallId);
+  // Ask the provider that ran the call, with the owning agency's credentials.
+  const receptionist = await getCustomerReceptionist(call.customerId);
+  const signedUrl = receptionist ? await receptionist.provider.getRecordingUrl(call.vapiCallId) : null;
   if (!signedUrl) return new Response("Recording unavailable", { status: 502 });
 
   return new Response(null, {

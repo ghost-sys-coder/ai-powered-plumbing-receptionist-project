@@ -113,6 +113,31 @@ and ElevenLabs adapters. **Credentials are resolved per agency** (platform
 account by default, the agency's own when BYOK is on), so BYOK needs no
 rework later.
 
+### Built (step 3)
+
+- `lib/voice/types.ts` — `ReceptionistProvider` (create/update/delete agent,
+  provision/attach number, live number, recording URL) and
+  `ProviderCredentials`.
+- `lib/voice/credentials.ts` — `resolveProviderCredentials(provider, orgId)`:
+  the single place keys are chosen. Returns the platform key today; BYOK adds
+  the agency lookup here.
+- `lib/voice/vapi/provider.ts` — Vapi adapter. `vapi-provisioning.ts`
+  functions now take a `VapiClient`, so they run against whichever account the
+  credentials belong to (tools are upserted per account).
+- `lib/voice/index.ts` — `getProvider(provider, orgId)` and
+  `getCustomerReceptionist(customerId)`; admin routes, live phone lookup and
+  recordings go through these.
+- `lib/voice/tools/*` — provider-neutral handlers for check_availability,
+  book_appointment and notify_owner_emergency (spoken text unchanged).
+  `lib/voice/vapi/tool-route.ts` adapts Vapi's payload; the
+  `/api/vapi/tools/*` URLs are unchanged.
+- `vapi_agents.provider` (migration 0007, default `vapi`). The id columns keep
+  their `vapi_` names and hold the provider's ids.
+
+Still Vapi-specific: the event webhook (`/api/webhooks/vapi`), live-transfer
+destination replies, the browser test call (`@vapi-ai/web`), and the prompt's
+date/caller-number macros. The ElevenLabs adapter adds its own versions.
+
 ## 5. Bring your own key (BYOK)
 
 Agencies on **Pro or Agency** may connect their own Vapi or ElevenLabs account.

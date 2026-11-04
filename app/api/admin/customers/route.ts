@@ -4,13 +4,8 @@ import { getAgency, getHouseAgencyId } from "@/lib/services/agencies";
 import { db } from "@/db/drizzle";
 import { customers, vapiAgents } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  createVapiAssistant,
-  provisionVapiPhoneNumber,
-  linkPhoneNumberToAssistant,
-  extractAreaCode,
-  type ProvisioningConfig,
-} from "@/lib/services/vapi-provisioning";
+import { extractAreaCode, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
+import { DEFAULT_VOICE_PROVIDER, getProvider, type ReceptionistProvider } from "@/lib/voice";
 import { parseProfileInput } from "@/lib/services/profile-input";
 import { getRegion } from "@/lib/regions";
 
@@ -154,13 +149,17 @@ export async function POST(req: NextRequest) {
     ...profile,
   };
 
-  // Step 2: Create Vapi assistant
+  // Step 2: Create the AI assistant on the voice provider, using the owning
+  // agency's credentials (the platform's account unless the agency brought
+  // its own).
+  let provider: ReceptionistProvider;
   let vapiAssistantId: string;
   try {
-    const result = await createVapiAssistant(config);
-    vapiAssistantId = result.vapiAssistantId;
+    provider = await getProvider(DEFAULT_VOICE_PROVIDER, organizationId);
+    const result = await provider.createAgent(config);
+    vapiAssistantId = result.agentId;
   } catch (err) {
-    console.error("[create-customer] step 2 (Vapi assistant) failed:", err);
+    console.error("[create-customer] step 2 (AI assistant) failed:", err);
     return NextResponse.json(
       {
         error: `Step 2 — AI assistant creation failed. Customer account saved (ID: ${customerId}). ${(err as Error).message}`,
@@ -181,14 +180,14 @@ export async function POST(req: NextRequest) {
 
   if (phoneProvisioningEnabled) {
     try {
-      const result = await provisionVapiPhoneNumber(extractAreaCode(phone));
-      vapiPhoneNumberId = result.vapiPhoneNumberId;
+      const result = await provider.provisionPhoneNumber(extractAreaCode(phone));
+      vapiPhoneNumberId = result.phoneNumberId;
       provisionedPhone = result.phoneNumber;
     } catch (err) {
       console.error("[create-customer] step 3 (phone provisioning) failed:", err);
       return NextResponse.json(
         {
-          error: `Step 3 — Phone number provisioning failed. Assistant created in Vapi (ID: ${vapiAssistantId}). ${(err as Error).message}`,
+          error: `Step 3 — Phone number provisioning failed. Assistant created (ID: ${vapiAssistantId}). ${(err as Error).message}`,
           failedStep: 2,
           customerId,
           vapiAssistantId,
@@ -203,11 +202,12 @@ export async function POST(req: NextRequest) {
   // Step 4: Link (if phone provisioned) + create vapi_agents row + activate customer
   try {
     if (vapiPhoneNumberId) {
-      await linkPhoneNumberToAssistant(vapiPhoneNumberId, vapiAssistantId);
+      await provider.attachPhoneNumber(vapiPhoneNumberId, vapiAssistantId);
     }
 
     await db.insert(vapiAgents).values({
       customerId,
+      provider: provider.id,
       vapiAssistantId,
       vapiPhoneNumberId,
       phoneNumber: provisionedPhone,
