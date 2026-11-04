@@ -1,6 +1,11 @@
 import { VapiClient, type Vapi } from "@vapi-ai/server-sdk";
-import { buildAgentPrompt } from "@/lib/templates/agent-prompt";
+import {
+  buildAgentPrompt,
+  isLiveTransferActive,
+  type PromptConfig,
+} from "@/lib/templates/agent-prompt";
 import { CALL_DATA_KEY } from "@/lib/services/calls";
+import { getIndustry, type IndustryProfile } from "@/lib/verticals";
 
 function getVapi() {
   const key = process.env.VAPI_API_KEY;
@@ -8,25 +13,9 @@ function getVapi() {
   return new VapiClient({ token: key });
 }
 
-export interface ProvisioningConfig {
-  businessName: string;
-  ownerName: string;
-  serviceArea: string;
-  timezone: string;
-  calendarType: "google_calendar" | "manual";
-  appointmentDurationMinutes: number;
-  servicesOffered: Array<{ name: string; price?: string }>;
-  pricing: {
-    serviceCallFee?: string;
-    hourlyRate?: string;
-    afterHoursSurcharge?: string;
-    freeEstimates?: boolean;
-  };
-  emergencyDefinition: string;
-  businessHours: Record<string, { open?: string; close?: string; closed?: boolean }>;
-  // Attaches the shared live-transfer tool and its prompt instructions.
-  liveTransferEnabled?: boolean;
-}
+// Everything needed to build an assistant. `liveTransferEnabled` also attaches
+// the shared live-transfer tool; `industry`/`country` pick the prompt profile.
+export type ProvisioningConfig = PromptConfig;
 
 // Definitions for the two calendar function tools. These are created as
 // first-class Vapi Tool objects (not inline/transient on the assistant) so they
@@ -37,7 +26,7 @@ const CALENDAR_TOOL_DEFS = [
     name: "check_availability",
     path: "/api/vapi/tools/check-availability",
     description:
-      "Check available appointment slots for the plumbing business. Use when a caller wants to book an appointment.",
+      "Check available appointment slots for the business. Use when a caller wants to book an appointment.",
     parameters: {
       type: "object",
       properties: {
@@ -143,7 +132,7 @@ async function ensureTransferToolId(vapi: VapiClient): Promise<string> {
 // Every tool id an assistant should reference.
 async function toolIdsFor(vapi: VapiClient, config: ProvisioningConfig): Promise<string[]> {
   const ids = await ensureToolIds(vapi, toolDefsFor(config.calendarType));
-  if (config.liveTransferEnabled) ids.push(await ensureTransferToolId(vapi));
+  if (isLiveTransferActive(config)) ids.push(await ensureTransferToolId(vapi));
   return ids;
 }
 
@@ -216,64 +205,77 @@ async function ensureToolIds(vapi: VapiClient, defs: ToolDef[]): Promise<string[
 // in favour of the catalog-based `structuredDataMultiPlan` (→ analysis.structuredDataMulti).
 // We register under CALL_DATA_KEY and disable the legacy plan to clear the
 // deprecation warning. The webhook reads the result via extractStructuredData().
-const CALL_DATA_SCHEMA = {
-  type: "object",
-  properties: {
-    caller_name: {
-      type: "string",
-      description:
-        "The caller's full name as given on the call. Empty string if never provided.",
-    },
-    issue_summary: {
-      type: "string",
-      description:
-        "One or two sentences describing the plumbing problem or reason for the call.",
-    },
-    urgency_level: {
-      type: "string",
-      enum: ["emergency", "urgent", "routine", "unknown"],
-      description:
-        "How urgent the job is. 'emergency' = active flooding/no water/gas/sewage now; 'urgent' = needs attention within ~24h; 'routine' = can be scheduled normally; 'unknown' if unclear.",
-    },
-    service_address: {
-      type: "string",
-      description:
-        "The full service address (where the work is needed). Empty string if not provided.",
-    },
-    callback_number: {
-      type: "string",
-      description:
-        "A callback number ONLY if the caller asked to be reached on a number different from the one they are calling from — digits only (e.g. '5805551234'). Leave empty if they want to be called back on the number they are calling from, or if no number was given.",
-    },
-    outcome: {
-      type: "string",
-      enum: ["booked", "message_taken", "transferred", "dropped", "abandoned"],
-      description:
-        "How the call concluded. 'booked' = appointment scheduled; 'message_taken' = message left for the shop; 'transferred' = handed to a human; 'dropped' = caller hung up before resolution; 'abandoned' = no meaningful interaction.",
-    },
-    booking_time: {
-      type: "string",
-      description:
-        "If an appointment was booked, the agreed date and time as a full ISO 8601 timestamp WITH the timezone offset (e.g. '2026-07-03T14:00:00-05:00'). Use the absolute date that was confirmed on the call — it must be in the future, never a past year. Empty string if no booking was made.",
-    },
-  },
-  required: ["issue_summary", "urgency_level", "outcome"],
-} as const;
-
-const CALL_ANALYSIS_PLAN = {
-  // Disable the deprecated single-schema plan.
-  structuredDataPlan: { enabled: false },
-  // Catalog-based plan (the non-deprecated path).
-  structuredDataMultiPlan: [
-    {
-      key: CALL_DATA_KEY,
-      plan: {
-        enabled: true,
-        schema: CALL_DATA_SCHEMA,
+//
+// The core keys are the same for every industry; descriptions and the extra
+// intake fields come from the industry profile.
+function callDataSchema(industry: IndustryProfile) {
+  const intakeProperties = Object.fromEntries(
+    industry.intakeFields.map((f) => [
+      f.key,
+      { type: "string", description: f.description, ...(f.enum ? { enum: f.enum } : {}) },
+    ])
+  );
+  return {
+    type: "object",
+    properties: {
+      caller_name: {
+        type: "string",
+        description:
+          "The caller's full name as given on the call. Empty string if never provided.",
       },
+      issue_summary: {
+        type: "string",
+        description: industry.issueSummaryDescription,
+      },
+      urgency_level: {
+        type: "string",
+        enum: ["emergency", "urgent", "routine", "unknown"],
+        description: industry.urgencyDescription,
+      },
+      service_address: {
+        type: "string",
+        description: industry.collectsServiceAddress
+          ? "The full service address (where the work is needed). Empty string if not provided."
+          : "The caller's address, only if they offered it. Empty string otherwise.",
+      },
+      callback_number: {
+        type: "string",
+        description:
+          "A callback number ONLY if the caller asked to be reached on a number different from the one they are calling from — digits only (e.g. '5805551234'). Leave empty if they want to be called back on the number they are calling from, or if no number was given.",
+      },
+      outcome: {
+        type: "string",
+        enum: ["booked", "message_taken", "transferred", "dropped", "abandoned"],
+        description:
+          "How the call concluded. 'booked' = appointment scheduled; 'message_taken' = message left for the business; 'transferred' = handed to a human; 'dropped' = caller hung up before resolution; 'abandoned' = no meaningful interaction.",
+      },
+      booking_time: {
+        type: "string",
+        description:
+          "If an appointment was booked, the agreed date and time as a full ISO 8601 timestamp WITH the timezone offset (e.g. '2026-07-03T14:00:00-05:00'). Use the absolute date that was confirmed on the call — it must be in the future, never a past year. Empty string if no booking was made.",
+      },
+      ...intakeProperties,
     },
-  ],
-} as const;
+    required: ["issue_summary", "urgency_level", "outcome"],
+  };
+}
+
+function callAnalysisPlan(config: ProvisioningConfig) {
+  return {
+    // Disable the deprecated single-schema plan.
+    structuredDataPlan: { enabled: false },
+    // Catalog-based plan (the non-deprecated path).
+    structuredDataMultiPlan: [
+      {
+        key: CALL_DATA_KEY,
+        plan: {
+          enabled: true,
+          schema: callDataSchema(getIndustry(config.industry)),
+        },
+      },
+    ],
+  };
+}
 
 function extractVapiError(err: unknown): string {
   if (err && typeof err === "object") {
@@ -356,7 +358,7 @@ export async function createVapiAssistant(
       } as any,
       voice: { provider: "11labs", voiceId: "paula" } as any,
       firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
-      analysisPlan: CALL_ANALYSIS_PLAN as any,
+      analysisPlan: callAnalysisPlan(config) as any,
       startSpeakingPlan: START_SPEAKING_PLAN,
       stopSpeakingPlan: STOP_SPEAKING_PLAN,
     });
@@ -418,7 +420,7 @@ export async function updateVapiAssistant(
       toolIds,
     } as any,
     firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
-    analysisPlan: CALL_ANALYSIS_PLAN as any,
+    analysisPlan: callAnalysisPlan(config) as any,
     startSpeakingPlan: START_SPEAKING_PLAN,
     stopSpeakingPlan: STOP_SPEAKING_PLAN,
   } as any);
