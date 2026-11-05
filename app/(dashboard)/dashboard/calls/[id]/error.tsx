@@ -4,7 +4,7 @@ export default function CallDetailError({ reset }: { error: Error; reset: () => 
   return (
     <div className="flex min-h-64 flex-col items-center justify-center gap-4">
       <p className="text-muted-foreground">Could not load this call.</p>
-      <button onClick={reset} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+      <button onClick={reset} className="text-sm font-medium text-primary underline-offset-4 hover:underline">
         Try again
       </button>
     </div>

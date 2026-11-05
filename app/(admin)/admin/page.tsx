@@ -6,6 +6,7 @@ import { StatCard } from "@/components/layout/stat-card";
 import { CustomersTable } from "@/components/admin/customers-table";
 import { SeedControls } from "@/components/admin/seed-controls";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 const AdminPage = async () => {
   const viewer = await requireStaff();
@@ -17,10 +18,14 @@ const AdminPage = async () => {
     <div className="animate-fade-in space-y-6">
       <PageHeader
         title="Customers"
+        description="Every business whose phone your receptionists answer."
         action={
-          <Link href="/admin/customers/new">
-            <Button>Add customer</Button>
-          </Link>
+          <Button asChild>
+            <Link href="/admin/customers/new">
+              <Plus className="size-4" />
+              Add customer
+            </Link>
+          </Button>
         }
       />
 

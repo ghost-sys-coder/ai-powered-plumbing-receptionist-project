@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 
-export function ThemeToggle() {
+export function ThemeToggle({ quiet = false }: { quiet?: boolean }) {
     const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
 
@@ -21,7 +21,11 @@ export function ThemeToggle() {
             size="icon-sm"
             aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
             onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="relative size-9 rounded-full border border-border bg-muted text-foreground transition-all hover:bg-accent hover:text-accent-foreground"
+            className={
+                quiet
+                    ? "relative size-9 rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    : "relative size-9 rounded-full border border-border bg-muted text-foreground transition-all hover:bg-accent hover:text-accent-foreground"
+            }
         >
             <Sun
                 aria-hidden

@@ -11,7 +11,7 @@ export default function CustomerDetailError({
       <p className="text-muted-foreground">Could not load this customer.</p>
       <button
         onClick={reset}
-        className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
       >
         Try again
       </button>

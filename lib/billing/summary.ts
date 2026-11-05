@@ -2,6 +2,7 @@ import { findAccount, type BillingOwner } from "./accounts";
 import {
   PLANS,
   describePrice,
+  formatMoney,
   isBillingCurrency,
   needsCheckout,
   type BillingCurrency,
@@ -20,6 +21,9 @@ export type BillingSummary = {
   statusLabel: string;
   tone: BillingTone;
   priceText: string;
+  // "$149" and "$0.40" for the headline price and the per-minute rate.
+  monthlyText: string;
+  perMinuteText: string;
   currency: BillingCurrency;
   trialEndsAt: string | null;
   periodEnd: string | null;
@@ -68,6 +72,8 @@ export async function getBillingSummary(
     statusLabel: label,
     tone,
     priceText: describePrice(plan, currency),
+    monthlyText: formatMoney(PLANS[plan].monthly[currency], currency),
+    perMinuteText: formatMoney(PLANS[plan].perMinute[currency], currency),
     currency,
     trialEndsAt: status === "trialing" ? (account?.trialEndsAt?.toISOString() ?? null) : null,
     periodEnd: account?.currentPeriodEnd?.toISOString() ?? null,

@@ -75,7 +75,7 @@ const AgentPage = async ({
           </p>
           <a
             href={`mailto:${supportEmail}`}
-            className="mt-2 inline-block text-blue-600 hover:underline dark:text-blue-400"
+            className="mt-2 inline-block font-medium text-primary underline-offset-4 hover:underline"
           >
             {supportEmail}
           </a>

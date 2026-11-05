@@ -42,12 +42,12 @@ const DashboardPage = async () => {
 
       <div>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Recent calls</h2>
+          <h2 className="text-base font-semibold tracking-tight">Recent calls</h2>
           <Link
             href="/dashboard/calls"
-            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
           >
-            View all calls →
+            View all →
           </Link>
         </div>
 

@@ -14,7 +14,7 @@ const NewCustomerPage = async () => {
     <div className="animate-fade-in space-y-6">
       <Link
         href="/admin"
-        className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
       >
         ← All customers
       </Link>

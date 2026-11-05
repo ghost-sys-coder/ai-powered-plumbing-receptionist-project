@@ -59,7 +59,7 @@ function SpeakerTile({
   const accentRing =
     accent === "green"
       ? "ring-green-500 bg-green-500/10 text-green-600 dark:text-green-400"
-      : "ring-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400";
+      : "ring-blue-500 bg-blue-500/10 text-primary";
 
   return (
     <div className="flex flex-1 flex-col items-center gap-2">

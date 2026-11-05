@@ -90,6 +90,13 @@
     --brand-muted: oklch(0.93 0.04 60);
     --brand-glow: oklch(0.72 0.18 55 / 0.18);
     --grid-line: oklch(0.18 0.015 250 / 0.045);
+
+    /* Shadows carry the warm hue of the page rather than flat black, and all
+       fall from the same light source (above). */
+    --shadow-xs: 0 1px 2px oklch(0.35 0.03 60 / 0.06);
+    --shadow-card: 0 1px 2px oklch(0.35 0.03 60 / 0.05), 0 4px 16px -4px oklch(0.35 0.03 60 / 0.08);
+    --shadow-elevated: 0 2px 4px oklch(0.35 0.03 60 / 0.06), 0 16px 40px -12px oklch(0.35 0.03 60 / 0.18);
+    --canvas-glow: oklch(0.80 0.09 60 / 0.16);
 }
 
 .dark {
@@ -130,6 +137,11 @@
     --brand-muted: oklch(0.28 0.05 55);
     --brand-glow: oklch(0.74 0.20 55 / 0.30);
     --grid-line: oklch(0.96 0.008 80 / 0.05);
+
+    --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.30);
+    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.30), 0 8px 24px -8px oklch(0 0 0 / 0.45);
+    --shadow-elevated: 0 2px 6px oklch(0 0 0 / 0.35), 0 24px 48px -16px oklch(0 0 0 / 0.6);
+    --canvas-glow: oklch(0.55 0.10 55 / 0.10);
 }
 
 /* ── V2 Landing Page Design Tokens ─────────────────────────────── */
@@ -242,6 +254,16 @@
         @apply bg-background text-foreground;
         font-feature-settings: "ss01", "cv11";
     }
+    h1, h2, h3 {
+        letter-spacing: -0.018em;
+        text-wrap: balance;
+    }
+    p {
+        text-wrap: pretty;
+    }
+    html {
+        scroll-behavior: smooth;
+    }
 }
 
 
@@ -268,6 +290,21 @@
 
     .text-balance {
         text-wrap: balance;
+    }
+
+    .shadow-xs-tinted { box-shadow: var(--shadow-xs); }
+    .shadow-card { box-shadow: var(--shadow-card); }
+    .shadow-elevated { box-shadow: var(--shadow-elevated); }
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    /* App background: soft warm glows in opposite corners over the base tone,
+       so content panels have something to sit on. */
+    .app-canvas {
+        background-color: var(--background);
+        background-image:
+            radial-gradient(60rem 28rem at 100% -6rem, var(--canvas-glow), transparent 70%),
+            radial-gradient(40rem 22rem at -10% 110%, var(--canvas-glow), transparent 70%);
+        background-attachment: fixed;
     }
 
     .v2-btn-primary {

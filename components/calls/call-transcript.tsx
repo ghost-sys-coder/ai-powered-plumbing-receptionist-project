@@ -35,7 +35,7 @@ export function CallTranscript({ transcript }: { transcript: string | null }) {
           <span
             className={`mt-2 shrink-0 text-[10px] font-bold uppercase tracking-widest ${
               line.speaker === "AI"
-                ? "text-blue-600 dark:text-blue-400"
+                ? "text-primary"
                 : "text-slate-500 dark:text-slate-400"
             }`}
           >
