@@ -38,7 +38,7 @@ export function NavV2() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 sm:px-8">
         {/* Brand Logo */}
-        <Link href="/marketing/v2" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-2.5 group">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-lg shadow-md group-hover:opacity-90 transition-opacity"
             style={{ backgroundColor: "var(--v2-primary)", color: "var(--v2-text-on-primary)" }}
@@ -95,9 +95,18 @@ export function NavV2() {
               </Link>
             </Button>
           ) : (
-            <Calcom
-              className="rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition-all cursor-pointer v2-btn-primary"
-            />
+            <>
+              <Link
+                href="/sign-in"
+                className="px-1 text-xs font-semibold transition-opacity hover:opacity-80"
+                style={{ color: "var(--v2-text-secondary)" }}
+              >
+                Sign in
+              </Link>
+              <Calcom
+                className="rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition-all cursor-pointer v2-btn-primary"
+              />
+            </>
           )}
         </div>
 
@@ -158,9 +167,19 @@ export function NavV2() {
                   </Link>
                 </Button>
               ) : (
-                <Calcom
-                  className="w-full text-center rounded-lg py-2.5 text-sm font-semibold shadow-sm cursor-pointer v2-btn-primary"
-                />
+                <>
+                  <Calcom
+                    className="w-full text-center rounded-lg py-2.5 text-sm font-semibold shadow-sm cursor-pointer v2-btn-primary"
+                  />
+                  <Link
+                    href="/sign-in"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="py-1 text-center text-sm font-semibold"
+                    style={{ color: "var(--v2-text-secondary)" }}
+                  >
+                    Sign in to your account
+                  </Link>
+                </>
               )}
             </div>
           </div>

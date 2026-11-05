@@ -8,7 +8,11 @@ import { CallTranscript } from "@/components/calls/call-transcript";
 import { CallSummaryCard } from "@/components/calls/call-summary-card";
 import { CallBookingCard } from "@/components/calls/call-booking-card";
 import { CallAudioPlayer } from "@/components/calls/call-audio-player";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, AudioLines, MessagesSquare } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { SectionHeader } from "@/components/layout/section-header";
+import { OutcomeBadge } from "@/components/calls/outcome-badge";
+import { UrgencyBadge } from "@/components/calls/urgency-badge";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -31,38 +35,42 @@ const CallDetailPage = async ({ params }: Props) => {
     <div className="animate-fade-in space-y-6">
       <Link
         href="/dashboard/calls"
-        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
-        ← All calls
+        <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+        All calls
       </Link>
 
       <PageHeader
+        eyebrow="Call"
         title={caller}
         description={formatDateTimeFull(call.startedAt, timezone)}
+        action={
+          <div className="flex flex-wrap gap-1.5">
+            <OutcomeBadge outcome={call.outcome} />
+            <UrgencyBadge urgency={call.urgencyLevel} />
+          </div>
+        }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Transcript</CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-140 overflow-y-auto">
-              <CallTranscript transcript={call.transcript} />
-            </CardContent>
+            <SectionHeader icon={AudioLines} title="Recording" description="Play back the full call" />
+            <div className="px-5">
+              <CallAudioPlayer callId={call.id} hasRecording={!!call.audioUrl} />
+            </div>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Recording</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CallAudioPlayer callId={call.id} hasRecording={!!call.audioUrl} />
-            </CardContent>
+            <SectionHeader icon={MessagesSquare} title="Transcript" description="What was said, turn by turn" />
+            <div className="max-h-140 overflow-y-auto px-5">
+              <CallTranscript transcript={call.transcript} />
+            </div>
           </Card>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6 lg:sticky lg:top-6">
           <CallSummaryCard call={call} timezone={timezone} industry={industry} />
           {booking && call.outcome === "booked" && (
             <CallBookingCard booking={booking} timezone={timezone} />

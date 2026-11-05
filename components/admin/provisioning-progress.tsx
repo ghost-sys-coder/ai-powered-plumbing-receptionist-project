@@ -13,13 +13,13 @@ export function ProvisioningProgress({ steps }: { steps: ProvisioningStep[] }) {
       {steps.map((step, i) => (
         <div key={i} className="flex items-center gap-3 animate-step-complete">
           {step.status === "done" && (
-            <CheckCircle className="h-5 w-5 shrink-0 text-green-600" />
+            <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
           )}
           {step.status === "active" && (
-            <Loader2 className="h-5 w-5 shrink-0 animate-spin text-blue-600" />
+            <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
           )}
           {step.status === "pending" && (
-            <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
+            <Circle className="h-5 w-5 shrink-0 text-muted-foreground/50" />
           )}
           {step.status === "error" && (
             <Circle className="h-5 w-5 shrink-0 text-red-500" />

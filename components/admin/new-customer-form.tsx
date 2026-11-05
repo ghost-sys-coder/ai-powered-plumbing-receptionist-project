@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { SectionHeader } from "@/components/layout/section-header";
 import { Separator } from "@/components/ui/separator";
 import {
   BusinessHoursInput,
@@ -24,7 +25,23 @@ import {
   ProvisioningProgress,
   type ProvisioningStep,
 } from "@/components/admin/provisioning-progress";
-import { ChevronDown, ChevronUp, ClipboardPaste, Globe, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  ClipboardCheck,
+  ClipboardPaste,
+  CreditCard,
+  Globe,
+  Loader2,
+  MapPin,
+  PhoneCall,
+  Rocket,
+  Sparkles,
+} from "lucide-react";
 import { IndustryCountryFields } from "@/components/admin/industry-country-fields";
 import { PricingFields } from "@/components/admin/pricing-fields";
 import { WizardSteps } from "@/components/admin/wizard-steps";
@@ -416,24 +433,31 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
   if (isSubmitting) {
     return (
-      <div className="flex min-h-64 flex-col items-center justify-center gap-6 py-12">
-        <h2 className="text-lg font-semibold">Setting up account...</h2>
-        <div className="w-72">
+      <Card className="mx-auto w-full max-w-md items-center gap-6 px-8 py-10 text-center">
+        <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+          <Rocket strokeWidth={1.75} className="size-5" />
+        </span>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight">Setting up {businessName || "the receptionist"}</h2>
+          <p className="text-sm text-muted-foreground">This takes a few seconds. Please keep this page open.</p>
+        </div>
+        <div className="w-full max-w-72 text-left">
           <ProvisioningProgress steps={steps} />
         </div>
         {error && (
-          <div className="w-72 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
+          <div className="w-full rounded-xl bg-red-500/[0.07] px-4 py-3 text-left text-sm text-red-800 ring-1 ring-inset ring-red-600/15 dark:text-red-300">
             {error}
             <button
+              type="button"
               onClick={() => setIsSubmitting(false)}
-              className="mt-2 block text-xs underline"
+              className="mt-2 block text-xs font-medium underline underline-offset-4"
             >
-              Back to form
+              Back to the form
             </button>
           </div>
         )}
         {phoneNotice && (
-          <div className="w-80 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+          <div className="w-full rounded-xl bg-amber-500/8 px-4 py-3 text-left text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:text-amber-200">
             <p className="font-medium">The receptionist is set up, but has no phone number yet.</p>
             <p className="mt-1">{phoneNotice.text}</p>
             <Button
@@ -446,31 +470,30 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
             </Button>
           </div>
         )}
-      </div>
+      </Card>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <WizardSteps steps={WIZARD_STEPS} current={wizardStep} onSelect={goToStep} />
 
       {/* Website import */}
       {wizardStep === 0 && (
-        <Card className="border-dashed">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Fill from website</span>
-              <span className="text-xs text-muted-foreground">
-                — read the business&apos;s site to prefill hours, services and contact details
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
+        <Card className="relative bg-linear-to-br from-primary/[0.06] via-card to-card">
+          <SectionHeader
+            icon={Sparkles}
+            title="Fill from their website"
+            description="We read the site and prefill hours, services and contact details. You can check everything before launch."
+          />
+          <CardContent className="space-y-3">
             <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+              <Globe className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
                 inputMode="url"
+                className="pl-9"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -483,16 +506,15 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
                 disabled={websiteLoading}
                 aria-label="Business website"
               />
+              </div>
               <Button
                 type="button"
-                size="sm"
-                className="sm:h-9"
                 onClick={fillFromWebsite}
                 disabled={!websiteUrl.trim() || websiteLoading}
               >
                 {websiteLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                     Reading…
                   </>
                 ) : (
@@ -510,30 +532,29 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
       {/* JSON paste panel */}
       {wizardStep === 0 && (
-      <Card className="border-dashed">
-        <CardHeader className="pb-3">
+      <Card size="sm" className="gap-0 py-0 shadow-none">
           <button
             type="button"
             onClick={() => setJsonPanelOpen((o) => !o)}
-            className="flex w-full items-center justify-between text-left"
+            aria-expanded={jsonPanelOpen}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
           >
-            <div className="flex items-center gap-2">
-              <ClipboardPaste className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Fill from JSON</span>
-              <span className="text-xs text-muted-foreground">
-                — paste a JSON blob to instantly populate all fields
+            <span className="flex min-w-0 items-center gap-2.5">
+              <ClipboardPaste strokeWidth={1.75} className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm font-medium">Paste JSON instead</span>
+              <span className="hidden truncate text-xs text-muted-foreground sm:inline">
+                fills every field at once
               </span>
-            </div>
-            {jsonPanelOpen ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            )}
+            </span>
+            <ChevronDown
+              className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+                jsonPanelOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
-        </CardHeader>
 
         {jsonPanelOpen && (
-          <CardContent className="space-y-3 pt-0">
+          <CardContent className="space-y-3 border-t border-border/70 pt-4 pb-4">
             <Textarea
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
@@ -566,16 +587,19 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
       )}
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-400">
+        <div className="flex items-start gap-2.5 rounded-xl bg-red-500/[0.07] px-4 py-3 text-sm text-red-800 ring-1 ring-inset ring-red-600/15 dark:text-red-300">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           {error}
         </div>
       )}
 
       {wizardStep === 0 && (
       <Card>
-        <CardHeader>
-          <CardTitle>Business info</CardTitle>
-        </CardHeader>
+        <SectionHeader
+          icon={Building2}
+          title="Business"
+          description="Who they are and how to reach the owner"
+        />
         <CardContent className="grid gap-4 md:grid-cols-2">
           {agencies && (
             <div className="space-y-1.5 md:col-span-2">
@@ -645,9 +669,11 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
       {wizardStep === 1 && (
       <Card>
-        <CardHeader>
-          <CardTitle>Location</CardTitle>
-        </CardHeader>
+        <SectionHeader
+          icon={MapPin}
+          title="Location"
+          description="Where they are and the area they cover"
+        />
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5 md:col-span-2">
             <Label htmlFor="address">Address</Label>
@@ -706,9 +732,11 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
       {wizardStep === 2 && (
       <Card>
-        <CardHeader>
-          <CardTitle>How the receptionist handles calls</CardTitle>
-        </CardHeader>
+        <SectionHeader
+          icon={PhoneCall}
+          title="Call handling"
+          description="What counts as urgent, when they're open, and what they offer"
+        />
         <CardContent className="space-y-6">
           <div className="space-y-1.5">
             <Label htmlFor="emergency">Emergency definition *</Label>
@@ -763,9 +791,11 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
       {wizardStep === 3 && (
       <Card>
-        <CardHeader>
-          <CardTitle>Booking & calendar</CardTitle>
-        </CardHeader>
+        <SectionHeader
+          icon={CalendarDays}
+          title="Booking"
+          description="How appointments get made"
+        />
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="calendarType">Calendar integration</Label>
@@ -830,11 +860,13 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
       {wizardStep === 4 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Review</CardTitle>
-          </CardHeader>
+          <SectionHeader
+            icon={ClipboardCheck}
+            title="Review"
+            description="Check the details, then launch"
+          />
           <CardContent>
-            <dl className="grid gap-x-6 gap-y-3 text-sm md:grid-cols-2">
+            <dl className="grid gap-x-8 text-sm md:grid-cols-2">
               {[
                 ["Business", businessName],
                 ["Industry", getIndustry(industry).label],
@@ -852,9 +884,9 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
                     : "Google Calendar — connect later",
                 ],
               ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="font-medium">{value}</dd>
+                <div key={label} className="border-b border-border/60 py-3">
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="mt-0.5 font-medium">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -868,9 +900,11 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
 
       {wizardStep === 4 && agencies && (
       <Card>
-        <CardHeader>
-          <CardTitle>Billing</CardTitle>
-        </CardHeader>
+        <SectionHeader
+          icon={CreditCard}
+          title="Billing"
+          description="Plan and Stripe link (platform admins only)"
+        />
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="plan">Plan</Label>
@@ -897,24 +931,33 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
       </Card>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 border-t border-border/70 pt-6">
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           onClick={() => goToStep(wizardStep - 1)}
           disabled={wizardStep === 0}
+          className={wizardStep === 0 ? "invisible" : undefined}
         >
+          <ArrowLeft className="size-4" />
           Back
         </Button>
-        {wizardStep < LAST_STEP ? (
-          <Button type="submit" size="lg" className="min-w-32">
-            Next
-          </Button>
-        ) : (
-          <Button type="submit" size="lg" className="min-w-56">
-            Launch receptionist
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            Step {wizardStep + 1} of {WIZARD_STEPS.length}
+          </span>
+          {wizardStep < LAST_STEP ? (
+            <Button type="submit" size="lg" className="min-w-32">
+              Continue
+              <ArrowRight className="size-4" />
+            </Button>
+          ) : (
+            <Button type="submit" size="lg" className="min-w-48">
+              <Rocket className="size-4" />
+              Launch receptionist
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );

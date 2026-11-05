@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AlertTriangle, Headphones } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { SectionHeader } from "@/components/layout/section-header";
 import { WebCallButton } from "@/components/admin/web-call-button";
 
 type WebCallPanelProps = {
@@ -25,33 +20,24 @@ export function WebCallPanel({
 }: WebCallPanelProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Test Agent</CardTitle>
-        <CardDescription>
-          Speak to the AI as if you were a customer calling
-          {ownerName ? ` ${ownerName}` : ""}
-          {phoneNumber ? ` · ${phoneNumber}` : ""}
-        </CardDescription>
-      </CardHeader>
+      <SectionHeader
+        icon={Headphones}
+        title="Test the receptionist"
+        description={`Talk to it from your browser, as a caller to ${ownerName ?? "the business"}${
+          phoneNumber ? ` · ${phoneNumber}` : ""
+        }`}
+      />
 
-      <CardContent>
-        {agentStatus !== "active" ? (
-          <div className="mb-4 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-800/40 dark:bg-yellow-950/30 dark:text-yellow-400">
-            Agent is currently {agentStatus} — activate it before testing
+      <div className="space-y-3 px-5">
+        {agentStatus !== "active" && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-500/8 px-3 py-2.5 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            The receptionist is {agentStatus} — switch it on before testing.
           </div>
-        ) : null}
-
-        <WebCallButton
-          customerId={customerId}
-          disabled={agentStatus !== "active"}
-        />
-      </CardContent>
-
-      <CardFooter>
-        <p className="text-xs text-muted-foreground">
-          Web calls are billed at the same rate as phone calls
-        </p>
-      </CardFooter>
+        )}
+        <WebCallButton customerId={customerId} disabled={agentStatus !== "active"} />
+        <p className="text-xs text-muted-foreground">Test calls are billed like phone calls.</p>
+      </div>
     </Card>
   );
 }

@@ -1,20 +1,23 @@
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { PILL } from "@/components/calls/outcome-badge";
 
 type Urgency = "emergency" | "urgent" | "routine" | "unknown";
 
-const config: Record<Urgency, { label: string; className: string; pulse?: boolean }> = {
-  emergency: { label: "Emergency", className: "bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-300 dark:border-red-800", pulse: true },
-  urgent: { label: "Urgent", className: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800" },
-  routine: { label: "Routine", className: "bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800" },
-  unknown: { label: "Unknown", className: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700" },
+const config: Record<Urgency, { label: string; pill: string; pulse?: boolean }> = {
+  emergency: {
+    label: "Emergency",
+    pill: "bg-red-500/12 text-red-700 ring-red-600/30 dark:text-red-300",
+    pulse: true,
+  },
+  urgent: { label: "Urgent", pill: "bg-amber-500/12 text-amber-800 ring-amber-600/25 dark:text-amber-300" },
+  routine: { label: "Routine", pill: "bg-muted text-muted-foreground ring-foreground/10" },
+  unknown: { label: "Unknown", pill: "bg-muted text-muted-foreground/80 ring-foreground/[0.07]" },
 };
 
 export function UrgencyBadge({ urgency }: { urgency: Urgency | null | undefined }) {
-  if (!urgency) return <Badge variant="outline" className="text-slate-400">—</Badge>;
-  const { label, className, pulse } = config[urgency];
-  return (
-    <Badge variant="outline" className={`${className}${pulse ? " animate-emergency-pulse" : ""}`}>
-      {label}
-    </Badge>
-  );
+  if (!urgency) {
+    return <span className={cn(PILL, "bg-muted text-muted-foreground ring-foreground/10")}>—</span>;
+  }
+  const { label, pill, pulse } = config[urgency];
+  return <span className={cn(PILL, pill, pulse && "animate-emergency-pulse")}>{label}</span>;
 }

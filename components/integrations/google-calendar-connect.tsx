@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { SectionHeader } from "@/components/layout/section-header";
 
 const NOTICES: Record<string, { ok: boolean; text: string }> = {
   connected: { ok: true, text: "Google Calendar connected — the receptionist now books straight into it." },
@@ -58,15 +59,14 @@ export function GoogleCalendarConnect({ customerId, configured, connection, retu
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CalendarCheck className="h-4 w-4" />
-          Calendar
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+      <SectionHeader
+        icon={CalendarCheck}
+        title="Calendar"
+        description={connection ? "Connected to Google Calendar" : "Not connected"}
+      />
+      <div className="space-y-3 px-5 text-sm">
         {message && (
-          <p className={message.ok ? "text-green-700 dark:text-green-400" : "text-destructive"}>
+          <p className={message.ok ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}>
             {message.text}
           </p>
         )}
@@ -97,7 +97,7 @@ export function GoogleCalendarConnect({ customerId, configured, connection, retu
           </>
         )}
         {error && <p className="text-destructive">{error}</p>}
-      </CardContent>
+      </div>
     </Card>
   );
 }

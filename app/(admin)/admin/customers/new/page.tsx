@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { NewCustomerForm } from "@/components/admin/new-customer-form";
 import { requireStaff } from "@/lib/auth/staff";
@@ -11,16 +12,18 @@ const NewCustomerPage = async () => {
   const agencies = viewer.kind === "platform" ? await listAgencyOptions() : null;
 
   return (
-    <div className="animate-fade-in space-y-6">
+    <div className="animate-fade-in mx-auto max-w-4xl space-y-6">
       <Link
         href="/admin"
-        className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
-        ← All customers
+        <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-0.5" />
+        All customers
       </Link>
       <PageHeader
-        title="New customer"
-        description="Set up a new business and its AI receptionist"
+        eyebrow="New customer"
+        title="Set up a receptionist"
+        description="Five short steps. Start from their website and most of it fills itself in."
       />
       <NewCustomerForm agencies={agencies} />
     </div>

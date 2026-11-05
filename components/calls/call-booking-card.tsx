@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CalendarCheck2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { DetailList, DetailRow, SectionHeader } from "@/components/layout/section-header";
 import type { Booking } from "@/db/schema/bookings";
 import { formatDateTimeFull } from "@/lib/format-time";
 
@@ -10,34 +12,31 @@ export function CallBookingCard({
   timezone: string;
 }) {
   return (
-    <Card className="border-blue-200 dark:border-blue-900">
-      <CardHeader>
-        <CardTitle className="text-base text-blue-700 dark:text-blue-400">
-          Appointment booked
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        <div>
-          <span className="text-muted-foreground">Scheduled</span>
-          <p className="mt-0.5 font-medium">
-            {booking.scheduledAt
-              ? formatDateTimeFull(booking.scheduledAt, timezone)
-              : "Time TBD"}
-          </p>
-        </div>
-        {booking.calendarEventId && (
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Calendar ID</span>
-            <span className="font-mono text-xs">{booking.calendarEventId}</span>
-          </div>
+    <Card className="relative">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-5 top-0 h-px bg-linear-to-r from-transparent via-emerald-500/50 to-transparent"
+      />
+      <SectionHeader icon={CalendarCheck2} title="Appointment booked" description="Added by the receptionist" />
+      <div className="px-5">
+        <p className="text-lg font-semibold tracking-tight">
+          {booking.scheduledAt ? formatDateTimeFull(booking.scheduledAt, timezone) : "Time to be confirmed"}
+        </p>
+        {(booking.notes || booking.calendarEventId) && (
+          <DetailList className="mt-4">
+            {booking.notes && (
+              <DetailRow label="Notes" stacked>
+                {booking.notes}
+              </DetailRow>
+            )}
+            {booking.calendarEventId && (
+              <DetailRow label="Calendar event" stacked mono>
+                {booking.calendarEventId}
+              </DetailRow>
+            )}
+          </DetailList>
         )}
-        {booking.notes && (
-          <div>
-            <span className="text-muted-foreground">Notes</span>
-            <p className="mt-0.5 font-medium">{booking.notes}</p>
-          </div>
-        )}
-      </CardContent>
+      </div>
     </Card>
   );
 }

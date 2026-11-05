@@ -29,10 +29,10 @@ export function WebCallButton({
         onClick={startCall}
         disabled={disabled || callState !== "idle"}
         size="lg"
-        className="gap-3 bg-green-600 px-8 text-base font-semibold text-white shadow-lg shadow-green-600/30 hover:bg-green-500 hover:shadow-green-500/40 dark:bg-green-600 dark:hover:bg-green-500"
+        className="gap-2.5 px-5"
       >
-        <PhoneCall className="h-5 w-5" />
-        Test Agent
+        <PhoneCall className="size-4" />
+        Start test call
       </Button>
 
       {/* Live call popup with speaking indicators */}

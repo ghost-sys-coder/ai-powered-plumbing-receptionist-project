@@ -1,4 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserRound } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { DetailList, DetailRow, SectionHeader } from "@/components/layout/section-header";
 import type { Customer } from "@/db/schema/customers";
 import { InviteButton } from "@/components/admin/invite-button";
 import { SetRoleButton } from "@/components/admin/set-role-button";
@@ -9,121 +11,70 @@ interface CustomerAccountCardProps {
   linkedUserEmail: string | null;
 }
 
+const shortDate = (d: Date) =>
+  d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 export function CustomerAccountCard({
   customer,
   hasActiveLogin,
   linkedUserEmail,
 }: CustomerAccountCardProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Account info</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-          <div>
-            <dt className="text-muted-foreground">Owner</dt>
-            <dd className="font-medium">{customer.ownerName}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Email</dt>
-            <dd className="font-medium break-all">{customer.email}</dd>
-          </div>
+    <Card className="gap-0 py-0">
+      <SectionHeader
+        icon={UserRound}
+        title="Account"
+        description={`Customer since ${shortDate(customer.createdAt)}`}
+        className="pt-5"
+      />
+
+      <div className="px-5 pt-5">
+        <DetailList>
+          <DetailRow label="Owner">{customer.ownerName}</DetailRow>
+          <DetailRow label="Email">
+            <span className="break-all">{customer.email}</span>
+          </DetailRow>
           {customer.phone && (
-            <div>
-              <dt className="text-muted-foreground">Phone</dt>
-              <dd className="font-medium">{customer.phone}</dd>
-            </div>
+            <DetailRow label="Phone">
+              <span className="tabular">{customer.phone}</span>
+            </DetailRow>
           )}
           {(customer.city || customer.state) && (
-            <div>
-              <dt className="text-muted-foreground">Location</dt>
-              <dd className="font-medium">
-                {[customer.city, customer.state].filter(Boolean).join(", ")}
-              </dd>
-            </div>
+            <DetailRow label="Location">{[customer.city, customer.state].filter(Boolean).join(", ")}</DetailRow>
           )}
-          <div>
-            <dt className="text-muted-foreground">Timezone</dt>
-            <dd className="font-medium">{customer.timezone}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Plan</dt>
-            <dd className="font-medium capitalize">{customer.plan}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Subscription</dt>
-            <dd className="font-medium capitalize">
-              {customer.subscriptionStatus.replace("_", " ")}
-            </dd>
-          </div>
+          <DetailRow label="Timezone">{customer.timezone}</DetailRow>
+          <DetailRow label="Plan">
+            <span className="capitalize">{customer.plan}</span>
+          </DetailRow>
+          {customer.onboardedAt && <DetailRow label="Onboarded">{shortDate(customer.onboardedAt)}</DetailRow>}
           {customer.stripeCustomerId && (
-            <div className="col-span-2">
-              <dt className="text-muted-foreground">Stripe ID</dt>
-              <dd className="font-mono text-xs">{customer.stripeCustomerId}</dd>
-            </div>
+            <DetailRow label="Stripe customer" mono>
+              {customer.stripeCustomerId}
+            </DetailRow>
           )}
-          <div>
-            <dt className="text-muted-foreground">Created</dt>
-            <dd className="font-medium">
-              {customer.createdAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </dd>
-          </div>
-          {customer.onboardedAt && (
-            <div>
-              <dt className="text-muted-foreground">Onboarded</dt>
-              <dd className="font-medium">
-                {customer.onboardedAt.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </dd>
-            </div>
-          )}
+        </DetailList>
+      </div>
 
-          {/* Login status */}
-          <div className="col-span-2">
-            <dt className="text-muted-foreground">Login status</dt>
-            <dd className="mt-1 flex items-center gap-2">
-              {hasActiveLogin ? (
-                <>
-                  <span className="h-2 w-2 rounded-full bg-green-500" />
-                  <span className="font-medium text-green-700 dark:text-green-400">
-                    Login active
-                  </span>
-                  {linkedUserEmail && (
-                    <span className="text-muted-foreground">— {linkedUserEmail}</span>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span className="h-2 w-2 rounded-full bg-slate-400" />
-                  <span className="font-medium">No login yet</span>
-                </>
-              )}
-            </dd>
-          </div>
-
-          {/* Invite action */}
-          {!hasActiveLogin && (
-            <div className="col-span-2 pt-1">
-              <InviteButton customerId={customer.id} />
-            </div>
+      {/* Login status + action */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 bg-muted/30 px-5 py-4">
+        <div className="flex min-w-0 items-center gap-2 text-sm">
+          <span
+            className={
+              hasActiveLogin ? "size-2 shrink-0 rounded-full bg-emerald-500" : "size-2 shrink-0 rounded-full bg-muted-foreground/40"
+            }
+          />
+          {hasActiveLogin ? (
+            <span className="min-w-0 truncate">
+              <span className="font-medium">Can sign in</span>
+              {linkedUserEmail && <span className="text-muted-foreground"> · {linkedUserEmail}</span>}
+            </span>
+          ) : (
+            <span className="font-medium text-muted-foreground">No login yet</span>
           )}
-
-          {/* Role fix — for users who signed up before the role was applied */}
-          {hasActiveLogin && (
-            <div className="col-span-2 pt-1">
-              <SetRoleButton customerId={customer.id} />
-            </div>
-          )}
-        </dl>
-      </CardContent>
+        </div>
+        {/* Role fix is for users who signed up before the role was applied. */}
+        {hasActiveLogin ? <SetRoleButton customerId={customer.id} /> : <InviteButton customerId={customer.id} />}
+      </div>
     </Card>
   );
 }
