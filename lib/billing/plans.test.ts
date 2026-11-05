@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import { COUNTRY_CODES } from "@/lib/regions";
 import {
   BILLING_CURRENCIES,
+  ACCOUNT_KINDS,
+  DEFAULT_PLAN,
   PLAN_IDS,
   PLANS,
+  planOrDefault,
+  plansFor,
   billableMinutes,
   currencyForCountry,
   describePrice,
@@ -30,7 +34,7 @@ describe("plans", () => {
   });
 
   it("builds stable, versioned lookup keys", () => {
-    expect(lookupKey("direct", "minutes", "aud")).toBe("receptionist_direct_minutes_aud_v1");
+    expect(lookupKey("direct_basic", "minutes", "aud")).toBe("receptionist_direct_basic_minutes_aud_v2");
   });
 
   it("rounds each call up to whole minutes", () => {
@@ -42,8 +46,40 @@ describe("plans", () => {
   });
 
   it("describes prices in local currency", () => {
-    expect(describePrice("direct", "usd")).toBe("$149/month, 300 minutes included, then $0.40/min");
-    expect(describePrice("agency", "gbp")).toBe("£79/month plus £0.16/min");
+    expect(describePrice("direct_standard", "usd")).toBe("$349/month, 1,000 minutes included, then $0.30/min");
+    expect(describePrice("agency_starter", "gbp")).toBe("£79/month plus £0.12/min");
+  });
+
+  it("matches the agreed USD prices", () => {
+    const usd = (id: keyof typeof PLANS) => [PLANS[id].monthly.usd, PLANS[id].includedMinutes, PLANS[id].perMinute.usd];
+    expect(usd("direct_basic")).toEqual([19900, 500, 30]);
+    expect(usd("direct_standard")).toEqual([34900, 1000, 30]);
+    expect(usd("direct_pro")).toEqual([59900, 2000, 30]);
+    expect(usd("agency_starter")).toEqual([9700, 0, 15]);
+    expect(usd("agency_pro")).toEqual([29700, 0, 14]);
+    expect(usd("agency_unlimited")).toEqual([59700, 0, 13]);
+  });
+
+  it("has three plans per account kind, and a default of the same kind", () => {
+    for (const kind of ACCOUNT_KINDS) {
+      expect(plansFor(kind)).toHaveLength(3);
+      expect(PLANS[DEFAULT_PLAN[kind]].kind).toBe(kind);
+    }
+  });
+
+  it("never lets a direct plan undercut the matching agency plan's monthly fee", () => {
+    const direct = plansFor("direct");
+    const agency = plansFor("agency");
+    direct.forEach((d, i) => {
+      for (const c of BILLING_CURRENCIES) expect(PLANS[d].monthly[c]).toBeGreaterThan(PLANS[agency[i]].monthly[c] ?? 0);
+    });
+  });
+
+  it("falls back to the default plan for unknown or mismatched plans", () => {
+    expect(planOrDefault(null, "direct")).toBe("direct_standard");
+    expect(planOrDefault("direct", "direct")).toBe("direct_standard"); // pre-tier value
+    expect(planOrDefault("agency_pro", "direct")).toBe("direct_standard");
+    expect(planOrDefault("direct_pro", "direct")).toBe("direct_pro");
   });
 
   it("keeps receptionists on while paid up or retrying a payment", () => {

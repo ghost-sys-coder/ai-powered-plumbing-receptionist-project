@@ -1,42 +1,46 @@
 import type { Metadata } from "next";
-import { NavV2 } from "@/components/marketing/v2/nav-v2";
-import { HeroV2 } from "@/components/marketing/v2/hero-v2";
-import { ProblemSectionV2 } from "@/components/marketing/v2/problem-section-v2";
-import { HowItWorksV2 } from "@/components/marketing/v2/how-it-works-v2";
-import { TriageFeaturesV2 } from "@/components/marketing/v2/triage-features-v2";
-import { PricingV2 } from "@/components/marketing/v2/pricing-v2";
-import { FaqV2 } from "@/components/marketing/v2/faq-v2";
-import { FooterV2 } from "@/components/marketing/v2/footer-v2";
+import { BRAND } from "@/lib/brand";
+import { HomeNav } from "@/components/marketing/home/nav";
+import { Hero } from "@/components/marketing/home/hero";
+import { Industries } from "@/components/marketing/home/industries";
+import { HowItWorks } from "@/components/marketing/home/how-it-works";
+import { Features } from "@/components/marketing/home/features";
+import { Pricing } from "@/components/marketing/home/pricing";
+import { Faq } from "@/components/marketing/home/faq";
+import { FinalCta, HomeFooter } from "@/components/marketing/home/footer";
+
+const description =
+  "An AI receptionist for service businesses. Answers every call in your business's name, books appointments into your calendar, takes messages and texts you about emergencies — 24/7.";
 
 export const metadata: Metadata = {
-  title: "PlumberAnswered — 24/7 AI Receptionist for Plumbers",
-  description:
-    "Your phone should never lose you a plumbing job. PlumberAnswered is an AI receptionist that answers calls, qualifies homeowners, triages emergencies, and books jobs 24/7.",
+  title: `${BRAND.name} — the AI receptionist that answers every call`,
+  description,
   openGraph: {
-    title: "PlumberAnswered — 24/7 AI Receptionist for Plumbers",
-    description:
-      "Never miss a plumbing lead again. Automated 24/7 call answering, emergency triage, and Google Calendar booking.",
+    title: `${BRAND.name} — the AI receptionist that answers every call`,
+    description,
   },
 };
 
 export default function HomePage() {
   return (
-    <div className="relative min-h-screen selection:bg-[#0070f3] selection:text-white font-sans antialiased overflow-x-hidden" style={{ backgroundColor: "var(--v2-bg)", color: "var(--v2-text)" }}>
-      {/* Subtle blue perimeter wrapper fading inwards */}
-      <div
-        className="pointer-events-none fixed inset-0 z-50 border border-[#0070f3]/30 shadow-[inset_0_0_12px_rgba(0,112,243,0.18)] dark:border-[#0070f3]/40 dark:shadow-[inset_0_0_16px_rgba(0,112,243,0.28)]"
-        aria-hidden="true"
-      />
-      <NavV2 />
-      <main>
-        <HeroV2 />
-        <ProblemSectionV2 />
-        <HowItWorksV2 />
-        <TriageFeaturesV2 />
-        <PricingV2 />
-        <FaqV2 />
+    <div className="min-h-dvh bg-background text-foreground">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:shadow-elevated"
+      >
+        Skip to content
+      </a>
+      <HomeNav />
+      <main id="main">
+        <Hero />
+        <Industries />
+        <HowItWorks />
+        <Features />
+        <Pricing />
+        <Faq />
+        <FinalCta />
       </main>
-      <FooterV2 />
+      <HomeFooter />
     </div>
   );
 }

@@ -15,8 +15,11 @@ export const billingAccounts = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    // "direct" | "agency" — also the plan (lib/billing/plans.ts).
+    // "direct" | "agency" (lib/billing/plans.ts AccountKind).
     kind: text("kind").notNull(),
+    // Plan id (lib/billing/plans.ts PlanId) of the current subscription; null
+    // before the first checkout. Synced from the subscription's prices.
+    plan: text("plan"),
     customerId: uuid("customer_id")
       .unique()
       .references(() => customers.id, { onDelete: "set null" }),

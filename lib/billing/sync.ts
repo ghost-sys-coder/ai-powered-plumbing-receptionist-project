@@ -4,7 +4,7 @@ import { db } from "@/db/drizzle";
 import { billingAccounts, customers, vapiAgents, type BillingAccount } from "@/db/schema";
 import { getCustomerReceptionist } from "@/lib/voice";
 import { findAccountByStripeCustomer } from "./accounts";
-import { STRIPE_APP_TAG, isInGoodStanding } from "./plans";
+import { STRIPE_APP_TAG, isInGoodStanding, isPlanId } from "./plans";
 import { stripe } from "./stripe";
 
 const toDate = (seconds: number | null | undefined) => (seconds ? new Date(seconds * 1000) : null);
@@ -14,11 +14,23 @@ function idOf(ref: string | { id: string } | null | undefined): string | null {
   return typeof ref === "string" ? ref : ref.id;
 }
 
+// The plan a subscription is on, from its prices' metadata. Null for prices
+// that predate tiered plans; the stored plan is then left alone.
+export function subscriptionPlan(sub: Stripe.Subscription) {
+  for (const item of sub.items?.data ?? []) {
+    const plan = item.price?.metadata?.plan;
+    if (isPlanId(plan)) return plan;
+  }
+  return null;
+}
+
 // The subscription fields we mirror. Billing periods live on subscription
 // items in current API versions; all our items share one period.
 export function subscriptionFields(sub: Stripe.Subscription) {
   const item = sub.items?.data?.[0];
+  const plan = subscriptionPlan(sub);
   return {
+    ...(plan ? { plan } : {}),
     stripeSubscriptionId: sub.id,
     status: sub.status,
     currency: sub.currency,

@@ -4,7 +4,11 @@ import {
   describePrice,
   formatMoney,
   isBillingCurrency,
+  isInGoodStanding,
   needsCheckout,
+  planOrDefault,
+  plansFor,
+  type AccountKind,
   type BillingCurrency,
   type PlanId,
 } from "./plans";
@@ -13,10 +17,44 @@ import { minutesThisPeriod } from "./usage";
 
 export type BillingTone = "good" | "warn" | "bad" | "neutral";
 
+// One plan as offered on the billing panel, priced in the account's currency.
+export type PlanOption = {
+  id: PlanId;
+  name: string;
+  description: string;
+  monthlyText: string;
+  perMinuteText: string;
+  includedMinutes: number;
+  clientLimit: number | null;
+  features: string[];
+};
+
+export function planOptions(kind: AccountKind, currency: BillingCurrency): PlanOption[] {
+  return plansFor(kind).map((id) => {
+    const p = PLANS[id];
+    return {
+      id,
+      name: p.name,
+      description: p.description,
+      monthlyText: formatMoney(p.monthly[currency], currency),
+      perMinuteText: formatMoney(p.perMinute[currency], currency),
+      includedMinutes: p.includedMinutes,
+      clientLimit: p.clientLimit,
+      features: p.features,
+    };
+  });
+}
+
 // Plain data for the billing panel (safe to pass to a client component).
 export type BillingSummary = {
   configured: boolean;
+  kind: AccountKind;
+  // The current plan, or the suggested one before the first checkout.
   plan: PlanId;
+  planName: string;
+  plans: PlanOption[];
+  // Whether the plan can be switched right now (a live subscription).
+  canChangePlan: boolean;
   status: string;
   statusLabel: string;
   tone: BillingTone;
@@ -55,8 +93,8 @@ export async function getBillingSummary(
   owner: Exclude<BillingOwner, { kind: "exempt" }>,
   fallbackCurrency: BillingCurrency = "usd"
 ): Promise<BillingSummary> {
-  const plan: PlanId = owner.kind;
   const account = isBillingConfigured() ? await findAccount(owner) : null;
+  const plan = planOrDefault(account?.plan, owner.kind);
   const status = account?.status ?? "none";
   const currency =
     account?.currency && isBillingCurrency(account.currency)
@@ -67,7 +105,11 @@ export async function getBillingSummary(
   const [label, tone] = statusLabel(status);
   return {
     configured: isBillingConfigured(),
+    kind: owner.kind,
     plan,
+    planName: PLANS[plan].name,
+    plans: planOptions(owner.kind, currency),
+    canChangePlan: !!account?.stripeSubscriptionId && isInGoodStanding(status),
     status,
     statusLabel: label,
     tone,

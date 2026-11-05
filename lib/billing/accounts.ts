@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { billingAccounts, customers, organizations, type BillingAccount } from "@/db/schema";
-import { STRIPE_APP_TAG, currencyForCountry, type BillingCurrency, type PlanId } from "./plans";
+import { STRIPE_APP_TAG, currencyForCountry, type BillingCurrency } from "./plans";
 import { stripe } from "./stripe";
 
 // Who is billed for a customer's receptionist:
@@ -51,10 +51,6 @@ export async function agencyOwner(organizationId: string): Promise<BillingOwner 
   // The house agency isn't billed: its customers are, one by one.
   if (!org || org.isHouse) return null;
   return { kind: "agency", organizationId, name: org.name };
-}
-
-export function planFor(owner: Exclude<BillingOwner, { kind: "exempt" }>): PlanId {
-  return owner.kind;
 }
 
 export async function findAccount(owner: BillingOwner): Promise<BillingAccount | null> {

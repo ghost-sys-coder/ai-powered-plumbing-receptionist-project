@@ -35,7 +35,7 @@ const BillingPage = async ({ searchParams }: { searchParams: Promise<{ billing?:
           </CardContent>
         </Card>
       ) : (
-        <div className="max-w-xl">
+        <div className="max-w-3xl">
           <BillingPanel summary={await getBillingSummary(owner)} mode="self" title="Your plan" />
         </div>
       )}

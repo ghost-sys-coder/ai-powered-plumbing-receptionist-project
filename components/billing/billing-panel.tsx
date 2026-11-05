@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Copy, CreditCard, ExternalLink, Link2, Loader2, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { BillingSummary, BillingTone } from "@/lib/billing/summary";
+import type { BillingSummary, BillingTone, PlanOption } from "@/lib/billing/summary";
 import { cn } from "@/lib/utils";
 
 const TONE: Record<BillingTone, { pill: string; dot: string }> = {
@@ -37,6 +38,78 @@ function formatDate(iso: string | null): string | null {
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
+function minutesLine(p: PlanOption): string {
+  return p.includedMinutes > 0
+    ? `${p.includedMinutes.toLocaleString()} minutes included, then ${p.perMinuteText}/min`
+    : `Plus ${p.perMinuteText} per minute answered`;
+}
+
+function PlanPicker({
+  plans,
+  value,
+  current,
+  onChange,
+}: {
+  plans: PlanOption[];
+  value: string;
+  current?: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div className="@container">
+      <div role="radiogroup" aria-label="Plan" className="grid gap-2.5 @xl:grid-cols-3">
+        {plans.map((p) => {
+          const selected = p.id === value;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(p.id)}
+              className={cn(
+                "relative flex flex-col rounded-xl bg-card p-4 text-left ring-1 ring-inset transition-all duration-200",
+                selected
+                  ? "ring-2 ring-primary shadow-card"
+                  : "ring-foreground/10 hover:ring-foreground/20 hover:bg-muted/30"
+              )}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{p.name}</span>
+                {p.id === current ? (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+                    Current
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "grid size-4.5 place-items-center rounded-full ring-1 transition-colors",
+                      selected ? "bg-primary text-primary-foreground ring-primary" : "ring-foreground/20"
+                    )}
+                  >
+                    {selected && <Check className="size-3" strokeWidth={3} />}
+                  </span>
+                )}
+              </span>
+              <span className="mt-2 flex items-baseline gap-1">
+                <span className="tabular text-xl font-semibold tracking-tight">{p.monthlyText}</span>
+                <span className="text-xs text-muted-foreground">/mo</span>
+              </span>
+              <span className="mt-1 text-xs text-muted-foreground">
+                {p.clientLimit !== null
+                  ? `Up to ${p.clientLimit} clients · ${p.perMinuteText}/min`
+                  : p.includedMinutes > 0
+                    ? `${p.includedMinutes.toLocaleString()} min, then ${p.perMinuteText}/min`
+                    : `Unlimited clients · ${p.perMinuteText}/min`}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // mode:
 //   self  — the payer (business owner or agency staff): buttons go straight
 //           to Stripe
@@ -54,24 +127,37 @@ export function BillingPanel({
   chooseCurrency?: boolean;
   title?: string;
 }) {
-  const [busy, setBusy] = useState<"checkout" | "portal" | null>(null);
+  const router = useRouter();
+  const [busy, setBusy] = useState<"checkout" | "portal" | "plan" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [currency, setCurrency] = useState<string>(summary.currency);
+  const [plan, setPlan] = useState<string>(summary.plan);
+  const [changing, setChanging] = useState(false);
+
+  async function post(path: string, body: object): Promise<{ ok: boolean; data: Record<string, unknown> }> {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    return { ok: res.ok, data };
+  }
 
   async function go(kind: "checkout" | "portal") {
     setBusy(kind);
     setError(null);
     try {
-      const res = await fetch(`/api/billing/${kind}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId, currency: chooseCurrency ? currency : undefined }),
+      const { ok, data } = await post(`/api/billing/${kind}`, {
+        customerId,
+        plan: kind === "checkout" ? plan : undefined,
+        currency: chooseCurrency ? currency : undefined,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.url) {
-        setError(data.error ?? "Something went wrong. Try again.");
+      if (!ok || typeof data.url !== "string") {
+        setError(typeof data.error === "string" ? data.error : "Something went wrong. Try again.");
         return;
       }
       if (kind === "checkout" && mode === "staff") {
@@ -79,6 +165,25 @@ export function BillingPanel({
         return;
       }
       window.location.href = data.url;
+    } catch {
+      setError("Couldn't reach the server. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function switchPlan() {
+    setBusy("plan");
+    setError(null);
+    try {
+      const { ok, data } = await post("/api/billing/plan", { customerId, plan });
+      if (!ok) {
+        setError(typeof data.error === "string" ? data.error : "Couldn't change the plan. Try again.");
+        return;
+      }
+      setChanging(false);
+      setNotice("Plan changed. The difference is prorated on the next invoice.");
+      router.refresh();
     } catch {
       setError("Couldn't reach the server. Try again.");
     } finally {
@@ -106,7 +211,11 @@ export function BillingPanel({
         <div className="min-w-0">
           <h2 className="text-[0.9375rem] font-semibold tracking-tight">{title}</h2>
           <p className="text-xs text-muted-foreground">
-            {summary.plan === "agency" ? "One bill for all your clients" : "AI receptionist plan"}
+            {summary.canStart
+              ? summary.kind === "agency"
+                ? "Choose a plan — one bill for all your clients"
+                : "Choose a plan to get started"
+              : `${summary.planName} plan`}
           </p>
         </div>
       </div>
@@ -133,11 +242,13 @@ export function BillingPanel({
     );
   }
 
+  const shown = summary.plans.find((p) => p.id === (summary.canStart ? plan : summary.plan)) ?? summary.plans[0];
   const trialEnds = formatDate(summary.trialEndsAt);
   const periodEnd = formatDate(summary.periodEnd);
   const included = summary.includedMinutes;
   const usedPct = included > 0 ? Math.min(100, Math.round((summary.minutesUsed / included) * 100)) : 0;
   const over = included > 0 && summary.minutesUsed > included;
+  const selectedName = summary.plans.find((p) => p.id === plan)?.name ?? "";
 
   return (
     <Card className="gap-0 py-0">
@@ -147,16 +258,43 @@ export function BillingPanel({
       <div className="px-6 pt-5">
         <div className="flex items-baseline gap-1.5">
           <span className="tabular text-[2.25rem] font-semibold leading-none tracking-[-0.035em]">
-            {summary.monthlyText}
+            {shown.monthlyText}
           </span>
           <span className="text-sm text-muted-foreground">/ month</span>
         </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {included > 0
-            ? `${included} minutes included, then ${summary.perMinuteText} per minute`
-            : `Plus ${summary.perMinuteText} per minute answered`}
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">{minutesLine(shown)}</p>
       </div>
+
+      {/* Plan choice: before the first checkout, or when changing */}
+      {(summary.canStart || changing) && (
+        <div className="px-6 pt-5">
+          <PlanPicker
+            plans={summary.plans}
+            value={plan}
+            current={summary.canStart ? undefined : summary.plan}
+            onChange={setPlan}
+          />
+          {changing && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button onClick={switchPlan} disabled={busy !== null || plan === summary.plan}>
+                {busy === "plan" && <Loader2 className="size-4 animate-spin" />}
+                {plan === summary.plan ? "Pick a different plan" : `Switch to ${selectedName}`}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setChanging(false);
+                  setPlan(summary.plan);
+                }}
+                disabled={busy !== null}
+              >
+                Cancel
+              </Button>
+              <p className="text-xs text-muted-foreground">The monthly fee is prorated.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Alerts */}
       {(summary.suspended || summary.status === "past_due") && (
@@ -206,7 +344,7 @@ export function BillingPanel({
             </div>
           )}
 
-          <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-border/70 ring-1 ring-border/70">
+          <dl className={cn("mt-5 grid gap-px overflow-hidden rounded-xl bg-border/70 ring-1 ring-border/70", trialEnds && periodEnd && "grid-cols-2")}>
             {trialEnds && (
               <div className="bg-card px-4 py-3">
                 <dt className="text-xs text-muted-foreground">Trial ends</dt>
@@ -222,7 +360,7 @@ export function BillingPanel({
               </div>
             )}
             {!trialEnds && !periodEnd && (
-              <div className="col-span-2 bg-card px-4 py-3 text-sm text-muted-foreground">Waiting for Stripe…</div>
+              <div className="bg-card px-4 py-3 text-sm text-muted-foreground">Waiting for Stripe…</div>
             )}
           </dl>
         </div>
@@ -244,6 +382,7 @@ export function BillingPanel({
               ))}
             </SelectContent>
           </Select>
+          <p className="mt-1.5 text-xs text-muted-foreground">Prices above are in US dollars; checkout shows yours.</p>
         </div>
       )}
 
@@ -259,30 +398,31 @@ export function BillingPanel({
               Send it to the business owner. It expires in 24 hours.
             </p>
             <div className="@container mt-3">
-            <div className="flex min-w-0 flex-wrap gap-2">
-              <Input
-                readOnly
-                value={link}
-                onFocus={(e) => e.currentTarget.select()}
-                aria-label="Payment link"
-                className="min-w-0 flex-1 basis-full font-mono text-xs md:text-xs @sm:basis-0"
-              />
-              <Button type="button" variant="outline" onClick={copy} className="shrink-0">
-                {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
-                {copied ? "Copied" : "Copy"}
-              </Button>
-              <Button type="button" variant="outline" size="icon" asChild className="shrink-0">
-                <a href={link} target="_blank" rel="noreferrer" aria-label="Open payment link">
-                  <ExternalLink className="size-4" />
-                </a>
-              </Button>
-            </div>
+              <div className="flex min-w-0 flex-wrap gap-2">
+                <Input
+                  readOnly
+                  value={link}
+                  onFocus={(e) => e.currentTarget.select()}
+                  aria-label="Payment link"
+                  className="min-w-0 flex-1 basis-full font-mono text-xs md:text-xs @sm:basis-0"
+                />
+                <Button type="button" variant="outline" onClick={copy} className="shrink-0">
+                  {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+                <Button type="button" variant="outline" size="icon" asChild className="shrink-0">
+                  <a href={link} target="_blank" rel="noreferrer" aria-label="Open payment link">
+                    <ExternalLink className="size-4" />
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {error && <p className="px-6 pt-4 text-sm text-destructive">{error}</p>}
+      {notice && <p className="px-6 pt-4 text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>}
 
       {/* Actions */}
       <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border/70 bg-muted/30 px-6 py-4">
@@ -292,10 +432,15 @@ export function BillingPanel({
             {mode === "staff"
               ? link
                 ? "Create a new link"
-                : "Create payment link"
+                : `Create payment link · ${selectedName}`
               : summary.status === "none"
-                ? "Start 14-day free trial"
-                : "Subscribe"}
+                ? `Start 14-day free trial · ${selectedName}`
+                : `Subscribe to ${selectedName}`}
+          </Button>
+        )}
+        {summary.canChangePlan && !changing && (
+          <Button variant="outline" onClick={() => setChanging(true)} disabled={busy !== null}>
+            Change plan
           </Button>
         )}
         {summary.hasAccount && !(summary.canStart && summary.status === "none") && (

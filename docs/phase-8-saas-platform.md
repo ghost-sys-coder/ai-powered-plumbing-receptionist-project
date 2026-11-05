@@ -176,7 +176,21 @@ Running in Stripe **test mode** on the VeilCode Studio account. Everything we cr
 
 `scripts/stripe-setup.ts` creates the meter, products, prices (with versioned lookup keys) and the customer-portal configuration. It's idempotent; dry-run by default, `--apply` to create. To change prices, bump `PRICE_VERSION`, edit the amounts and re-run. Existing subscribers keep their old price until moved.
 
-> **Prices are placeholders.** The current defaults (direct $149/month with 300 minutes, then $0.40/min; agency $99/month plus $0.20/min) are a single-tier simplification and don't match the tiered proposal above. Pick the final structure before going live.
+**Plans (price version v2).** The tiered plans above are live in code (`lib/billing/plans.ts`) and Stripe test mode. There's one Stripe product per plan, plus a monthly price and a metered minutes price per currency. Direct plans include minutes and then charge $0.30/min; agency plans are pure per-minute.
+
+| Plan | USD | CAD | GBP | AUD |
+|---|---|---|---|---|
+| Direct Basic (500 min) | $199 | CA$269 | £159 | A$299 |
+| Direct Standard (1,000 min) | $349 | CA$479 | £279 | A$529 |
+| Direct Pro (2,000 min) | $599 | CA$819 | £479 | A$899 |
+| Direct overage /min | $0.30 | CA$0.40 | £0.24 | A$0.45 |
+| Agency Starter | $97 + $0.15/min | CA$129 + 0.20 | £79 + 0.12 | A$149 + 0.23 |
+| Agency Pro | $297 + $0.14/min | CA$399 + 0.19 | £239 + 0.11 | A$449 + 0.21 |
+| Agency (unlimited) | $597 + $0.13/min | CA$799 + 0.18 | £469 + 0.10 | A$889 + 0.20 |
+
+The CAD, GBP and AUD prices are rounded local prices, not exact conversions. A test checks that no direct plan is priced at or below the matching agency plan.
+
+**Picking and changing plans.** The payer picks a plan in the billing panel before checkout. With a live subscription, **Change plan** (`POST /api/billing/plan`) swaps both subscription items in place. The monthly fee is prorated, and minutes used so far in the period are billed at the new plan's rates. `billing_accounts.plan` (migration 0010) mirrors the plan and is read back from the price metadata on every subscription webhook.
 
 **Flows.**
 - *Business owners:* Dashboard → Billing goes to Stripe Checkout (start the trial) or the Stripe portal (card, invoices, cancel).
@@ -193,8 +207,9 @@ Running in Stripe **test mode** on the VeilCode Studio account. Everything we cr
 **Env.** Set `STRIPE_SECRET_KEY` (a restricted key is fine) and `STRIPE_WEBHOOK_SECRET`, plus `BILLING_ENFORCEMENT=on` once ready. `scripts/stripe-webhook-setup.ts <origin>` creates the webhook endpoint and saves its secret to `.env.local`. For live mode, repeat both scripts with the live key.
 
 **Not built yet:**
-- Phone-number fees.
-- Per-plan client limits for agencies.
+- Phone-number fees ($3/month per number in the proposal).
+- Enforcing agency client limits (3 / 25 / unlimited). They're shown on the plans but not enforced yet.
+- The agency trial's ~100 included minutes.
 - A daily sweep that re-reports calls whose meter event failed (today these are only logged).
 - Margin reporting.
 

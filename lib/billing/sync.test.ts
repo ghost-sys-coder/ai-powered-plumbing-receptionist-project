@@ -55,6 +55,18 @@ describe("subscriptionFields", () => {
     });
   });
 
+  it("reads the plan from the subscription's prices", () => {
+    const withPlan = sub({
+      items: {
+        data: [
+          { current_period_start: 1, current_period_end: 2, price: { metadata: { plan: "direct_pro" } } },
+        ],
+      } as never,
+    });
+    expect(subscriptionFields(withPlan).plan).toBe("direct_pro");
+    expect("plan" in subscriptionFields(sub())).toBe(false);
+  });
+
   it("treats a scheduled cancellation as cancelling", () => {
     expect(subscriptionFields(sub({ cancel_at: 1_800_000_000 })).cancelAtPeriodEnd).toBe(true);
   });

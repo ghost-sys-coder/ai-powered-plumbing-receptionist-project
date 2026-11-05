@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth/staff";
 import { agencyOwner } from "@/lib/billing/accounts";
 import { getBillingSummary, statusLabel } from "@/lib/billing/summary";
 import { isBillingConfigured } from "@/lib/billing/stripe";
+import { PLANS, isPlanId } from "@/lib/billing/plans";
 import { PageHeader } from "@/components/layout/page-header";
 import { BillingPanel } from "@/components/billing/billing-panel";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,7 +34,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
           </p>
         )}
         {owner && owner.kind === "agency" ? (
-          <div className="max-w-xl">
+          <div className="max-w-3xl">
             <BillingPanel summary={await getBillingSummary(owner)} mode="self" chooseCurrency title="Agency plan" />
           </div>
         ) : (
@@ -51,6 +52,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
         .select({
           id: billingAccounts.id,
           kind: billingAccounts.kind,
+          plan: billingAccounts.plan,
           status: billingAccounts.status,
           currency: billingAccounts.currency,
           periodEnd: billingAccounts.currentPeriodEnd,
@@ -87,6 +89,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
                 <TableRow>
                   <TableHead>Account</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Plan</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Currency</TableHead>
                   <TableHead>Renews / ends</TableHead>
@@ -105,6 +108,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
                       )}
                     </TableCell>
                     <TableCell>{r.kind === "agency" ? "Agency" : "Direct"}</TableCell>
+                    <TableCell>{isPlanId(r.plan) ? PLANS[r.plan].name : "—"}</TableCell>
                     <TableCell>
                       {statusLabel(r.status)[0]}
                       {r.suspendedAt && <span className="ml-1 text-red-600 dark:text-red-400">(calls off)</span>}

@@ -1,6 +1,6 @@
 /**
  * Creates (or finds) everything billing needs in Stripe: the minutes meter,
- * one product per plan, monthly + per-minute prices in every currency, and a
+ * one product per plan (lib/billing/plans.ts), monthly + per-minute prices in every currency, and a
  * customer-portal configuration. Idempotent: safe to re-run; existing objects
  * are matched by id / lookup key / metadata and left alone.
  *
@@ -57,15 +57,17 @@ async function run() {
   for (const plan of PLAN_IDS) {
     const cfg = PLANS[plan];
     const id = productId(plan);
+    const productName = `${cfg.kind === "agency" ? "Agency" : "AI Receptionist"} ${cfg.name}`;
+    const meta = { ...tag, plan, kind: cfg.kind };
     let product = await stripe.products.retrieve(id).catch(() => null);
     if (product) {
       console.log(`product    ${id} exists`);
     } else if (apply) {
       product = await stripe.products.create({
         id,
-        name: cfg.name,
+        name: productName,
         description: cfg.description,
-        metadata: { ...tag, plan },
+        metadata: meta,
       });
       console.log(`product    ${id} created`);
     } else {
@@ -88,8 +90,8 @@ async function run() {
           unit_amount: cfg.monthly[currency],
           recurring: { interval: "month", usage_type: "licensed" },
           lookup_key: monthlyKey,
-          nickname: `${cfg.name} monthly (${currency.toUpperCase()})`,
-          metadata: { ...tag, plan, part: "monthly" },
+          nickname: `${productName} monthly (${currency.toUpperCase()})`,
+          metadata: { ...meta, part: "monthly" },
         });
         console.log(`price      ${monthlyKey} created`);
       } else {
@@ -105,8 +107,8 @@ async function run() {
           product: id,
           currency,
           lookup_key: minutesKey,
-          nickname: `${cfg.name} minutes (${currency.toUpperCase()})`,
-          metadata: { ...tag, plan, part: "minutes" },
+          nickname: `${productName} minutes (${currency.toUpperCase()})`,
+          metadata: { ...meta, part: "minutes" },
           recurring: { interval: "month" as const, usage_type: "metered" as const, meter: meter.id },
         };
         if (cfg.includedMinutes > 0) {
