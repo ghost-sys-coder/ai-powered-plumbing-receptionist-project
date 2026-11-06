@@ -25,7 +25,7 @@ const NewCustomerPage = async () => {
         title="Set up a receptionist"
         description="Five short steps. Start from their website and most of it fills itself in."
       />
-      <NewCustomerForm agencies={agencies} />
+      <NewCustomerForm agencies={agencies} elevenLabsAvailable={!!process.env.ELEVENLABS_API_KEY} />
     </div>
   );
 };

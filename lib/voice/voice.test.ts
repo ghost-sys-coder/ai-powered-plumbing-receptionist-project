@@ -40,10 +40,11 @@ describe("createProvider", () => {
     }
   });
 
-  it("refuses ElevenLabs until its adapter exists", () => {
-    expect(() => createProvider({ provider: "elevenlabs", apiKey: "k", source: "platform" })).toThrow(
-      /isn't available yet/
-    );
+  it("builds the ElevenLabs adapter", () => {
+    const provider = createProvider({ provider: "elevenlabs", apiKey: "k", source: "platform" });
+    expect(provider.id).toBe("elevenlabs");
+    expect(typeof provider.getRecordingAudio).toBe("function");
+    expect(typeof provider.detachPhoneNumber).toBe("function");
   });
 
   it("validates provider ids", () => {

@@ -265,6 +265,18 @@ Still Vapi-specific: the event webhook (`/api/webhooks/vapi`), live-transfer
 destination replies, the browser test call (`@vapi-ai/web`), and the prompt's
 date/caller-number macros. The ElevenLabs adapter adds its own versions.
 
+### Built: ElevenLabs adapter (Nov 2026)
+
+`lib/voice/elevenlabs/` implements the same `ReceptionistProvider` interface. Staff pick **Voice platform** in the setup wizard (Vapi by default). The choice only appears when `ELEVENLABS_API_KEY` is set.
+
+- **Agent** (`agent-config.ts`): the same prompt as Vapi via `buildAgentPrompt({ platform: "elevenlabs" })`. It uses `{{system__time}}` with the agent timezone set, `{{system__caller_id}}`, and the `transfer_to_number` tool. The model is `gpt-4.1-mini` (override with `ELEVENLABS_LLM`). Voices are Bella (US and default), Alice (UK) and Charlie (AU); override with `ELEVENLABS_VOICE_ID`. Turn-taking is set to "patient".
+- **Tools**: three shared workspace webhook tools (check_availability, book_appointment, notify_owner_emergency) call `/api/elevenlabs/tools/<name>`. ElevenLabs fills in the conversation, agent and caller ids. Calls are authenticated with `X-Receptionist-Secret`, an HMAC of the API key, so no extra env var is needed. The handlers are the same as Vapi's.
+- **Live transfer**: the built-in `transfer_to_number` tool, with the owner's number written into the agent when settings are saved. The business-hours rule is part of the tool's condition rather than enforced per call, as Vapi does.
+- **Call results**: a workspace post-call webhook (`scripts/elevenlabs-setup.ts`, secret in `ELEVENLABS_WEBHOOK_SECRET`) posts to `/api/webhooks/elevenlabs`. The signature is HMAC-SHA256 over `t.body`. The webhook feeds the same pipeline: call row, usage billing, booking, and summary text. Recordings are streamed through `/api/calls/[id]/recording` with our key.
+- **Numbers**: ElevenLabs has no numbers of its own. The adapter reuses an unused number already on the Twilio account (empty voice URL, not used by any receptionist) before trying to buy one. Deleting a receptionist removes the number from ElevenLabs and clears its Twilio voice URL so it can be reused.
+- **Browser test calls**: the token route returns a signed session URL; the shared hook (`lib/hooks/use-vapi-call.ts`) loads `@elevenlabs/client`.
+- **Local scripts**: this dev machine's shell has an unrelated `ELEVENLABS_API_KEY` that overrides `--env-file`. Run scripts with `env -u ELEVENLABS_API_KEY npx tsx --env-file=.env.local ...`.
+
 ## 5. Bring your own key (BYOK)
 
 Agencies on **Pro or Agency** may connect their own Vapi or ElevenLabs account.

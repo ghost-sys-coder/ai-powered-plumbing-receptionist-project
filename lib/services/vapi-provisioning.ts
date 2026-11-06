@@ -23,7 +23,7 @@ export type ProvisioningConfig = PromptConfig;
 // first-class Vapi Tool objects (not inline/transient on the assistant) so they
 // show up in the dashboard, survive assistant edits, and are reliably passed to
 // the model. Assistants reference them by id via `model.toolIds`.
-const CALENDAR_TOOL_DEFS = [
+export const CALENDAR_TOOL_DEFS = [
   {
     name: "check_availability",
     path: "/api/vapi/tools/check-availability",
@@ -74,11 +74,11 @@ const CALENDAR_TOOL_DEFS = [
   },
 ];
 
-type ToolDef = (typeof CALENDAR_TOOL_DEFS)[number] | typeof NOTIFY_OWNER_TOOL_DEF;
+export type ToolDef = (typeof CALENDAR_TOOL_DEFS)[number] | typeof NOTIFY_OWNER_TOOL_DEF;
 
 // Texts the business owner mid-call when the AI flags an emergency. Attached to
 // every assistant, whatever its calendar type.
-const NOTIFY_OWNER_TOOL_DEF = {
+export const NOTIFY_OWNER_TOOL_DEF = {
   name: "notify_owner_emergency",
   path: "/api/vapi/tools/notify-owner",
   description:
@@ -103,7 +103,7 @@ const NOTIFY_OWNER_TOOL_DEF = {
 
 // Tools for an assistant: the owner alert always, plus the calendar tools when
 // it books directly into Google Calendar.
-function toolDefsFor(calendarType: ProvisioningConfig["calendarType"]): ToolDef[] {
+export function toolDefsFor(calendarType: ProvisioningConfig["calendarType"]): ToolDef[] {
   return calendarType === "google_calendar"
     ? [...CALENDAR_TOOL_DEFS, NOTIFY_OWNER_TOOL_DEF]
     : [NOTIFY_OWNER_TOOL_DEF];

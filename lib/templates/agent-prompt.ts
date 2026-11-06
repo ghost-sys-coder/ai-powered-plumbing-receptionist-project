@@ -25,6 +25,28 @@ export interface PromptConfig {
   // The business's own one-line description, e.g. "a dog grooming salon".
   // Replaces the industry default; needed for the "general" industry.
   businessDescription?: string | null;
+  // Which voice platform runs the prompt. Only the platform-specific bits
+  // differ: the current-time and caller-ID placeholders, and the transfer
+  // tool's name. Defaults to Vapi.
+  platform?: "vapi" | "elevenlabs";
+}
+
+// Placeholders each platform fills in at call time.
+function platformMacros(config: PromptConfig) {
+  if (config.platform === "elevenlabs") {
+    return {
+      // The agent's timezone is set to the business's, so {{system__time}} is
+      // already local time.
+      now: "{{system__time}}",
+      callerId: "{{system__caller_id}}",
+      transferTool: "transfer_to_number",
+    };
+  }
+  return {
+    now: `{{ "now" | date: "%A, %B %d, %Y at %I:%M %p", "${config.timezone}" }}`,
+    callerId: "{{customer.number}}",
+    transferTool: "transferCall",
+  };
 }
 
 // Live transfer applies only when the business turned it on AND its industry
@@ -36,7 +58,7 @@ export function isLiveTransferActive(config: PromptConfig): boolean {
 // Appended to the emergency step only for businesses with live transfer on.
 function transferInstructions(config: PromptConfig, industry: IndustryProfile): string {
   if (!isLiveTransferActive(config)) return "";
-  return ` After that, offer to connect them to ${config.ownerName} right now: "Would you like me to try connecting you to ${config.ownerName} directly?" If they say yes, call transferCall. If the transfer can't be made, you will be told — do not transfer again; continue by offering to book the soonest ${industry.bookingNoun}. Only offer a transfer for emergencies.`;
+  return ` After that, offer to connect them to ${config.ownerName} right now: "Would you like me to try connecting you to ${config.ownerName} directly?" If they say yes, call ${platformMacros(config).transferTool}. If the transfer can't be made, you will be told — do not transfer again; continue by offering to book the soonest ${industry.bookingNoun}. Only offer a transfer for emergencies.`;
 }
 
 function bookingInstructions(config: PromptConfig, industry: IndustryProfile): string {
@@ -136,7 +158,7 @@ ${config.emergencyDefinition}
 ${safetySection(industry, region)}
 
 CURRENT DATE & TIME:
-Right now it is {{ "now" | date: "%A, %B %d, %Y at %I:%M %p", "${config.timezone}" }} in the customer's local time zone (${config.timezone}). Treat this as "today". Never assume any other year or date — always anchor relative dates ("Friday", "tomorrow", "next week") to this.
+Right now it is ${platformMacros(config).now} in the customer's local time zone (${config.timezone}). Treat this as "today". Never assume any other year or date — always anchor relative dates ("Friday", "tomorrow", "next week") to this.
 
 INSTRUCTIONS:
 1. Greet the caller warmly: "Thank you for calling ${config.businessName}, how can I help you today?"
@@ -145,7 +167,7 @@ INSTRUCTIONS:
 4. Assess urgency based on the emergency definition above.
 5. If the issue is an emergency, acknowledge it immediately. As soon as you have confirmed their callback number (step 7) — and the address, if they have given it — call notify_owner_emergency ONCE to text ${config.ownerName} the details. Do this right away, before booking or wrapping up. Then tell the caller what the tool result says: that ${config.ownerName} has been alerted and will call back as soon as possible, or, if the alert could not be sent, that the team will call back as soon as possible.${transferInstructions(config, industry)}
 6. Whenever the caller wants to schedule a ${industry.bookingNoun} — whether the issue is an emergency or routine — book it using the BOOKING INSTRUCTIONS below. (Still flag emergencies per step 5; urgency does not replace booking, it accompanies it.) When the caller gives a relative day or time (e.g. "this Friday", "tomorrow at 2"), resolve it against the CURRENT DATE & TIME above and pick the next upcoming occurrence — never guess the year. Always read the full date, time, and time zone back to confirm.
-7. Confirm the best callback number. The number the caller is dialing from (caller ID) is: {{customer.number}}
+7. Confirm the best callback number. The number the caller is dialing from (caller ID) is: ${platformMacros(config).callerId}
    - If a real phone number appears above, ask: "Should we call you back on the number you're calling from, or would you prefer a different number?"
      • If they choose the number they're calling from, just confirm it and move on — do NOT ask them to read their number out loud; the system already captured it.
      • If they prefer a different number, collect it, make sure it has at least ${minDigits} digits (${region.phone.validityNote} — count the digits, and if fewer than ${minDigits}, tell them it seems incomplete and re-collect), and read it back to confirm.

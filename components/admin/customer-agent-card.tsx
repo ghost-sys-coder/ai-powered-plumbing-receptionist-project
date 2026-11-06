@@ -44,6 +44,7 @@ export function CustomerAgentCard({
   const isGoogle = agent.calendarType === "google_calendar";
   const status = STATUS[agent.status] ?? STATUS.error;
   const number = livePhoneNumber ?? agent.phoneNumber;
+  const platform = agent.provider === "elevenlabs" ? "ElevenLabs" : "Vapi";
 
   return (
     <Card>
@@ -93,7 +94,7 @@ export function CustomerAgentCard({
           <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/8 px-3 py-2.5 text-xs text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:text-amber-200">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
-              The stored number is out of sync with Vapi — saved as{" "}
+              The stored number is out of sync with {platform} — saved as{" "}
               <span className="font-mono">{agent.phoneNumber}</span>.
             </span>
           </div>
@@ -152,13 +153,14 @@ export function CustomerAgentCard({
           </DetailRow>
         </DetailList>
 
-        {/* Internal IDs, tucked away — only needed when debugging with Vapi. */}
+        {/* Internal IDs, tucked away — only needed when debugging with the voice platform. */}
         <details className="group mt-4 rounded-xl text-xs">
           <summary className="cursor-pointer list-none text-muted-foreground transition-colors select-none hover:text-foreground">
             <span className="inline-block transition-transform group-open:rotate-90">›</span> Technical details
           </summary>
           <DetailList className="mt-3 text-xs">
-            <DetailRow label="Assistant ID" stacked mono>
+            <DetailRow label="Voice platform">{platform}</DetailRow>
+            <DetailRow label="Agent ID" stacked mono>
               {agent.vapiAssistantId}
             </DetailRow>
             {agent.vapiPhoneNumberId && (

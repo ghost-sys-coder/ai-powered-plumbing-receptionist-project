@@ -58,4 +58,8 @@ export interface ReceptionistProvider {
 
   // A short-lived URL the browser can play, or null if there's no recording.
   getRecordingUrl(providerCallId: string): Promise<string | null>;
+  // For providers whose recordings need our credentials to download
+  // (ElevenLabs): the audio response itself, streamed to the browser by
+  // app/api/calls/[id]/recording. Null when there's no recording.
+  getRecordingAudio?(providerCallId: string): Promise<Response | null>;
 }

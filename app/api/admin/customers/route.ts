@@ -5,7 +5,7 @@ import { db } from "@/db/drizzle";
 import { customers, vapiAgents } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { extractAreaCode, type ProvisioningConfig } from "@/lib/services/vapi-provisioning";
-import { DEFAULT_VOICE_PROVIDER, getProvider, type ReceptionistProvider } from "@/lib/voice";
+import { DEFAULT_VOICE_PROVIDER, getProvider, isVoiceProviderId, type ReceptionistProvider } from "@/lib/voice";
 import { PhoneNumberUnavailableError } from "@/lib/voice/phone-numbers";
 import { parseProfileInput } from "@/lib/services/profile-input";
 import { getRegion } from "@/lib/regions";
@@ -84,6 +84,12 @@ export async function POST(req: NextRequest) {
     organizationId = body.organizationId;
   } else {
     organizationId = await getHouseAgencyId();
+  }
+
+  // Which voice platform runs the receptionist (Vapi unless chosen otherwise).
+  const voiceProvider = isVoiceProviderId(body.voiceProvider) ? body.voiceProvider : DEFAULT_VOICE_PROVIDER;
+  if (voiceProvider === "elevenlabs" && !process.env.ELEVENLABS_API_KEY) {
+    return NextResponse.json({ error: "ElevenLabs isn't set up on this server." }, { status: 400 });
   }
 
   // Agency plans cover a set number of clients. Platform admins can add past
@@ -175,7 +181,7 @@ export async function POST(req: NextRequest) {
   let provider: ReceptionistProvider;
   let vapiAssistantId: string;
   try {
-    provider = await getProvider(DEFAULT_VOICE_PROVIDER, organizationId);
+    provider = await getProvider(voiceProvider, organizationId);
     const result = await provider.createAgent(config);
     vapiAssistantId = result.agentId;
   } catch (err) {

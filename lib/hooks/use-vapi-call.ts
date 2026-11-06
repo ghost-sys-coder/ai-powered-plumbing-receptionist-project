@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import Vapi from "@vapi-ai/web";
 
 type CallState =
   | "idle"
@@ -25,8 +24,14 @@ type UseVapiCallReturn = {
   reset: () => void;
 };
 
+// What a running call can be asked to do, whichever platform runs it.
+type CallControl = { stop: () => void; setMuted: (muted: boolean) => void };
+
+// Test calls from the browser. Works for both voice platforms: the token
+// route says which one a business uses, and the matching SDK is loaded only
+// when needed.
 export function useVapiCall(customerId: string): UseVapiCallReturn {
-  const vapiRef = useRef<Vapi | null>(null);
+  const controlRef = useRef<CallControl | null>(null);
   const [callState, setCallState] = useState<CallState>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -35,10 +40,15 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
   // Stop call if component unmounts during an active session
   useEffect(() => {
     return () => {
-      if (vapiRef.current) {
-        vapiRef.current.stop();
-      }
+      controlRef.current?.stop();
     };
+  }, []);
+
+  const fail = useCallback((message: string) => {
+    setErrorMessage(message);
+    setCallState("error");
+    setActiveSpeaker(null);
+    controlRef.current = null;
   }, []);
 
   const startCall = useCallback(async () => {
@@ -59,25 +69,51 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
         throw new Error(data.error ?? "Failed to get call token");
       }
 
-      const { assistantId } = await res.json();
+      const session = (await res.json()) as
+        | { provider: "vapi"; assistantId: string }
+        | { provider: "elevenlabs"; signedUrl: string };
 
       setCallState("connecting");
 
+      if (session.provider === "elevenlabs") {
+        const { Conversation } = await import("@elevenlabs/client");
+        const conversation = await Conversation.startSession({
+          signedUrl: session.signedUrl,
+          connectionType: "websocket",
+          onConnect: () => setCallState("active"),
+          onDisconnect: () => {
+            setCallState("ended");
+            setActiveSpeaker(null);
+            controlRef.current = null;
+          },
+          onError: (message: string) => {
+            console.error("[useVapiCall] elevenlabs error", message);
+            fail(message || "Call error occurred");
+          },
+          // "speaking" = the receptionist is talking; "listening" = the
+          // caller's turn.
+          onModeChange: ({ mode }: { mode: string }) => setActiveSpeaker(mode === "speaking" ? "agent" : "caller"),
+        });
+        controlRef.current = {
+          stop: () => void conversation.endSession(),
+          setMuted: (muted) => conversation.setMicMuted(muted),
+        };
+        return;
+      }
+
+      const { default: Vapi } = await import("@vapi-ai/web");
       const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_KEY!);
-      vapiRef.current = vapi;
+      controlRef.current = { stop: () => vapi.stop(), setMuted: (muted) => vapi.setMuted(muted) };
 
       vapi.on("call-start", () => setCallState("active"));
       vapi.on("call-end", () => {
         setCallState("ended");
         setActiveSpeaker(null);
-        vapiRef.current = null;
+        controlRef.current = null;
       });
       vapi.on("error", (err) => {
         console.error("[useVapiCall] error", err);
-        setErrorMessage(err?.message ?? "Call error occurred");
-        setCallState("error");
-        setActiveSpeaker(null);
-        vapiRef.current = null;
+        fail(err?.message ?? "Call error occurred");
       });
 
       // "speech-update" fires whenever the assistant or user starts/stops
@@ -94,23 +130,22 @@ export function useVapiCall(customerId: string): UseVapiCallReturn {
         }
       });
 
-      await vapi.start(assistantId);
+      await vapi.start(session.assistantId);
     } catch (err) {
       console.error("[useVapiCall] startCall failed", err);
-      setErrorMessage((err as Error).message);
-      setCallState("error");
+      fail((err as Error).message);
     }
-  }, [customerId]);
+  }, [customerId, fail]);
 
   const endCall = useCallback(() => {
     setCallState("ending");
-    vapiRef.current?.stop();
+    controlRef.current?.stop();
   }, []);
 
   const toggleMute = useCallback(() => {
-    if (!vapiRef.current) return;
+    if (!controlRef.current) return;
     const next = !isMuted;
-    vapiRef.current.setMuted(next);
+    controlRef.current.setMuted(next);
     setIsMuted(next);
   }, [isMuted]);
 

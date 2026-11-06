@@ -128,7 +128,15 @@ type AgencyOption = { id: string; name: string; isHouse: boolean };
 // `agencies` is passed only to platform admins, who choose the owning agency
 // (default: the house agency for direct customers). Agency staff get null and
 // the server assigns their own agency.
-export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null }) {
+export function NewCustomerForm({
+  agencies,
+  elevenLabsAvailable = false,
+}: {
+  agencies: AgencyOption[] | null;
+  // Offer ElevenLabs as the voice platform (only when it's configured).
+  elevenLabsAvailable?: boolean;
+}) {
+  const [voiceProvider, setVoiceProvider] = useState<"vapi" | "elevenlabs">("vapi");
   const router = useRouter();
   const [organizationId, setOrganizationId] = useState(
     agencies?.find((a) => a.isHouse)?.id ?? agencies?.[0]?.id ?? ""
@@ -387,6 +395,7 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
           calendarId: calendarId || undefined,
           appointmentDurationMinutes: Number(appointmentDuration) || 120,
           appointmentBufferMinutes: Number(appointmentBuffer) || 30,
+          voiceProvider,
         }),
       });
 
@@ -854,6 +863,24 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
               page — until then the receptionist takes booking requests as messages.
             </p>
           )}
+          {elevenLabsAvailable && (
+            <div className="space-y-1.5 md:col-span-2">
+              <Label htmlFor="voiceProvider">Voice platform</Label>
+              <Select value={voiceProvider} onValueChange={(v) => setVoiceProvider(v as "vapi" | "elevenlabs")}>
+                <SelectTrigger id="voiceProvider" className="md:w-1/2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vapi">Vapi (default — numbers included)</SelectItem>
+                  <SelectItem value="elevenlabs">ElevenLabs (beta — uses a spare Twilio number)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Both run the same receptionist. ElevenLabs needs a free number on the Twilio account;
+                without one, setup finishes and you add the number later.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
       )}
@@ -874,6 +901,7 @@ export function NewCustomerForm({ agencies }: { agencies: AgencyOption[] | null 
                 ["Owner", `${ownerName} · ${email}`],
                 ["Service area", serviceArea || "—"],
                 ["Timezone", timezone],
+                ...(elevenLabsAvailable ? [["Voice platform", voiceProvider === "elevenlabs" ? "ElevenLabs (beta)" : "Vapi"]] : []),
                 ["Services", services.map((sv) => sv.name).filter(Boolean).join(", ") || "—"],
                 [
                   "Booking",

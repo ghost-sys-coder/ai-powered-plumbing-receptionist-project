@@ -6,6 +6,8 @@ const isPublic = createRouteMatcher([
     "/api/webhooks/clerk",
     "/api/webhooks/vapi",
     "/api/webhooks/stripe",
+    "/api/webhooks/elevenlabs",
+    "/api/elevenlabs/tools/(.*)",
     "/api/vapi/tools/(.*)",
 ]);
 

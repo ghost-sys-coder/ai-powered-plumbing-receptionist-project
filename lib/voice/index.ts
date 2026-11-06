@@ -3,6 +3,7 @@ import { db } from "@/db/drizzle";
 import { customers, vapiAgents } from "@/db/schema";
 import { resolveProviderCredentials } from "./credentials";
 import { createVapiProvider } from "./vapi/provider";
+import { createElevenLabsProvider } from "./elevenlabs/provider";
 import {
   isVoiceProviderId,
   type ProviderCredentials,
@@ -22,8 +23,7 @@ export function createProvider(creds: ProviderCredentials): ReceptionistProvider
     case "vapi":
       return createVapiProvider(creds);
     case "elevenlabs":
-      // Adapter lands in a later step (docs/phase-8-saas-platform.md §4).
-      throw new Error("The ElevenLabs provider isn't available yet");
+      return createElevenLabsProvider(creds);
   }
 }
 

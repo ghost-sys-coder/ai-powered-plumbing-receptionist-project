@@ -48,7 +48,23 @@ export async function GET(
 
   // Ask the provider that ran the call, with the owning agency's credentials.
   const receptionist = await getCustomerReceptionist(call.customerId);
-  const signedUrl = receptionist ? await receptionist.provider.getRecordingUrl(call.vapiCallId) : null;
+  if (!receptionist) return new Response("Recording unavailable", { status: 502 });
+
+  // Providers whose audio needs our key to download (ElevenLabs): stream it.
+  if (receptionist.provider.getRecordingAudio) {
+    const audio = await receptionist.provider.getRecordingAudio(call.vapiCallId);
+    if (audio?.body) {
+      return new Response(audio.body, {
+        status: 200,
+        headers: {
+          "Content-Type": audio.headers.get("content-type") ?? "audio/mpeg",
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
+  }
+
+  const signedUrl = await receptionist.provider.getRecordingUrl(call.vapiCallId);
   if (!signedUrl) return new Response("Recording unavailable", { status: 502 });
 
   return new Response(null, {

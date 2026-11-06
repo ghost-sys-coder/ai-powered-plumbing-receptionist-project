@@ -119,3 +119,56 @@ export async function releaseNumberByPhone(phoneNumber: string, creds?: TwilioCr
     console.warn(`[twilio] releasing ${phoneNumber} failed — ${(err as Error).message}`);
   }
 }
+
+// Calling-code prefix per country. US and Canada share +1.
+const COUNTRY_PREFIX: Record<string, string> = { US: "+1", CA: "+1", GB: "+44", AU: "+61", UG: "+256" };
+
+type IncomingNumbers = {
+  incoming_phone_numbers?: Array<{ sid: string; phone_number: string; voice_url?: string | null }>;
+};
+
+// A number we already own that no voice platform is using: its voice webhook
+// is empty (importing into Vapi or ElevenLabs sets it) and it isn't in
+// `taken`. Lets us reuse owned numbers when buying new ones isn't possible
+// (e.g. before Twilio business verification). Null when there's none.
+export async function findSpareNumber(
+  country: string,
+  taken: ReadonlySet<string>,
+  creds: TwilioCreds = twilioCredsFromEnv()
+): Promise<string | null> {
+  const prefix = COUNTRY_PREFIX[country];
+  if (!prefix) return null;
+  const data = await twilio<IncomingNumbers>(creds, "/IncomingPhoneNumbers.json?PageSize=100");
+  const spare = (data.incoming_phone_numbers ?? []).find(
+    (n) => n.phone_number.startsWith(prefix) && !n.voice_url && !taken.has(n.phone_number)
+  );
+  return spare?.phone_number ?? null;
+}
+
+// Clears a number's inbound-call webhook, so it reads as unused again after
+// a voice platform lets it go (ElevenLabs leaves its own URL in place).
+// Never throws.
+export async function clearVoiceUrl(phoneNumber: string, creds?: TwilioCreds): Promise<void> {
+  try {
+    const c = creds ?? twilioCredsFromEnv();
+    const data = await twilio<IncomingNumbers>(
+      c,
+      `/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(phoneNumber)}`
+    );
+    const sid = data.incoming_phone_numbers?.[0]?.sid;
+    if (!sid) return;
+    // Sent directly: the helper drops empty form values, and empty is the point.
+    const res = await fetch(`${TWILIO_API}/Accounts/${c.accountSid}/IncomingPhoneNumbers/${sid}.json`, {
+      method: "POST",
+      headers: {
+        Authorization: "Basic " + Buffer.from(`${c.accountSid}:${c.authToken}`).toString("base64"),
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ VoiceUrl: "" }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) console.warn(`[twilio] clearing voice URL for ${phoneNumber} failed (${res.status})`);
+  } catch (err) {
+    console.warn(`[twilio] clearing voice URL for ${phoneNumber} failed`, err);
+  }
+}

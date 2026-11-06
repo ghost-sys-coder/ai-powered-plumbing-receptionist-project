@@ -17,5 +17,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  return NextResponse.json({ assistantId: result.assistantId });
+  return NextResponse.json(
+    result.provider === "elevenlabs"
+      ? { provider: result.provider, signedUrl: result.signedUrl }
+      : { provider: result.provider, assistantId: result.assistantId }
+  );
 }
