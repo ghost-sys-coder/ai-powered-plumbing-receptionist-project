@@ -172,7 +172,7 @@ Running in Stripe **test mode** on the VeilCode Studio account. Everything we cr
 
 **Who pays.** `billing_accounts` (migration 0009) has one row per payer. A *direct* account is a house-agency customer, billed individually. An *agency* account is billed once for all its clients, and the agency bills its own clients. Pilot customers are never billed. `lib/billing/accounts.ts` decides which applies to a customer.
 
-**Prices.** `lib/billing/plans.ts` is the only place prices live. Each plan has a monthly fee plus metered minutes, priced separately in USD, CAD, GBP and AUD; Uganda pays in USD. There's a 14-day trial with a card required, for first subscriptions only.
+**Prices.** `lib/billing/plans.ts` is the only place prices live. Each plan has a monthly fee plus metered minutes, priced separately in USD, CAD, GBP and AUD; Uganda pays in USD. There's a 3-day trial (`TRIAL_DAYS`) with a card required, for first subscriptions only. It was 14 days until Nov 6, cut to keep trial voice costs down.
 
 `scripts/stripe-setup.ts` creates the meter, products, prices (with versioned lookup keys) and the customer-portal configuration. It's idempotent; dry-run by default, `--apply` to create. To change prices, bump `PRICE_VERSION`, edit the amounts and re-run. Existing subscribers keep their old price until moved.
 
@@ -207,6 +207,10 @@ The CAD, GBP and AUD prices are rounded local prices, not exact conversions. A t
 **Env.** Set `STRIPE_SECRET_KEY` (a restricted key is fine) and `STRIPE_WEBHOOK_SECRET`, plus `BILLING_ENFORCEMENT=on` once ready. `scripts/stripe-webhook-setup.ts <origin>` creates the webhook endpoint and saves its secret to `.env.local`. For live mode, repeat both scripts with the live key.
 
 **Live mode (Nov 6).** The live meter, products, prices, portal configuration and webhook endpoint (`we_1UYamhHiapzsY1CyJab4Q8fm` → `/api/webhooks/stripe`) all exist. `billing_accounts.livemode` (migration 0011) records which Stripe mode each account's customer belongs to. Accounts from the other mode are ignored and get a fresh customer at their next checkout, so test data never mixes with live billing. The admin billing table labels them.
+
+**Live-payment test plan.** `direct_live_test` ("Live test") costs $0.50/month plus $0.01/min (CA$0.50, £0.30, A$0.50). These are Stripe's smallest chargeable amounts; anything lower is never actually charged. It has no trial. It's hidden: it isn't on the website and customers can't pick it; only platform admins see it, marked "Internal", on a direct customer's billing card. Use it on a dummy customer, then cancel.
+
+**Enforcement is on** in production (`BILLING_ENFORCEMENT=on`, Nov 6). A cancelled or unpaid subscription disconnects that account's receptionist numbers; paying again reconnects them.
 
 **Agency client limits.** These are enforced when agency staff add a client (`lib/billing/limits.ts`), and on plan changes that would cover fewer clients than the agency has. The limit only applies with a subscription in good standing; platform admins can always add.
 

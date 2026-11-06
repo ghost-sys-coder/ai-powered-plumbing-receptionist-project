@@ -57,7 +57,11 @@ function PlanPicker({
 }) {
   return (
     <div className="@container">
-      <div role="radiogroup" aria-label="Plan" className="grid gap-2.5 @xl:grid-cols-3">
+      <div
+        role="radiogroup"
+        aria-label="Plan"
+        className={cn("grid gap-2.5", plans.length > 3 ? "@xl:grid-cols-2 @3xl:grid-cols-4" : "@xl:grid-cols-3")}
+      >
         {plans.map((p) => {
           const selected = p.id === value;
           return (
@@ -75,7 +79,14 @@ function PlanPicker({
               )}
             >
               <span className="flex items-center justify-between gap-2">
-                <span className="font-semibold">{p.name}</span>
+                <span className="flex items-center gap-1.5 font-semibold">
+                  {p.name}
+                  {p.hidden && (
+                    <span className="rounded-full bg-amber-500/12 px-1.5 py-0.5 text-[0.625rem] font-medium text-amber-800 dark:text-amber-300">
+                      Internal
+                    </span>
+                  )}
+                </span>
                 {p.id === current ? (
                   <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-medium text-muted-foreground">
                     Current
@@ -249,6 +260,7 @@ export function BillingPanel({
   const usedPct = included > 0 ? Math.min(100, Math.round((summary.minutesUsed / included) * 100)) : 0;
   const over = included > 0 && summary.minutesUsed > included;
   const selectedName = summary.plans.find((p) => p.id === plan)?.name ?? "";
+  const selectedTrialDays = summary.plans.find((p) => p.id === plan)?.trialDays ?? 0;
 
   return (
     <Card className="gap-0 py-0">
@@ -433,8 +445,8 @@ export function BillingPanel({
               ? link
                 ? "Create a new link"
                 : `Create payment link · ${selectedName}`
-              : summary.status === "none"
-                ? `Start 14-day free trial · ${selectedName}`
+              : summary.status === "none" && selectedTrialDays > 0
+                ? `Start ${selectedTrialDays}-day free trial · ${selectedName}`
                 : `Subscribe to ${selectedName}`}
           </Button>
         )}

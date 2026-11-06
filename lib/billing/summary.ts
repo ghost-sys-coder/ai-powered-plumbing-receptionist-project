@@ -7,6 +7,7 @@ import {
   isInGoodStanding,
   needsCheckout,
   planOrDefault,
+  trialDaysFor,
   plansFor,
   type AccountKind,
   type BillingCurrency,
@@ -27,10 +28,17 @@ export type PlanOption = {
   includedMinutes: number;
   clientLimit: number | null;
   features: string[];
+  // Free-trial days on a first subscription (0 = charged straight away).
+  trialDays: number;
+  hidden: boolean;
 };
 
-export function planOptions(kind: AccountKind, currency: BillingCurrency): PlanOption[] {
-  return plansFor(kind).map((id) => {
+export function planOptions(
+  kind: AccountKind,
+  currency: BillingCurrency,
+  opts: { includeHidden?: boolean } = {}
+): PlanOption[] {
+  return plansFor(kind, opts).map((id) => {
     const p = PLANS[id];
     return {
       id,
@@ -41,6 +49,8 @@ export function planOptions(kind: AccountKind, currency: BillingCurrency): PlanO
       includedMinutes: p.includedMinutes,
       clientLimit: p.clientLimit,
       features: p.features,
+      trialDays: trialDaysFor(id),
+      hidden: !!p.hidden,
     };
   });
 }
@@ -91,7 +101,9 @@ export function statusLabel(status: string): [string, BillingTone] {
 
 export async function getBillingSummary(
   owner: Exclude<BillingOwner, { kind: "exempt" }>,
-  fallbackCurrency: BillingCurrency = "usd"
+  fallbackCurrency: BillingCurrency = "usd",
+  // Platform admins also see hidden plans (the live-payment test plan).
+  opts: { includeHidden?: boolean } = {}
 ): Promise<BillingSummary> {
   const account = isBillingConfigured() ? await findAccount(owner) : null;
   const plan = planOrDefault(account?.plan, owner.kind);
@@ -108,7 +120,10 @@ export async function getBillingSummary(
     kind: owner.kind,
     plan,
     planName: PLANS[plan].name,
-    plans: planOptions(owner.kind, currency),
+    plans: planOptions(owner.kind, currency, {
+      // Always include the current plan, even if hidden, so it can be shown.
+      includeHidden: opts.includeHidden || !!PLANS[plan].hidden,
+    }),
     canChangePlan: !!account?.stripeSubscriptionId && isInGoodStanding(status),
     status,
     statusLabel: label,

@@ -5,6 +5,7 @@ import { countAgencyClients } from "@/lib/billing/limits";
 import { BillingStateError, changePlan } from "@/lib/billing/checkout";
 import { PLANS, isPlanId } from "@/lib/billing/plans";
 import { isBillingConfigured } from "@/lib/billing/stripe";
+import { getStaffViewer } from "@/lib/auth/staff";
 
 // Switches a live subscription to another plan. Same access rules as checkout.
 export async function POST(req: NextRequest) {
@@ -16,7 +17,8 @@ export async function POST(req: NextRequest) {
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
   const { owner } = result.target;
 
-  if (!isPlanId(body.plan) || PLANS[body.plan].kind !== owner.kind) {
+  const allowHidden = (await getStaffViewer())?.kind === "platform";
+  if (!isPlanId(body.plan) || PLANS[body.plan].kind !== owner.kind || (PLANS[body.plan].hidden && !allowHidden)) {
     return NextResponse.json({ error: "Choose one of the plans shown." }, { status: 400 });
   }
   // Moving down to a plan that covers fewer clients than the agency has.

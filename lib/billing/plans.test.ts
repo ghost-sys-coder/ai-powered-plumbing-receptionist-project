@@ -8,8 +8,10 @@ import {
   PLANS,
   planOrDefault,
   plansFor,
+  TRIAL_DAYS,
   billableMinutes,
   clientLimitFor,
+  trialDaysFor,
   currencyForCountry,
   describePrice,
   isInGoodStanding,
@@ -102,5 +104,16 @@ describe("plans", () => {
     expect(clientLimitFor({ plan: "agency_starter", status: "canceled" }).limit).toBeNull();
     expect(clientLimitFor({ plan: null, status: "active" }).limit).toBeNull();
     expect(clientLimitFor(null).limit).toBeNull();
+  });
+
+  it("keeps the live-test plan hidden, chargeable and trial-free", () => {
+    expect(plansFor("direct")).not.toContain("direct_live_test");
+    expect(plansFor("direct", { includeHidden: true })).toContain("direct_live_test");
+    // Stripe minimum charges: anything lower is never actually charged.
+    const min = { usd: 50, cad: 50, gbp: 30, aud: 50 } as const;
+    for (const c of BILLING_CURRENCIES) expect(PLANS.direct_live_test.monthly[c]).toBeGreaterThanOrEqual(min[c]);
+    expect(trialDaysFor("direct_live_test")).toBe(0);
+    expect(trialDaysFor("direct_basic")).toBe(TRIAL_DAYS);
+    expect(TRIAL_DAYS).toBeLessThan(14);
   });
 });

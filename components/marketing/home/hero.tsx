@@ -1,6 +1,7 @@
 import { Check, Phone } from "lucide-react";
 import Calcom from "@/components/marketing/calcom";
 import { BRAND } from "@/lib/brand";
+import { TRIAL_DAYS } from "@/lib/billing/plans";
 import { LiveCallDemo } from "./live-call-demo";
 import { Container, DEMO_NUMBER, formatDemoNumber } from "./shared";
 
@@ -66,7 +67,7 @@ export function Hero() {
             className="animate-hero-fade-up mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground"
             style={{ animationDelay: "240ms" }}
           >
-            {["14-day free trial", "We set it up for you", "Cancel any time"].map((t) => (
+            {[`${TRIAL_DAYS}-day free trial`, "We set it up for you", "Cancel any time"].map((t) => (
               <li key={t} className="flex items-center gap-2">
                 <Check className="size-4 text-primary" strokeWidth={2.25} />
                 {t}

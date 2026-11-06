@@ -6,7 +6,7 @@ import { ensureAccount, type BillingOwner } from "./accounts";
 import {
   PLANS,
   STRIPE_APP_TAG,
-  TRIAL_DAYS,
+  trialDaysFor,
   isBillingCurrency,
   isInGoodStanding,
   lookupKey,
@@ -72,7 +72,7 @@ export async function createCheckoutUrl(opts: {
     allow_promotion_codes: true,
     subscription_data: {
       // Only a first subscription gets a trial; restarting after cancelling doesn't.
-      ...(account.status === "none" ? { trial_period_days: TRIAL_DAYS } : {}),
+      ...(account.status === "none" && trialDaysFor(plan) > 0 ? { trial_period_days: trialDaysFor(plan) } : {}),
       metadata: { app: STRIPE_APP_TAG, billing_account_id: account.id, plan },
     },
     metadata: { app: STRIPE_APP_TAG, billing_account_id: account.id },

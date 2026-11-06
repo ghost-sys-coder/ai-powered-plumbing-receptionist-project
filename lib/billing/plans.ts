@@ -23,6 +23,7 @@ export const PLAN_IDS = [
   "agency_starter",
   "agency_pro",
   "agency_unlimited",
+  "direct_live_test",
 ] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 
@@ -40,6 +41,11 @@ export type PlanConfig = {
   clientLimit: number | null;
   // Short selling points, shown on plan cards.
   features: string[];
+  // Hidden plans never appear on the website or to customers; only platform
+  // admins can pick them (e.g. the live-payment test plan).
+  hidden?: boolean;
+  // false = no free trial on this plan, even on a first subscription.
+  trial?: boolean;
 };
 
 // Direct prices sit at agency retail level so we never undercut our agencies.
@@ -104,6 +110,22 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     clientLimit: null,
     features: ["Unlimited clients", "Lowest per-minute rate", "Priority support", "Custom domain (coming soon)"],
   },
+  // For checking real payments end to end. Stripe's smallest chargeable
+  // amounts (USD/CAD/AUD 50¢, GBP 30p): anything less is never charged —
+  // Stripe carries it to the next invoice instead. No trial, so the card is
+  // charged straight away.
+  direct_live_test: {
+    kind: "direct",
+    name: "Live test",
+    description: "Internal plan for testing real payments",
+    monthly: { usd: 50, cad: 50, gbp: 30, aud: 50 },
+    includedMinutes: 0,
+    perMinute: { usd: 1, cad: 1, gbp: 1, aud: 1 },
+    clientLimit: null,
+    features: ["Charges the smallest amount Stripe allows", "Cancel straight after testing"],
+    hidden: true,
+    trial: false,
+  },
 };
 
 // The plan shown first / assumed for accounts that haven't picked one.
@@ -112,11 +134,19 @@ export const DEFAULT_PLAN: Record<AccountKind, PlanId> = {
   agency: "agency_starter",
 };
 
-export function plansFor(kind: AccountKind): PlanId[] {
-  return PLAN_IDS.filter((id) => PLANS[id].kind === kind);
+// The plans offered to an account. Hidden plans only when asked for
+// (platform admins).
+export function plansFor(kind: AccountKind, opts: { includeHidden?: boolean } = {}): PlanId[] {
+  return PLAN_IDS.filter((id) => PLANS[id].kind === kind && (opts.includeHidden || !PLANS[id].hidden));
 }
 
-export const TRIAL_DAYS = 14;
+// Free trial on a first subscription. Kept short: trial minutes cost us real
+// voice and phone fees.
+export const TRIAL_DAYS = 3;
+
+export function trialDaysFor(plan: PlanId): number {
+  return PLANS[plan].trial === false ? 0 : TRIAL_DAYS;
+}
 
 // Stripe Billing Meter that call minutes are reported to.
 export const METER_EVENT_NAME = "receptionist_minutes";

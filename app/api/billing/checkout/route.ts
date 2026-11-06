@@ -3,6 +3,11 @@ import { resolveBillingTarget } from "@/lib/billing/target";
 import { BillingStateError, createCheckoutUrl } from "@/lib/billing/checkout";
 import { DEFAULT_PLAN, PLANS, isBillingCurrency, isPlanId } from "@/lib/billing/plans";
 import { isBillingConfigured } from "@/lib/billing/stripe";
+import { getStaffViewer } from "@/lib/auth/staff";
+
+async function isPlatformAdmin(): Promise<boolean> {
+  return (await getStaffViewer())?.kind === "platform";
+}
 
 // Starts a subscription: returns a Stripe Checkout URL. The signed-in person
 // is sent there; staff acting for a customer get the link to pass on.
@@ -20,7 +25,12 @@ export async function POST(req: NextRequest) {
   const currency =
     target.owner.kind === "agency" && isBillingCurrency(body.currency) ? body.currency : target.currency;
 
-  if (body.plan !== undefined && !(isPlanId(body.plan) && PLANS[body.plan].kind === target.owner.kind)) {
+  // Hidden plans (the live-payment test plan) are for platform admins only.
+  const allowHidden = await isPlatformAdmin();
+  if (
+    body.plan !== undefined &&
+    !(isPlanId(body.plan) && PLANS[body.plan].kind === target.owner.kind && (allowHidden || !PLANS[body.plan].hidden))
+  ) {
     return NextResponse.json({ error: "Choose one of the plans shown." }, { status: 400 });
   }
   const plan = isPlanId(body.plan) ? body.plan : DEFAULT_PLAN[target.owner.kind];

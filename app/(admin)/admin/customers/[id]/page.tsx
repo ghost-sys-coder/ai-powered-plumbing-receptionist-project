@@ -95,7 +95,7 @@ const CustomerDetailPage = async ({ params, searchParams }: Props) => {
 
       {billingOwner?.kind === "direct" && viewer.kind === "platform" && (
         <BillingPanel
-          summary={await getBillingSummary(billingOwner)}
+          summary={await getBillingSummary(billingOwner, "usd", { includeHidden: true })}
           mode="staff"
           customerId={customer.id}
         />
