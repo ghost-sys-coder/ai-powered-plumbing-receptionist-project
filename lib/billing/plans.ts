@@ -190,6 +190,20 @@ export function isInGoodStanding(status: string): boolean {
   return status === "active" || status === "trialing" || status === "past_due";
 }
 
+// Client limit for an agency account: only applies with a subscription in
+// good standing on a known plan. Agencies without one aren't limited here —
+// whether they may run receptionists at all is billing enforcement's job.
+export function clientLimitFor(account: { plan: string | null; status: string } | null): {
+  limit: number | null;
+  planName: string | null;
+} {
+  if (!account || !isInGoodStanding(account.status) || !isPlanId(account.plan)) {
+    return { limit: null, planName: null };
+  }
+  const plan = PLANS[account.plan];
+  return { limit: plan.clientLimit, planName: plan.name };
+}
+
 // Whether to start a checkout: no subscription yet, or the old one ended.
 export function needsCheckout(status: string): boolean {
   return status === "none" || status === "canceled" || status === "incomplete_expired";

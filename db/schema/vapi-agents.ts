@@ -55,6 +55,9 @@ export const vapiAgents = pgTable(
     transferEnabled: boolean("transfer_enabled").notNull().default(false),
     transferPhone: text("transfer_phone"),
     transferAfterHours: boolean("transfer_after_hours").notNull().default(false),
+    // Opt-in: text the alert phone a short summary after every call (not just
+    // emergencies). Off by default so nobody starts getting texts unasked.
+    callSummaryTexts: boolean("call_summary_texts").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

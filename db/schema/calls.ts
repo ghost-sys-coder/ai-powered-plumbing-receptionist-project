@@ -46,6 +46,9 @@ export const calls = pgTable(
     // Set when the owner was texted about this emergency — guarantees one alert
     // per call even if the model invokes the tool more than once.
     ownerAlertedAt: timestamp("owner_alerted_at", { withTimezone: true }),
+    // When the after-call summary text went out (claims it, so webhook
+    // retries never text twice).
+    summaryTextedAt: timestamp("summary_texted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

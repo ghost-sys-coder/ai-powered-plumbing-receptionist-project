@@ -40,7 +40,13 @@ const CallsPage = async ({ searchParams }: Props) => {
 
   return (
     <div className="animate-fade-in space-y-6">
-      <PageHeader title="Calls" description={`${total} total`} />
+      <PageHeader
+        eyebrow="Calls"
+        title="Every call, in one place"
+        description={`${total.toLocaleString()} ${total === 1 ? "call" : "calls"}${
+          params.outcome || params.urgency || params.dateRange ? " match these filters" : " answered so far"
+        }. Open one for the recording, transcript and summary.`}
+      />
 
       <Suspense>
         <CallsFilterBar />
@@ -51,13 +57,13 @@ const CallsPage = async ({ searchParams }: Props) => {
       {pageCount > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            Page {page} of {pageCount}
+            Page <span className="tabular font-medium text-foreground">{page}</span> of {pageCount}
           </span>
           <div className="flex gap-2">
             {page > 1 && (
               <Link
                 href={buildPageUrl(page - 1)}
-                className="rounded border px-3 py-1 hover:bg-accent"
+                className="inline-flex h-8 items-center rounded-lg bg-card px-3 font-medium text-foreground shadow-xs-tinted ring-1 ring-foreground/10 transition-colors hover:bg-muted/50"
               >
                 Previous
               </Link>
@@ -65,7 +71,7 @@ const CallsPage = async ({ searchParams }: Props) => {
             {page < pageCount && (
               <Link
                 href={buildPageUrl(page + 1)}
-                className="rounded border px-3 py-1 hover:bg-accent"
+                className="inline-flex h-8 items-center rounded-lg bg-card px-3 font-medium text-foreground shadow-xs-tinted ring-1 ring-foreground/10 transition-colors hover:bg-muted/50"
               >
                 Next
               </Link>

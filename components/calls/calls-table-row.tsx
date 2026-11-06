@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { OutcomeBadge } from "@/components/calls/outcome-badge";
@@ -13,21 +14,27 @@ export function CallsTableRow({ call, timezone }: { call: Call; timezone: string
 
   return (
     <TableRow
-      className="cursor-pointer hover:bg-accent/30"
+      className="cursor-pointer transition-colors hover:bg-muted/40"
       onClick={() => router.push(`/dashboard/calls/${call.id}`)}
     >
       <TableCell className="whitespace-nowrap align-top text-sm text-muted-foreground">
         {formatDateTimeShort(call.startedAt, timezone)}
       </TableCell>
       <TableCell className="align-top font-medium">
-        {call.callerName ?? "Unknown"}
+        <Link
+          href={`/dashboard/calls/${call.id}`}
+          onClick={(e) => e.stopPropagation()}
+          className="rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          {call.callerName ?? "Unknown caller"}
+        </Link>
       </TableCell>
       <TableCell className="whitespace-nowrap align-top text-sm">
         {call.callerPhone ? (
           <a
             href={`tel:${call.callerPhone}`}
             onClick={(e) => e.stopPropagation()}
-            className="hover:underline"
+            className="tabular text-primary underline-offset-4 hover:underline"
           >
             {call.callerPhone}
           </a>

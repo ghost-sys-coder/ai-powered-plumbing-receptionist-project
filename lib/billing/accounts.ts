@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { billingAccounts, customers, organizations, type BillingAccount } from "@/db/schema";
 import { STRIPE_APP_TAG, currencyForCountry, type BillingCurrency } from "./plans";
-import { stripe } from "./stripe";
+import { isLiveMode, stripe } from "./stripe";
 
 // Who is billed for a customer's receptionist:
 //   direct — a customer of the house agency pays us themselves
@@ -53,7 +53,8 @@ export async function agencyOwner(organizationId: string): Promise<BillingOwner 
   return { kind: "agency", organizationId, name: org.name };
 }
 
-export async function findAccount(owner: BillingOwner): Promise<BillingAccount | null> {
+// The owner's account row, whichever Stripe mode it was created in.
+async function findAccountRow(owner: BillingOwner): Promise<BillingAccount | null> {
   if (owner.kind === "exempt") return null;
   const where =
     owner.kind === "direct"
@@ -61,6 +62,13 @@ export async function findAccount(owner: BillingOwner): Promise<BillingAccount |
       : eq(billingAccounts.organizationId, owner.organizationId);
   const [row] = await db.select().from(billingAccounts).where(where).limit(1);
   return row ?? null;
+}
+
+// The owner's account in the current Stripe mode. A test-mode account is
+// invisible once the site runs on live keys (and vice versa).
+export async function findAccount(owner: BillingOwner): Promise<BillingAccount | null> {
+  const row = await findAccountRow(owner);
+  return row && row.livemode === isLiveMode() ? row : null;
 }
 
 export async function findAccountByStripeCustomer(stripeCustomerId: string): Promise<BillingAccount | null> {
@@ -78,8 +86,9 @@ export async function ensureAccount(
   owner: Exclude<BillingOwner, { kind: "exempt" }>,
   email: string | null
 ): Promise<BillingAccount> {
-  const existing = await findAccount(owner);
-  if (existing) return existing;
+  const livemode = isLiveMode();
+  const existing = await findAccountRow(owner);
+  if (existing && existing.livemode === livemode) return existing;
 
   const ownerId = owner.kind === "direct" ? owner.customerId : owner.organizationId;
   const customer = await stripe().customers.create(
@@ -93,8 +102,33 @@ export async function ensureAccount(
       },
     },
     // Two clicks at once reuse the same Stripe customer.
-    { idempotencyKey: `billing-account-${owner.kind}-${ownerId}` }
+    { idempotencyKey: `billing-account-${livemode ? "live" : "test"}-${owner.kind}-${ownerId}` }
   );
+
+  if (existing) {
+    // The row belongs to the other Stripe mode (e.g. test data after going
+    // live): point it at the new customer and start its subscription fresh.
+    // suspendedAt is kept so receptionists switched off by billing are still
+    // switched back on once the new subscription is paid.
+    await db
+      .update(billingAccounts)
+      .set({
+        stripeCustomerId: customer.id,
+        livemode,
+        stripeSubscriptionId: null,
+        plan: null,
+        currency: null,
+        status: "none",
+        trialEndsAt: null,
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+      })
+      .where(eq(billingAccounts.id, existing.id));
+    const moved = await findAccount(owner);
+    if (!moved) throw new Error("Billing account could not be moved to the current Stripe mode");
+    return moved;
+  }
 
   await db
     .insert(billingAccounts)
@@ -103,6 +137,7 @@ export async function ensureAccount(
       customerId: owner.kind === "direct" ? owner.customerId : null,
       organizationId: owner.kind === "agency" ? owner.organizationId : null,
       stripeCustomerId: customer.id,
+      livemode,
     })
     .onConflictDoNothing();
 

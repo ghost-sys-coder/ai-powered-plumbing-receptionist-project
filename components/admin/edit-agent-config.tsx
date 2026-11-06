@@ -34,6 +34,7 @@ type Props = {
   minLeadMinutes: number;
   emergencyLeadMinutes: number;
   alertPhone: string | null;
+  callSummaryTexts: boolean;
   transferEnabled: boolean;
   transferPhone: string | null;
   transferAfterHours: boolean;
@@ -48,6 +49,7 @@ export function EditAgentConfig({
   minLeadMinutes,
   emergencyLeadMinutes,
   alertPhone: initialAlertPhone,
+  callSummaryTexts: initialCallSummaryTexts,
   transferEnabled: initialTransferEnabled,
   transferPhone: initialTransferPhone,
   transferAfterHours: initialTransferAfterHours,
@@ -64,6 +66,7 @@ export function EditAgentConfig({
   const [minLead, setMinLead] = useState(String(minLeadMinutes));
   const [emergencyLead, setEmergencyLead] = useState(String(emergencyLeadMinutes));
   const [alertPhone, setAlertPhone] = useState(initialAlertPhone ?? "");
+  const [callSummaryTexts, setCallSummaryTexts] = useState(initialCallSummaryTexts);
   const [transferEnabled, setTransferEnabled] = useState(initialTransferEnabled);
   const [transferPhone, setTransferPhone] = useState(initialTransferPhone ?? "");
   const [transferAfterHours, setTransferAfterHours] = useState(initialTransferAfterHours);
@@ -83,6 +86,7 @@ export function EditAgentConfig({
           minLeadMinutes: Number(minLead),
           emergencyLeadMinutes: Number(emergencyLead),
           alertPhone,
+          callSummaryTexts,
           transferEnabled,
           transferPhone,
           transferAfterHours,
@@ -229,6 +233,26 @@ export function EditAgentConfig({
             <p className="text-xs text-muted-foreground">
               The owner&apos;s mobile — texted the moment the AI flags an emergency. International
               format. Not the AI receptionist&apos;s number. Leave blank to send no alerts.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="callSummaryTexts">Text a summary after every call</Label>
+            <Select
+              value={callSummaryTexts ? "on" : "off"}
+              onValueChange={(v) => setCallSummaryTexts(v === "on")}
+            >
+              <SelectTrigger id="callSummaryTexts">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="off">Off — emergencies only</SelectItem>
+                <SelectItem value="on">On — text every call with a caller to call back</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Sent to the alert phone above: who called, the outcome, what they wanted and a link to
+              the call. Emergencies are texted once, not twice.
             </p>
           </div>
 

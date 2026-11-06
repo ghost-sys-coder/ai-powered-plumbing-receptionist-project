@@ -66,6 +66,7 @@ export function CustomerAgentCard({
             minLeadMinutes={agent.minLeadMinutes}
             emergencyLeadMinutes={agent.emergencyLeadMinutes}
             alertPhone={agent.alertPhone}
+            callSummaryTexts={agent.callSummaryTexts}
             transferEnabled={agent.transferEnabled}
             transferPhone={agent.transferPhone}
             transferAfterHours={agent.transferAfterHours}
@@ -127,6 +128,13 @@ export function CustomerAgentCard({
               <span className="tabular">{agent.alertPhone}</span>
             ) : (
               <span className="font-normal text-muted-foreground">Not set</span>
+            )}
+          </DetailRow>
+          <DetailRow label="Call summaries by text">
+            {agent.callSummaryTexts && agent.alertPhone ? (
+              "On"
+            ) : (
+              <span className="font-normal text-muted-foreground">Off</span>
             )}
           </DetailRow>
           <DetailRow label="Live transfer">

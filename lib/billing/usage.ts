@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { calls, customers, type BillingAccount } from "@/db/schema";
 import { billingOwnerForCustomer, findAccount } from "./accounts";
@@ -65,6 +65,31 @@ export async function reportCallUsage(callId: string): Promise<void> {
   } catch (err) {
     console.error(`[billing] reporting usage for call ${callId} failed:`, err);
   }
+}
+
+// Re-reports finished calls whose usage never reached Stripe (Stripe was
+// down, a deploy cut the request short, ...). Calls younger than 15 minutes
+// are left to the normal end-of-call path; older than Stripe's 35-day window
+// can't be metered any more. Safe to run often: reportCallUsage claims each
+// call once and Stripe rejects duplicate identifiers.
+export async function sweepUnreportedUsage(limit = 200): Promise<{ checked: number }> {
+  if (!isBillingConfigured()) return { checked: 0 };
+  const now = Date.now();
+  const rows = await db
+    .select({ id: calls.id })
+    .from(calls)
+    .where(
+      and(
+        isNull(calls.usageReportedAt),
+        isNotNull(calls.endedAt),
+        lt(calls.endedAt, new Date(now - 15 * 60 * 1000)),
+        gte(calls.endedAt, new Date(now - MAX_EVENT_AGE_MS))
+      )
+    )
+    .orderBy(asc(calls.endedAt))
+    .limit(limit);
+  for (const row of rows) await reportCallUsage(row.id);
+  return { checked: rows.length };
 }
 
 // Minutes billed to an account in its current period.

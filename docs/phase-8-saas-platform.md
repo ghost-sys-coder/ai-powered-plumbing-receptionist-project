@@ -206,10 +206,25 @@ The CAD, GBP and AUD prices are rounded local prices, not exact conversions. A t
 
 **Env.** Set `STRIPE_SECRET_KEY` (a restricted key is fine) and `STRIPE_WEBHOOK_SECRET`, plus `BILLING_ENFORCEMENT=on` once ready. `scripts/stripe-webhook-setup.ts <origin>` creates the webhook endpoint and saves its secret to `.env.local`. For live mode, repeat both scripts with the live key.
 
+**Live mode (Nov 6).** The live meter, products, prices, portal configuration and webhook endpoint (`we_1UYamhHiapzsY1CyJab4Q8fm` → `/api/webhooks/stripe`) all exist. `billing_accounts.livemode` (migration 0011) records which Stripe mode each account's customer belongs to. Accounts from the other mode are ignored and get a fresh customer at their next checkout, so test data never mixes with live billing. The admin billing table labels them.
+
+**Agency client limits.** These are enforced when agency staff add a client (`lib/billing/limits.ts`), and on plan changes that would cover fewer clients than the agency has. The limit only applies with a subscription in good standing; platform admins can always add.
+
+**Usage catch-up.** A daily Vercel cron (`vercel.json` → `/api/cron/billing-usage`) re-sends any finished call whose minutes never reached Stripe. If `CRON_SECRET` is set, it must be sent as a bearer token. Without it, only Vercel's cron user agent is accepted; the sweep is safe to run repeatedly either way.
+
 **Not built yet:**
 - Phone-number fees ($3/month per number in the proposal).
-- Enforcing agency client limits (3 / 25 / unlimited). They're shown on the plans but not enforced yet.
 - The agency trial's ~100 included minutes.
+
+### Proposal: industry pricing
+
+Today every business pays the same for a tier, whatever its industry. A law firm gets far more value from each answered call than a cleaner does. Legal intake calls also run longer and need more care. Two options:
+
+1. **Two price books, chosen by industry (recommended).** "Standard" covers home services, personal services, property and auto, and other. "Professional" covers legal, accounting, insurance, real estate and health. Same three tiers and the same minutes, about 1.5× the price: Professional Basic $299, Standard $499, Pro $849, then $0.40/min. The book follows the customer's industry, which staff set at setup, so customers can't pick a cheaper one. The industry profiles already carry the category (`lib/verticals`), so no new data is needed. Agency prices stay flat; agencies set their own retail prices and keep the premium themselves.
+2. **One price plus an add-on.** Keep today's tiers and sell a "Professional intake" add-on (longer intake scripts, conflict-check questions, CRM hand-off). This is simpler to explain, but the add-on features have to be built first.
+
+Rough effort for option 1: half a day. Plans gain a price book, Stripe gets one product set per book, checkout picks the book from the industry category, and the landing page says "from $199" with a line for professional practices.
+
 - A daily sweep that re-reports calls whose meter event failed (today these are only logged).
 - Margin reporting.
 

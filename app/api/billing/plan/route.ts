@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveBillingTarget } from "@/lib/billing/target";
 import { findAccount } from "@/lib/billing/accounts";
+import { countAgencyClients } from "@/lib/billing/limits";
 import { BillingStateError, changePlan } from "@/lib/billing/checkout";
 import { PLANS, isPlanId } from "@/lib/billing/plans";
 import { isBillingConfigured } from "@/lib/billing/stripe";
@@ -18,6 +19,18 @@ export async function POST(req: NextRequest) {
   if (!isPlanId(body.plan) || PLANS[body.plan].kind !== owner.kind) {
     return NextResponse.json({ error: "Choose one of the plans shown." }, { status: 400 });
   }
+  // Moving down to a plan that covers fewer clients than the agency has.
+  const newLimit = PLANS[body.plan].clientLimit;
+  if (owner.kind === "agency" && newLimit !== null) {
+    const used = await countAgencyClients(owner.organizationId);
+    if (used > newLimit) {
+      return NextResponse.json(
+        { error: `The ${PLANS[body.plan].name} plan covers ${newLimit} clients and you have ${used}.` },
+        { status: 409 }
+      );
+    }
+  }
+
   const account = await findAccount(owner);
   if (!account) return NextResponse.json({ error: "There's no subscription yet." }, { status: 409 });
 

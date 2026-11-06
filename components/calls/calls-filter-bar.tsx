@@ -70,6 +70,15 @@ export function CallsFilterBar() {
           <SelectItem value="all">All time</SelectItem>
         </SelectContent>
       </Select>
+      {(searchParams.get("outcome") || searchParams.get("urgency") || searchParams.get("dateRange")) && (
+        <button
+          type="button"
+          onClick={() => router.push(pathname)}
+          className="h-9 px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Clear filters
+        </button>
+      )}
     </div>
   );
 }

@@ -33,12 +33,13 @@ const AgenciesPage = async () => {
         </CardContent>
       </Card>
 
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-foreground/[0.07]">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Agency</TableHead>
-              <TableHead>Customers</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Clients</TableHead>
               <TableHead>Staff</TableHead>
               <TableHead className="w-80">Invite staff</TableHead>
             </TableRow>
@@ -50,7 +51,30 @@ const AgenciesPage = async () => {
                   <span className="mr-2">{a.name}</span>
                   {a.isHouse && <Badge variant="secondary">Direct</Badge>}
                 </TableCell>
-                <TableCell>{a.customerCount}</TableCell>
+                <TableCell className="text-sm">
+                  {a.isHouse ? (
+                    <span className="text-muted-foreground">Billed per customer</span>
+                  ) : a.plan?.planName ? (
+                    a.plan.planName
+                  ) : (
+                    <span className="text-muted-foreground">No subscription</span>
+                  )}
+                </TableCell>
+                <TableCell className="tabular">
+                  {a.customerCount}
+                  {a.plan?.limit != null && (
+                    <span
+                      className={
+                        a.customerCount >= a.plan.limit
+                          ? "text-amber-700 dark:text-amber-300"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      {" "}
+                      / {a.plan.limit}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell>{a.memberCount}</TableCell>
                 <TableCell>
                   {a.isHouse ? (

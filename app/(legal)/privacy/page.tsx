@@ -145,8 +145,13 @@ export default function PrivacyPage() {
             <strong>ElevenLabs</strong> — generates the receptionist&rsquo;s voice.
           </li>
           <li>
+            <strong>Anthropic</strong> and <strong>OpenAI</strong> — when we set up a business, an
+            AI model reads that business&rsquo;s public website to prefill its details. No caller
+            information is sent for this.
+          </li>
+          <li>
             <strong>Twilio</strong> — telephone numbers, for customers whose line is provided
-            through Twilio.
+            through Twilio, and the text messages that alert a business to an emergency call.
           </li>
           <li>
             <strong>Google</strong> — Google Calendar, to check availability and create

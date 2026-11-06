@@ -7,6 +7,11 @@ export function isBillingConfigured(env: Record<string, string | undefined> = pr
   return !!env.STRIPE_SECRET_KEY;
 }
 
+// True when the configured key is a live-mode key (sk_live_ / rk_live_).
+export function isLiveMode(env: Record<string, string | undefined> = process.env): boolean {
+  return /_live_/.test(env.STRIPE_SECRET_KEY ?? "");
+}
+
 export function stripe(): Stripe {
   if (!client) {
     const key = process.env.STRIPE_SECRET_KEY;

@@ -31,6 +31,14 @@ export async function PATCH(
     typeof body.alertPhone === "string" && body.alertPhone.trim()
       ? body.alertPhone.replace(/[\s()-]/g, "")
       : null;
+  // After-call summary texts go to the alert phone, so they need one.
+  const callSummaryTexts = body.callSummaryTexts === true;
+  if (callSummaryTexts && !alertPhone) {
+    return NextResponse.json(
+      { error: "Add an alert phone to send call summaries by text." },
+      { status: 400 }
+    );
+  }
   // Live transfer. Number is optional and falls back to the alert phone.
   const transferEnabled = body.transferEnabled === true;
   const transferAfterHours = body.transferAfterHours === true;
@@ -143,6 +151,7 @@ export async function PATCH(
       minLeadMinutes: minLead,
       emergencyLeadMinutes: emergencyLead,
       alertPhone,
+      callSummaryTexts,
       transferEnabled,
       transferPhone,
       transferAfterHours,

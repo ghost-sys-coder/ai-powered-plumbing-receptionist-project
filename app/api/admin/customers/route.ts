@@ -9,6 +9,7 @@ import { DEFAULT_VOICE_PROVIDER, getProvider, type ReceptionistProvider } from "
 import { PhoneNumberUnavailableError } from "@/lib/voice/phone-numbers";
 import { parseProfileInput } from "@/lib/services/profile-input";
 import { getRegion } from "@/lib/regions";
+import { agencyClientAllowance } from "@/lib/billing/limits";
 
 // Drizzle wraps the driver error, so the real Postgres error (with code +
 // constraint) sits on `.cause`. Walk the chain to find it.
@@ -83,6 +84,20 @@ export async function POST(req: NextRequest) {
     organizationId = body.organizationId;
   } else {
     organizationId = await getHouseAgencyId();
+  }
+
+  // Agency plans cover a set number of clients. Platform admins can add past
+  // the limit (e.g. while an upgrade is being sorted out); agency staff can't.
+  if (viewer.kind === "agency") {
+    const allowance = await agencyClientAllowance(organizationId);
+    if (allowance.limit !== null && allowance.used >= allowance.limit) {
+      return NextResponse.json(
+        {
+          error: `Your ${allowance.planName} plan covers ${allowance.limit} clients. Upgrade your plan in Billing to add more.`,
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // Step 1: Create customer row

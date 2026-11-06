@@ -4,7 +4,7 @@ import { billingAccounts, customers, organizations } from "@/db/schema";
 import { requireStaff } from "@/lib/auth/staff";
 import { agencyOwner } from "@/lib/billing/accounts";
 import { getBillingSummary, statusLabel } from "@/lib/billing/summary";
-import { isBillingConfigured } from "@/lib/billing/stripe";
+import { isBillingConfigured, isLiveMode } from "@/lib/billing/stripe";
 import { PLANS, isPlanId } from "@/lib/billing/plans";
 import { PageHeader } from "@/components/layout/page-header";
 import { BillingPanel } from "@/components/billing/billing-panel";
@@ -29,7 +29,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
       <div className="animate-fade-in space-y-6">
         <PageHeader title="Billing" description="Your agency's plan — one bill for all your clients" />
         {notice === "success" && (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+          <p className="rounded-xl bg-emerald-500/[0.08] px-4 py-3 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:text-emerald-300">
             Thanks — your subscription is set up. It can take a few seconds to show here.
           </p>
         )}
@@ -53,6 +53,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
           id: billingAccounts.id,
           kind: billingAccounts.kind,
           plan: billingAccounts.plan,
+          livemode: billingAccounts.livemode,
           status: billingAccounts.status,
           currency: billingAccounts.currency,
           periodEnd: billingAccounts.currentPeriodEnd,
@@ -82,8 +83,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
           <CardContent className="pt-6 text-sm text-muted-foreground">No billing accounts yet.</CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="pt-6">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-foreground/[0.07]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -107,7 +107,14 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
                         r.agencyName ?? "—"
                       )}
                     </TableCell>
-                    <TableCell>{r.kind === "agency" ? "Agency" : "Direct"}</TableCell>
+                    <TableCell>
+                      {r.kind === "agency" ? "Agency" : "Direct"}
+                      {r.livemode !== isLiveMode() && (
+                        <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[0.6875rem] text-muted-foreground">
+                          {r.livemode ? "live" : "test"}
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell>{isPlanId(r.plan) ? PLANS[r.plan].name : "—"}</TableCell>
                     <TableCell>
                       {statusLabel(r.status)[0]}
@@ -119,8 +126,7 @@ const AdminBillingPage = async ({ searchParams }: { searchParams: Promise<{ bill
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+        </div>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import {
   planOrDefault,
   plansFor,
   billableMinutes,
+  clientLimitFor,
   currencyForCountry,
   describePrice,
   isInGoodStanding,
@@ -92,5 +93,14 @@ describe("plans", () => {
     expect(needsCheckout("canceled")).toBe(true);
     expect(needsCheckout("active")).toBe(false);
     expect(needsCheckout("past_due")).toBe(false);
+  });
+
+  it("limits agency clients only on a live subscription with a known plan", () => {
+    expect(clientLimitFor({ plan: "agency_starter", status: "active" })).toEqual({ limit: 3, planName: "Starter" });
+    expect(clientLimitFor({ plan: "agency_pro", status: "past_due" }).limit).toBe(25);
+    expect(clientLimitFor({ plan: "agency_unlimited", status: "trialing" }).limit).toBeNull();
+    expect(clientLimitFor({ plan: "agency_starter", status: "canceled" }).limit).toBeNull();
+    expect(clientLimitFor({ plan: null, status: "active" }).limit).toBeNull();
+    expect(clientLimitFor(null).limit).toBeNull();
   });
 });

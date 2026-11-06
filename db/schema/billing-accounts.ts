@@ -27,6 +27,10 @@ export const billingAccounts = pgTable(
       .unique()
       .references(() => organizations.id),
     stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+    // Whether stripeCustomerId lives in Stripe's live or test mode. An account
+    // from the other mode is ignored and re-created on the next checkout, so
+    // test data never leaks into live billing (lib/billing/accounts.ts).
+    livemode: boolean("livemode").notNull().default(false),
     stripeSubscriptionId: text("stripe_subscription_id").unique(),
     // Lowercase ISO currency of the subscription (usd, cad, gbp, aud).
     currency: text("currency"),

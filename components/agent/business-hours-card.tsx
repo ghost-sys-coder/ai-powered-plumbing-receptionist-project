@@ -1,58 +1,42 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Clock } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { EmptyNote, SectionHeader } from "@/components/layout/section-header";
 
 type DayHours = { open?: string; close?: string; closed?: boolean };
 type BusinessHours = Record<string, DayHours>;
 
-const DAYS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function BusinessHoursCard({ hours }: { hours: unknown }) {
   const parsed = hours as BusinessHours | null;
 
-  if (!parsed) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Business hours</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Not configured.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Business hours</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <table className="w-full text-sm">
-          <tbody>
+      <SectionHeader
+        icon={Clock}
+        title="Business hours"
+        description="The opening hours the receptionist gives callers"
+      />
+      <div className="px-5">
+        {!parsed ? (
+          <EmptyNote>No hours set yet.</EmptyNote>
+        ) : (
+          <ul className="grid gap-x-8 text-sm sm:grid-cols-2">
             {DAYS.map((day) => {
-              const h = parsed[day] ?? parsed[day.toLowerCase()];
+              const h = parsed[day] ?? parsed[day.toLowerCase()] ?? parsed[day.slice(0, 3).toLowerCase()];
+              const closed = !h || h.closed;
               return (
-                <tr key={day} className="border-b last:border-0">
-                  <td className="w-28 py-1.5 font-medium">{day}</td>
-                  <td className="py-1.5 text-muted-foreground">
-                    {!h || h.closed
-                      ? "Closed"
-                      : `${h.open ?? "?"} – ${h.close ?? "?"}`}
-                  </td>
-                </tr>
+                <li key={day} className="flex items-baseline justify-between border-b border-border/60 py-2.5">
+                  <span className="font-medium">{day}</span>
+                  <span className={closed ? "text-muted-foreground" : "tabular"}>
+                    {closed ? "Closed" : `${h.open ?? "?"} – ${h.close ?? "?"}`}
+                  </span>
+                </li>
               );
             })}
-          </tbody>
-        </table>
-      </CardContent>
+          </ul>
+        )}
+      </div>
     </Card>
   );
 }

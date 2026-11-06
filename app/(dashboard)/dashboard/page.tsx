@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { getCustomerContext } from "@/lib/auth/get-customer-id";
+import { BRAND } from "@/lib/brand";
 import { SectionErrorBoundary } from "@/components/layout/section-error-boundary";
 import {
   DashboardGreeting,
@@ -19,8 +20,11 @@ const DashboardPage = async () => {
       <div className="animate-fade-in flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
         <h1 className="text-xl font-semibold">Account not linked</h1>
         <p className="max-w-sm text-muted-foreground">
-          Your login isn&apos;t connected to a plumbing business account yet.
-          Contact your PlumberAnswered manager to get set up.
+          Your login isn&apos;t connected to a business yet. Ask whoever invited you to link it, or email{" "}
+          <a href={`mailto:${BRAND.supportEmail}`} className="font-medium text-primary underline-offset-4 hover:underline">
+            {BRAND.supportEmail}
+          </a>
+          .
         </p>
       </div>
     );

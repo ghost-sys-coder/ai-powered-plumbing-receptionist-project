@@ -1,7 +1,9 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { and, asc, count, eq, isNull } from "drizzle-orm";
+import { and, asc, count, eq, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db/drizzle";
-import { customers, organizations, pendingInvites, users } from "@/db/schema";
+import { billingAccounts, customers, organizations, pendingInvites, users } from "@/db/schema";
+import { clientLimitFor } from "@/lib/billing/plans";
+import { isLiveMode } from "@/lib/billing/stripe";
 import { getAgency } from "./house-agency";
 
 export { getAgency, getHouseAgencyId } from "./house-agency";
@@ -13,11 +15,13 @@ export type AgencySummary = {
   createdAt: Date;
   customerCount: number;
   memberCount: number;
+  // The agency's plan and client limit (nulls when not subscribed).
+  plan: { limit: number | null; planName: string | null } | null;
 };
 
 // All agencies with their customer and staff counts, house agency first.
 export async function listAgencies(): Promise<AgencySummary[]> {
-  const [orgs, customerCounts, memberCounts] = await db.batch([
+  const [orgs, customerCounts, memberCounts, accounts] = await db.batch([
     db.select().from(organizations).orderBy(asc(organizations.createdAt)),
     db
       .select({ organizationId: customers.organizationId, count: count() })
@@ -28,7 +32,22 @@ export async function listAgencies(): Promise<AgencySummary[]> {
       .from(users)
       .where(and(eq(users.role, "agency"), isNull(users.deletedAt)))
       .groupBy(users.organizationId),
+    db
+      .select({
+        organizationId: billingAccounts.organizationId,
+        plan: billingAccounts.plan,
+        status: billingAccounts.status,
+        livemode: billingAccounts.livemode,
+      })
+      .from(billingAccounts)
+      .where(isNotNull(billingAccounts.organizationId)),
   ]);
+  // Each agency's plan and client limit, for accounts in the current Stripe mode.
+  const plans = new Map(
+    accounts
+      .filter((a) => a.organizationId && a.livemode === isLiveMode())
+      .map((a) => [a.organizationId as string, clientLimitFor(a)])
+  );
 
   const cust = new Map(customerCounts.map((r) => [r.organizationId, r.count]));
   const mem = new Map(memberCounts.map((r) => [r.organizationId, r.count]));
@@ -41,6 +60,7 @@ export async function listAgencies(): Promise<AgencySummary[]> {
       createdAt: o.createdAt,
       customerCount: cust.get(o.id) ?? 0,
       memberCount: mem.get(o.id) ?? 0,
+      plan: plans.get(o.id) ?? null,
     }))
     .sort((a, b) => Number(b.isHouse) - Number(a.isHouse));
 }

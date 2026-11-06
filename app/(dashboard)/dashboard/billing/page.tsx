@@ -14,10 +14,10 @@ const BillingPage = async ({ searchParams }: { searchParams: Promise<{ billing?:
 
   return (
     <div className="animate-fade-in space-y-6">
-      <PageHeader title="Billing" description="Your plan, usage and invoices" />
+      <PageHeader eyebrow="Billing" title="Your plan" description="Your plan, minutes used this month, and invoices." />
 
       {notice === "success" && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        <p className="rounded-xl bg-emerald-500/[0.08] px-4 py-3 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20 dark:text-emerald-300">
           Thanks — your subscription is set up. It can take a few seconds to show here.
         </p>
       )}
@@ -36,7 +36,7 @@ const BillingPage = async ({ searchParams }: { searchParams: Promise<{ billing?:
         </Card>
       ) : (
         <div className="max-w-3xl">
-          <BillingPanel summary={await getBillingSummary(owner)} mode="self" title="Your plan" />
+          <BillingPanel summary={await getBillingSummary(owner)} mode="self" title="Subscription" />
         </div>
       )}
     </div>

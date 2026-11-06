@@ -7,7 +7,10 @@ import { AgentStatusCard } from "@/components/agent/agent-status-card";
 import { BusinessHoursCard } from "@/components/agent/business-hours-card";
 import { ServicesCard } from "@/components/agent/services-card";
 import { PricingCard } from "@/components/agent/pricing-card";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { SectionHeader } from "@/components/layout/section-header";
+import { Mail, ShieldAlert } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 import { GoogleCalendarConnect } from "@/components/integrations/google-calendar-connect";
 import { getCalendarConnection } from "@/lib/services/calendar-connections";
 import { isGoogleOAuthConfigured } from "@/lib/google/oauth";
@@ -29,25 +32,27 @@ const AgentPage = async ({
   // truth); fall back to the stored value if the live lookup fails.
   const livePhone = await getCachedLiveAssistantPhoneNumber({ customerId: agent.customerId });
 
-  const supportEmail =
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "frank@veilcode.studio";
+  const supportEmail = BRAND.supportEmail;
 
   return (
     <div className="animate-fade-in space-y-6">
       <PageHeader
-        title="Your AI Agent"
-        description="Managed by PlumberAnswered — contact us to make changes"
+        eyebrow="Receptionist"
+        title="How your calls are handled"
+        description="What your receptionist knows about your business. Ask us to change anything here."
       />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <AgentStatusCard agent={agent} livePhoneNumber={livePhone?.number ?? null} />
         <Card>
-          <CardContent className="space-y-2 pt-6 text-sm">
-            <p className="font-medium">Emergency definition</p>
-            <p className="text-muted-foreground">
-              {agent.emergencyDefinition ?? "Not configured."}
-            </p>
-          </CardContent>
+          <SectionHeader
+            icon={ShieldAlert}
+            title="What counts as an emergency"
+            description="Calls that match are treated as urgent"
+          />
+          <p className="px-5 text-sm leading-relaxed">
+            {agent.emergencyDefinition ?? <span className="text-muted-foreground">Not set yet.</span>}
+          </p>
         </Card>
       </div>
 
@@ -61,25 +66,25 @@ const AgentPage = async ({
 
       <BusinessHoursCard hours={agent.businessHours} />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <ServicesCard services={agent.servicesOffered} />
         <PricingCard pricing={agent.pricingTable} />
       </div>
 
-      <Card className="border-dashed">
-        <CardContent className="pt-6 text-sm">
-          <p className="font-medium">Need to update your settings?</p>
-          <p className="mt-1 text-muted-foreground">
-            Contact your PlumberAnswered manager to update your agent configuration.
-            Changes are applied within 24 hours.
-          </p>
-          <a
-            href={`mailto:${supportEmail}`}
-            className="mt-2 inline-block font-medium text-primary underline-offset-4 hover:underline"
-          >
-            {supportEmail}
-          </a>
-        </CardContent>
+      <Card className="bg-muted/30 shadow-none">
+        <SectionHeader
+          icon={Mail}
+          title="Need something changed?"
+          description="New hours, services, prices or emergency rules — email us and we'll update your receptionist."
+          action={
+            <a
+              href={`mailto:${supportEmail}?subject=Update%20my%20receptionist`}
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {supportEmail}
+            </a>
+          }
+        />
       </Card>
     </div>
   );
