@@ -5,6 +5,27 @@ import { Container, SectionHeading } from "./shared";
 // Mirrors the industry profiles in lib/verticals: each has its own intake
 // questions, emergency rules and wording. The "captured" rows use real intake
 // field names from those profiles, with example values.
+// Each group has its own colour so the industry pills are easy to scan.
+// Full class strings so Tailwind picks them up.
+const TONES = {
+  orange: {
+    pill: "bg-orange-100 text-orange-900 ring-orange-300 shadow-orange-600/20 dark:bg-orange-500/15 dark:text-orange-100 dark:ring-orange-400/30",
+    icon: "bg-orange-500/12 text-orange-600 ring-orange-500/25 dark:text-orange-300",
+  },
+  rose: {
+    pill: "bg-rose-100 text-rose-900 ring-rose-300 shadow-rose-600/20 dark:bg-rose-500/15 dark:text-rose-100 dark:ring-rose-400/30",
+    icon: "bg-rose-500/12 text-rose-600 ring-rose-500/25 dark:text-rose-300",
+  },
+  indigo: {
+    pill: "bg-indigo-100 text-indigo-900 ring-indigo-300 shadow-indigo-600/20 dark:bg-indigo-500/15 dark:text-indigo-100 dark:ring-indigo-400/30",
+    icon: "bg-indigo-500/12 text-indigo-600 ring-indigo-500/25 dark:text-indigo-300",
+  },
+  teal: {
+    pill: "bg-teal-100 text-teal-900 ring-teal-300 shadow-teal-600/20 dark:bg-teal-500/15 dark:text-teal-100 dark:ring-teal-400/30",
+    icon: "bg-teal-500/12 text-teal-600 ring-teal-500/25 dark:text-teal-300",
+  },
+} as const;
+
 type Group = {
   icon: LucideIcon;
   title: string;
@@ -12,6 +33,7 @@ type Group = {
   items: string[];
   captured: Array<[label: string, value: string]>;
   wide: boolean;
+  tone: keyof typeof TONES;
 };
 
 const GROUPS: Group[] = [
@@ -26,6 +48,7 @@ const GROUPS: Group[] = [
       ["Urgency", "Emergency"],
     ],
     wide: true,
+    tone: "orange",
   },
   {
     icon: HeartPulse,
@@ -37,6 +60,7 @@ const GROUPS: Group[] = [
       ["Pet", "Bella, 6-year-old lab"],
     ],
     wide: false,
+    tone: "rose",
   },
   {
     icon: Briefcase,
@@ -48,6 +72,7 @@ const GROUPS: Group[] = [
       ["Key deadline", "Hearing on 14 Nov"],
     ],
     wide: false,
+    tone: "indigo",
   },
   {
     icon: Home,
@@ -60,6 +85,7 @@ const GROUPS: Group[] = [
       ["Drivable", "No"],
     ],
     wide: true,
+    tone: "teal",
   },
 ];
 
@@ -67,6 +93,7 @@ const MARQUEE = GROUPS.flatMap((g) => g.items);
 
 function IndustryCard({ group, index }: { group: Group; index: number }) {
   const Icon = group.icon;
+  const tone = TONES[group.tone];
   return (
     <article
       className={cn(
@@ -82,7 +109,7 @@ function IndustryCard({ group, index }: { group: Group; index: number }) {
       />
 
       <div className="relative flex items-start gap-4">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 transition-transform duration-300 group-hover:scale-105">
+        <span className={cn("grid size-11 shrink-0 place-items-center rounded-xl ring-1 transition-transform duration-300 group-hover:scale-105", tone.icon)}>
           <Icon strokeWidth={1.75} className="size-5" />
         </span>
         <div className="min-w-0">
@@ -91,11 +118,11 @@ function IndustryCard({ group, index }: { group: Group; index: number }) {
         </div>
       </div>
 
-      <ul className="relative mt-5 flex flex-wrap gap-1.5">
+      <ul className="relative mt-6 flex flex-wrap gap-2.5">
         {group.items.map((item) => (
           <li
             key={item}
-            className="rounded-full bg-background/70 px-3 py-1 text-[0.8125rem] font-medium text-foreground/80 ring-1 ring-inset ring-foreground/8"
+            className={cn("rounded-full px-4 py-2 text-sm font-semibold shadow-md ring-1 ring-inset", tone.pill)}
           >
             {item}
           </li>
