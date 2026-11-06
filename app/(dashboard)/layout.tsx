@@ -5,10 +5,16 @@ import { db } from "@/db/drizzle";
 import { customers, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ClientNav } from "@/components/layout/client-nav";
+import { getStaffViewer } from "@/lib/auth/staff";
 
 const DashboardLayout = async ({ children }: { children: ReactNode }) => {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
+
+  // The client dashboard is for business owners. Platform admins and agency
+  // staff work from the admin console (they see a business's calls on its
+  // customer page there).
+  if (await getStaffViewer()) redirect("/admin");
 
   const [user] = await db
     .select({ customerId: users.customerId })
