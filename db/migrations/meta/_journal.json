@@ -99,6 +99,13 @@
       "when": 1793959500925,
       "tag": "0013_platform_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793970271026,
+      "tag": "0014_receptionist_health",
+      "breakpoints": true
     }
   ]
 }

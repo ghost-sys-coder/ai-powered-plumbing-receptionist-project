@@ -294,9 +294,8 @@ Agencies on **Pro or Agency** may connect their own Vapi or ElevenLabs account.
     the tool ids per agency (today they are global).
   - Assistant-level server URLs and secrets, so nothing depends on their
     org-level webhook settings.
-  - Scheduled drift check: re-run `verifyAnalysisPlan` and alert on failure.
-    Customer-owned dashboards can strip our settings, which has already
-    happened once on our own account.
+  - Scheduled drift check: built (see "Receptionist settings health" below);
+    it already runs against whichever account the receptionist lives in.
   - Clear support boundary: their account's limits, billing and concurrency
     are theirs; surface provider errors in the agency dashboard.
 - **Timing:** after billing. The provider layer (§4) is built BYOK-ready.
@@ -314,3 +313,29 @@ Agencies on **Pro or Agency** may connect their own Vapi or ElevenLabs account.
 8. Rename and agency-facing marketing site (name shortlist kept separately).
 
 The ElevenLabs adapter can land any time after step 3.
+
+## Receptionist settings health
+
+The app is the source of truth for every receptionist's settings. A save in a
+voice platform's own dashboard can silently drop settings it has no form for
+(a Vapi dashboard save once stripped the call-details capture, and calls
+stopped recording anything). `lib/services/receptionist-health.ts` compares
+each agent with what the app would push and pushes it again when they differ.
+
+- **What's compared:** instructions, greeting, AI model, tools, live
+  transfer, call-details capture and (Vapi) turn-taking; on ElevenLabs also
+  the post-call webhook. The voice is not compared, since it's only set at
+  creation. Comparisons are `vapiAssistantProblems` and
+  `elevenLabsAgentProblems` (unit-tested); each provider exposes
+  `checkAgent`, which is read-only.
+- **When:** daily at 04:00 UTC (`/api/cron/receptionist-health`, least
+  recently checked first, 4-minute budget), and after any call that comes
+  back with no captured details (both webhooks, at most once per 10 minutes
+  per receptionist).
+- **Where it shows:** the receptionist card in the admin console shows
+  "Settings check", a notice for two weeks after a repair, and a red notice
+  when a repair failed (`vapi_agents.config_*` columns).
+- **By hand:** `npx tsx scripts/check-receptionists.ts` reports without
+  changing anything; add `--repair` to push the app's settings.
+- Consequence: edits made in the Vapi or ElevenLabs dashboard to settings the
+  app owns are undone. Change receptionists through the admin console.

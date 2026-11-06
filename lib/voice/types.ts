@@ -34,6 +34,10 @@ export interface ReceptionistProvider {
 
   createAgent(config: PromptConfig): Promise<{ agentId: string }>;
   updateAgent(agentId: string, config: PromptConfig): Promise<void>;
+  // Compares the agent on the platform with what updateAgent would push.
+  // Read-only. Returns a plain-English line per difference (empty when it
+  // matches); throws when the platform can't be reached.
+  checkAgent(agentId: string, config: PromptConfig): Promise<string[]>;
   // Best-effort teardown; never throws, so a provider hiccup can't block
   // deleting the customer from our database.
   deleteResources(opts: { agentId?: string | null; phoneNumberId?: string | null }): Promise<void>;

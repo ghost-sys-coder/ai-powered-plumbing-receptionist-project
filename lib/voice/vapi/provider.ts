@@ -1,4 +1,5 @@
 import {
+  checkVapiAssistant,
   createVapiAssistant,
   deleteVapiResources,
   getLiveAssistantPhoneNumber,
@@ -33,6 +34,8 @@ export function createVapiProvider(creds: ProviderCredentials): ReceptionistProv
     },
 
     updateAgent: (agentId, config) => updateVapiAssistant(vapi, agentId, config),
+
+    checkAgent: (agentId, config) => checkVapiAssistant(vapi, agentId, config),
 
     async deleteResources(opts) {
       // Numbers we bought on Twilio keep billing until released there, so look

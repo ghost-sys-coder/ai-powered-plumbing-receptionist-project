@@ -58,6 +58,18 @@ export const vapiAgents = pgTable(
     // Opt-in: text the alert phone a short summary after every call (not just
     // emergencies). Off by default so nobody starts getting texts unasked.
     callSummaryTexts: boolean("call_summary_texts").notNull().default(false),
+    // Settings health (lib/services/receptionist-health). The app is the source
+    // of truth for the agent's settings on the voice platform; a save in that
+    // platform's dashboard can silently drop some of them. Checked daily and
+    // after any call that comes back with no captured details.
+    configCheckedAt: timestamp("config_checked_at", { withTimezone: true }),
+    // Last time a check found changes and pushed our settings back, and what
+    // it found.
+    configRepairedAt: timestamp("config_repaired_at", { withTimezone: true }),
+    configRepairedProblems: jsonb("config_repaired_problems").$type<string[]>(),
+    // Set while the agent is known to be wrong and the repair failed; cleared
+    // by the next healthy check.
+    configError: text("config_error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

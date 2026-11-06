@@ -6,7 +6,7 @@ import { buyLocalNumber, clearVoiceUrl, findSpareNumber, releaseNumber, twilioCr
 import { PhoneNumberUnavailableError, isTwilioConfigured } from "../phone-numbers";
 import type { ProviderCredentials, ReceptionistProvider } from "../types";
 import { ElevenLabsError, elevenLabsApi, type ElevenLabsApi } from "./api";
-import { agentBody, toolSecret, webhookToolConfig, type TransferRule } from "./agent-config";
+import { agentBody, elevenLabsAgentProblems, toolSecret, webhookToolConfig, type TransferRule } from "./agent-config";
 
 // The ElevenLabs Agents implementation of the provider interface.
 //
@@ -118,6 +118,26 @@ export function createElevenLabsProvider(creds: ProviderCredentials): Receptioni
       ]);
       const body = agentBody(config, { toolIds, postCallWebhookId: webhookId, transfer, llm });
       await api("PATCH", `/v1/convai/agents/${agentId}`, body);
+    },
+
+    async checkAgent(agentId, config) {
+      let agent: unknown;
+      try {
+        agent = await api("GET", `/v1/convai/agents/${agentId}`);
+      } catch (err) {
+        if (err instanceof ElevenLabsError && err.status === 404) return ["The agent no longer exists on ElevenLabs"];
+        throw err;
+      }
+      // Read-only: look the tools up rather than upserting them.
+      const [tools, webhookId, transfer] = await Promise.all([
+        api<ToolList>("GET", "/v1/convai/tools").then((r) => r.tools ?? []),
+        postCallWebhookId(api),
+        transferRuleFor(agentId),
+      ]);
+      const toolIds = Object.fromEntries(
+        tools.filter((t) => t.tool_config?.name).map((t) => [t.tool_config!.name!, t.id])
+      );
+      return elevenLabsAgentProblems(agent, agentBody(config, { toolIds, postCallWebhookId: webhookId, transfer, llm }));
     },
 
     async deleteResources({ agentId, phoneNumberId }) {

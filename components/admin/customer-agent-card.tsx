@@ -1,4 +1,4 @@
-import { AlertTriangle, Bot, CalendarDays, Phone } from "lucide-react";
+import { AlertTriangle, Bot, CalendarDays, Phone, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { DetailList, DetailRow, EmptyNote, SectionHeader } from "@/components/layout/section-header";
 import type { VapiAgent } from "@/db/schema/vapi-agents";
@@ -7,6 +7,16 @@ import { AddPhoneNumberButton } from "@/components/admin/add-phone-number-button
 import { cn } from "@/lib/utils";
 
 const digitsOnly = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
+
+// Repairs stay on the card for two weeks, so staff see why calls in that
+// window may be missing details.
+const REPAIR_NOTICE_MS = 14 * 24 * 60 * 60 * 1000;
+
+// Server component, rendered once per request, so reading the clock is fine.
+const isRecent = (d: Date | null) => !!d && Date.now() - d.getTime() < REPAIR_NOTICE_MS;
+
+const formatWhen = (d: Date) =>
+  d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 const STATUS: Record<VapiAgent["status"], { label: string; pill: string; dot: string }> = {
   active: {
@@ -45,6 +55,7 @@ export function CustomerAgentCard({
   const status = STATUS[agent.status] ?? STATUS.error;
   const number = livePhoneNumber ?? agent.phoneNumber;
   const platform = agent.provider === "elevenlabs" ? "ElevenLabs" : "Vapi";
+  const recentRepair = !agent.configError && isRecent(agent.configRepairedAt);
 
   return (
     <Card>
@@ -100,7 +111,46 @@ export function CustomerAgentCard({
           </div>
         )}
 
+        {agent.configError && (
+          <div className="mt-3 flex items-start gap-2 rounded-xl bg-red-500/8 px-3 py-2.5 text-xs text-red-800 ring-1 ring-inset ring-red-600/20 dark:text-red-200">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              This receptionist&apos;s settings on {platform} don&apos;t match the app and couldn&apos;t be restored
+              automatically: {agent.configError}. Save its settings here to push them again.
+            </span>
+          </div>
+        )}
+
+        {recentRepair && (
+          <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/8 px-3 py-2.5 text-xs text-amber-900 ring-1 ring-inset ring-amber-600/20 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+            <span>
+              Settings changed on {platform} were put back on {formatWhen(agent.configRepairedAt!)}
+              {agent.configRepairedProblems?.length ? ` (${agent.configRepairedProblems.join("; ").toLowerCase()})` : ""}.
+              Make changes here: edits in the {platform} dashboard are undone.
+            </span>
+          </div>
+        )}
+
         <DetailList className="mt-4">
+          <DetailRow
+            label={
+              <>
+                <ShieldCheck className="size-3.5" />
+                Settings check
+              </>
+            }
+          >
+            {agent.configError ? (
+              <span className="text-red-700 dark:text-red-300">Needs attention</span>
+            ) : agent.configCheckedAt ? (
+              <span className="font-normal">
+                Matches the app · <span className="text-muted-foreground">{formatWhen(agent.configCheckedAt)}</span>
+              </span>
+            ) : (
+              <span className="font-normal text-muted-foreground">Not checked yet</span>
+            )}
+          </DetailRow>
           <DetailRow
             label={
               <>

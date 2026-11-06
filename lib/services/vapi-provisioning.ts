@@ -340,6 +340,90 @@ const STOP_SPEAKING_PLAN: Vapi.StopSpeakingPlan = {
   backoffSeconds: 1.5,
 };
 
+const VAPI_MODEL = "gpt-4o";
+
+function firstMessageFor(config: ProvisioningConfig): string {
+  return `Thank you for calling ${config.businessName}, how can I help you today?`;
+}
+
+type VapiToolSummary = { id?: string; type?: string; function?: { name?: string } };
+
+// Line endings and surrounding whitespace aren't meaningful differences.
+const normalizeText = (v: unknown) => (typeof v === "string" ? v.replace(/\r\n/g, "\n").trim() : "");
+
+// Compares an assistant as Vapi returns it with what the app would push for
+// this config. Returns a plain-English problem per difference; empty when the
+// assistant matches. Only settings the app owns are compared (the voice, for
+// example, is only set at creation, so it's left alone).
+export function vapiAssistantProblems(
+  assistant: unknown,
+  config: ProvisioningConfig,
+  tools: VapiToolSummary[]
+): string[] {
+  const a = (assistant ?? {}) as {
+    analysisPlan?: {
+      structuredDataMultiPlan?: Array<{ key?: string; plan?: { enabled?: boolean; schema?: { properties?: object } } }>;
+    };
+    model?: { provider?: string; model?: string; messages?: Array<{ role?: string; content?: string }>; toolIds?: string[] };
+    firstMessage?: string;
+    startSpeakingPlan?: { smartEndpointingPlan?: unknown };
+    stopSpeakingPlan?: { backoffSeconds?: number };
+  };
+  const problems: string[] = [];
+
+  const multi = a.analysisPlan?.structuredDataMultiPlan;
+  const plan = Array.isArray(multi) ? multi.find((p) => p?.key === CALL_DATA_KEY) : undefined;
+  if (!plan) {
+    problems.push("Call details capture was removed");
+  } else {
+    const expectedKeys = Object.keys(callDataSchema(getIndustry(config.industry)).properties).sort().join();
+    const actualKeys = Object.keys(plan.plan?.schema?.properties ?? {}).sort().join();
+    if (plan.plan?.enabled === false || expectedKeys !== actualKeys) problems.push("Call details capture was changed");
+  }
+
+  const system = a.model?.messages?.find((m) => m?.role === "system")?.content;
+  if (normalizeText(system) !== normalizeText(buildAgentPrompt(config))) problems.push("Instructions were changed");
+  if (normalizeText(a.firstMessage) !== normalizeText(firstMessageFor(config))) problems.push("Greeting was changed");
+  if (a.model?.provider !== "openai" || a.model?.model !== VAPI_MODEL) problems.push("AI model was changed");
+
+  const nameById = new Map(
+    tools.filter((t) => t.id).map((t) => [t.id!, t.type === "transferCall" ? "transferCall" : (t.function?.name ?? t.id!)])
+  );
+  const actualTools = (a.model?.toolIds ?? []).map((id) => nameById.get(id) ?? `unknown:${id}`).sort().join();
+  const expectedTools = [
+    ...toolDefsFor(config.calendarType).map((d) => d.name),
+    ...(isLiveTransferActive(config) ? ["transferCall"] : []),
+  ]
+    .sort()
+    .join();
+  if (actualTools !== expectedTools) problems.push("Tools were changed");
+
+  if (!a.startSpeakingPlan?.smartEndpointingPlan || a.stopSpeakingPlan?.backoffSeconds !== STOP_SPEAKING_PLAN.backoffSeconds) {
+    problems.push("Turn-taking settings were changed");
+  }
+  return problems;
+}
+
+// Reads the assistant from Vapi and compares it with the app's settings.
+// Read-only. Throws when Vapi can't be reached, so a network blip is never
+// mistaken for a broken assistant.
+export async function checkVapiAssistant(
+  vapi: VapiClient,
+  assistantId: string,
+  config: ProvisioningConfig
+): Promise<string[]> {
+  let assistant: unknown;
+  try {
+    assistant = await vapi.assistants.get({ id: assistantId });
+  } catch (err) {
+    if ((err as { statusCode?: number })?.statusCode === 404) return ["The assistant no longer exists on Vapi"];
+    throw new Error(`Couldn't read assistant ${assistantId} — ${extractVapiError(err)}`);
+  }
+  const listResp = await vapi.tools.list();
+  const tools = (Array.isArray(listResp) ? listResp : ((listResp as { data?: unknown[] })?.data ?? [])) as VapiToolSummary[];
+  return vapiAssistantProblems(assistant, config, tools);
+}
+
 export async function createVapiAssistant(
   vapi: VapiClient,
   config: ProvisioningConfig
@@ -354,12 +438,12 @@ export async function createVapiAssistant(
       name: `${config.businessName} AI Receptionist`,
       model: {
         provider: "openai",
-        model: "gpt-4o",
+        model: VAPI_MODEL,
         messages: [{ role: "system", content: systemPrompt }],
         toolIds,
       } as any,
       voice: { provider: "11labs", voiceId: "paula" } as any,
-      firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
+      firstMessage: firstMessageFor(config),
       analysisPlan: callAnalysisPlan(config) as any,
       startSpeakingPlan: START_SPEAKING_PLAN,
       stopSpeakingPlan: STOP_SPEAKING_PLAN,
@@ -451,11 +535,11 @@ export async function updateVapiAssistant(
     name: `${config.businessName} AI Receptionist`,
     model: {
       provider: "openai",
-      model: "gpt-4o",
+      model: VAPI_MODEL,
       messages: [{ role: "system", content: systemPrompt }],
       toolIds,
     } as any,
-    firstMessage: `Thank you for calling ${config.businessName}, how can I help you today?`,
+    firstMessage: firstMessageFor(config),
     analysisPlan: callAnalysisPlan(config) as any,
     startSpeakingPlan: START_SPEAKING_PLAN,
     stopSpeakingPlan: STOP_SPEAKING_PLAN,

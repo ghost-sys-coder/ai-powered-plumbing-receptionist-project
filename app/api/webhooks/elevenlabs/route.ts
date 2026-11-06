@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { reportCallUsage } from "@/lib/billing/usage";
+import { checkReceptionistAfterEmptyCall } from "@/lib/services/receptionist-health";
 import { textCallSummary } from "@/lib/services/call-summary-text";
 import { createBookingFromCall } from "@/lib/services/bookings";
 import { createCall, finalizeCall, pickIntakeData } from "@/lib/services/calls";
@@ -40,6 +42,13 @@ export async function POST(request: Request): Promise<Response> {
   if (!agent) {
     console.warn(`[elevenlabs-webhook] unknown agent ${call.agentId}, ignoring ${call.conversationId}`);
     return new Response("ok", { status: 200 });
+  }
+
+  // No data-collection results at all means the agent's settings were changed
+  // on ElevenLabs: check and repair it once the response is sent.
+  if (!call.dataCollected) {
+    const customerId = agent.customerId;
+    after(() => checkReceptionistAfterEmptyCall(customerId).catch(() => {}));
   }
 
   try {

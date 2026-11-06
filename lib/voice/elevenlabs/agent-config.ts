@@ -109,6 +109,51 @@ export function transferTool(rule: TransferRule) {
   };
 }
 
+type AgentBody = ReturnType<typeof agentBody>;
+
+const normalizeText = (v: unknown) => (typeof v === "string" ? v.replace(/\r\n/g, "\n").trim() : "");
+const sortedJoin = (v: unknown) => (Array.isArray(v) ? [...v].map(String).sort().join() : "");
+
+// Compares an agent as ElevenLabs returns it with the body we'd send for it.
+// Returns a plain-English problem per difference; empty when it matches. Only
+// settings the app owns are compared.
+export function elevenLabsAgentProblems(actual: unknown, expected: AgentBody): string[] {
+  const a = (actual ?? {}) as {
+    conversation_config?: {
+      agent?: {
+        first_message?: string;
+        prompt?: { prompt?: string; llm?: string; tool_ids?: string[]; built_in_tools?: { transfer_to_number?: unknown } };
+      };
+    };
+    platform_settings?: {
+      data_collection?: Record<string, unknown>;
+      workspace_overrides?: { webhooks?: { post_call_webhook_id?: string | null } };
+    };
+  };
+  const want = expected.conversation_config.agent;
+  const got = a.conversation_config?.agent;
+  const problems: string[] = [];
+
+  if (normalizeText(got?.prompt?.prompt) !== normalizeText(want.prompt.prompt)) problems.push("Instructions were changed");
+  if (normalizeText(got?.first_message) !== normalizeText(want.first_message)) problems.push("Greeting was changed");
+  if (got?.prompt?.llm !== want.prompt.llm) problems.push("AI model was changed");
+  if (sortedJoin(got?.prompt?.tool_ids) !== sortedJoin(want.prompt.tool_ids)) problems.push("Tools were changed");
+  if (!!got?.prompt?.built_in_tools?.transfer_to_number !== !!want.prompt.built_in_tools.transfer_to_number) {
+    problems.push("Live transfer was changed");
+  }
+
+  const gotKeys = sortedJoin(Object.keys(a.platform_settings?.data_collection ?? {}));
+  const wantKeys = sortedJoin(Object.keys(expected.platform_settings.data_collection));
+  if (!gotKeys) problems.push("Call details capture was removed");
+  else if (gotKeys !== wantKeys) problems.push("Call details capture was changed");
+
+  const wantHook = expected.platform_settings.workspace_overrides?.webhooks.post_call_webhook_id;
+  if (wantHook && a.platform_settings?.workspace_overrides?.webhooks?.post_call_webhook_id !== wantHook) {
+    problems.push("Post-call webhook was removed");
+  }
+  return problems;
+}
+
 // The full agent body, for create and update alike.
 export function agentBody(
   config: PromptConfig,

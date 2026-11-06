@@ -59,6 +59,9 @@ export type ParsedPostCall = {
   transcript: string | null;
   hasAudio: boolean;
   structured: StructuredCallData & Record<string, string | null>;
+  // False when ElevenLabs returned no data-collection results at all (the
+  // agent's data collection is missing), as opposed to empty values.
+  dataCollected: boolean;
 };
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
@@ -104,5 +107,6 @@ export function parsePostCall(payload: PostCallPayload, now: Date = new Date()):
     transcript: formatTranscript(d.transcript),
     hasAudio: d.has_audio !== false,
     structured,
+    dataCollected: Object.keys(d.analysis?.data_collection_results ?? {}).length > 0,
   };
 }

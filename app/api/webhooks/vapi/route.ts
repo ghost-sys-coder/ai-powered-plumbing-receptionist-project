@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { reportCallUsage } from "@/lib/billing/usage";
+import { checkReceptionistAfterEmptyCall } from "@/lib/services/receptionist-health";
 import { textCallSummary } from "@/lib/services/call-summary-text";
 import {
     createCall,
@@ -127,6 +129,13 @@ export async function POST(request: Request): Promise<Response> {
                     `[vapi-webhook] end-of-call-report ${vapiCallId} — extracted structured data:`,
                     JSON.stringify(extracted, null, 2)
                 );
+                // Nothing captured is what an assistant looks like after a
+                // Vapi dashboard save strips our settings: check and repair it
+                // once the response is sent.
+                if (Object.keys(extracted).length === 0) {
+                    const customerId = agent.customerId;
+                    after(() => checkReceptionistAfterEmptyCall(customerId).catch(() => {}));
+                }
 
                 const finalized = await finalizeCall({
                     vapiCallId,

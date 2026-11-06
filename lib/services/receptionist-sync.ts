@@ -5,10 +5,9 @@ import type { ProvisioningConfig } from "@/lib/services/vapi-provisioning";
 import { storedProfile } from "@/lib/services/profile-input";
 import { getCustomerReceptionist } from "@/lib/voice";
 
-// Rebuilds a customer's receptionist (prompt + tools) from what is stored in
-// the database and pushes it to the voice provider. Use after changing stored
-// settings outside the admin forms (e.g. connecting a calendar).
-export async function syncCustomerReceptionist(customerId: string): Promise<void> {
+// The receptionist settings the app would push for a customer, built from
+// what is stored in the database. Null when the customer has no agent.
+export async function receptionistConfig(customerId: string): Promise<ProvisioningConfig | null> {
   const [row] = await db
     .select({
       businessName: customers.businessName,
@@ -31,9 +30,9 @@ export async function syncCustomerReceptionist(customerId: string): Promise<void
     .innerJoin(customers, eq(vapiAgents.customerId, customers.id))
     .where(eq(vapiAgents.customerId, customerId))
     .limit(1);
-  if (!row) throw new Error(`No receptionist for customer ${customerId}`);
+  if (!row) return null;
 
-  const config: ProvisioningConfig = {
+  return {
     businessName: row.businessName,
     ownerName: row.ownerName ?? row.ownerNameCustomer,
     serviceArea: row.serviceArea ?? "",
@@ -47,7 +46,14 @@ export async function syncCustomerReceptionist(customerId: string): Promise<void
     liveTransferEnabled: row.transferEnabled,
     ...storedProfile(row),
   };
+}
 
+// Rebuilds a customer's receptionist (prompt + tools) from what is stored in
+// the database and pushes it to the voice provider. Use after changing stored
+// settings outside the admin forms (e.g. connecting a calendar).
+export async function syncCustomerReceptionist(customerId: string): Promise<void> {
+  const config = await receptionistConfig(customerId);
+  if (!config) throw new Error(`No receptionist for customer ${customerId}`);
   const receptionist = await getCustomerReceptionist(customerId);
   if (!receptionist) throw new Error(`No receptionist for customer ${customerId}`);
   await receptionist.provider.updateAgent(receptionist.agentId, config);
