@@ -16,7 +16,7 @@ export function CustomerBookings({
       <SectionHeader icon={CalendarClock} title="Upcoming bookings" description="Appointments the receptionist made" />
       <div className="px-5">
         {bookings.length === 0 ? (
-          <EmptyNote>Nothing booked yet.</EmptyNote>
+          <EmptyNote>No upcoming bookings.</EmptyNote>
         ) : (
           <ul className="divide-y divide-border/60">
             {bookings.map((b) => (

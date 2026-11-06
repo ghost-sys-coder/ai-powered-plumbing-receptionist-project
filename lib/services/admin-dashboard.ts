@@ -7,7 +7,7 @@ import {
   organizations,
   type Customer,
 } from "@/db/schema";
-import { and, eq, desc, count, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, desc, count, gte, inArray, ne } from "drizzle-orm";
 import { customerScope, type StaffViewer } from "@/lib/auth/staff";
 
 // db.batch() sends all queries in a single HTTP round trip to Neon, instead of
@@ -78,8 +78,16 @@ export async function getCustomerDetail(id: string, viewer: StaffViewer) {
     db
       .select()
       .from(bookings)
-      .where(eq(bookings.customerId, id))
-      .orderBy(bookings.scheduledAt)
+      // Upcoming only: from now on, soonest first. Cancelled bookings and ones
+      // without a confirmed time are left out.
+      .where(
+        and(
+          eq(bookings.customerId, id),
+          gte(bookings.scheduledAt, new Date()),
+          ne(bookings.status, "cancelled")
+        )
+      )
+      .orderBy(asc(bookings.scheduledAt))
       .limit(5),
   ]);
 
