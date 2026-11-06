@@ -92,6 +92,13 @@
       "when": 1793924566646,
       "tag": "0012_call_summary_texts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793959500925,
+      "tag": "0013_platform_settings",
+      "breakpoints": true
     }
   ]
 }

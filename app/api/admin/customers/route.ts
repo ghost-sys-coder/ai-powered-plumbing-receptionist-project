@@ -10,6 +10,7 @@ import { PhoneNumberUnavailableError } from "@/lib/voice/phone-numbers";
 import { parseProfileInput } from "@/lib/services/profile-input";
 import { getRegion } from "@/lib/regions";
 import { agencyClientAllowance } from "@/lib/billing/limits";
+import { canUseElevenLabs } from "@/lib/voice/availability";
 
 // Drizzle wraps the driver error, so the real Postgres error (with code +
 // constraint) sits on `.cause`. Walk the chain to find it.
@@ -88,8 +89,8 @@ export async function POST(req: NextRequest) {
 
   // Which voice platform runs the receptionist (Vapi unless chosen otherwise).
   const voiceProvider = isVoiceProviderId(body.voiceProvider) ? body.voiceProvider : DEFAULT_VOICE_PROVIDER;
-  if (voiceProvider === "elevenlabs" && !process.env.ELEVENLABS_API_KEY) {
-    return NextResponse.json({ error: "ElevenLabs isn't set up on this server." }, { status: 400 });
+  if (voiceProvider === "elevenlabs" && !(await canUseElevenLabs(viewer))) {
+    return NextResponse.json({ error: "ElevenLabs isn't available for new receptionists yet." }, { status: 403 });
   }
 
   // Agency plans cover a set number of clients. Platform admins can add past

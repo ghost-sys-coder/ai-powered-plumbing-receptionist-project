@@ -8,3 +8,4 @@ export * from "./bookings";
 export * from "./pending-invites";
 export * from "./calendar-connections";
 export * from "./billing-accounts";
+export * from "./platform-settings";

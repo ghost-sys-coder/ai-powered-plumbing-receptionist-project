@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { NewCustomerForm } from "@/components/admin/new-customer-form";
 import { requireStaff } from "@/lib/auth/staff";
 import { listAgencyOptions } from "@/lib/services/agencies";
+import { canUseElevenLabs } from "@/lib/voice/availability";
 
 const NewCustomerPage = async () => {
   const viewer = await requireStaff();
@@ -25,7 +26,7 @@ const NewCustomerPage = async () => {
         title="Set up a receptionist"
         description="Five short steps. Start from their website and most of it fills itself in."
       />
-      <NewCustomerForm agencies={agencies} elevenLabsAvailable={!!process.env.ELEVENLABS_API_KEY} />
+      <NewCustomerForm agencies={agencies} elevenLabsAvailable={await canUseElevenLabs(viewer)} />
     </div>
   );
 };
