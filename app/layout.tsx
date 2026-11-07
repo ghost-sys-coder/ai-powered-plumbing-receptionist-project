@@ -4,6 +4,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { appOrigin } from "@/lib/app-origin";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,7 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "PlumberAnswered — AI that answers when you can't",
+    metadataBase: new URL(appOrigin()),
+    title: `${BRAND.name} — AI that answers when you can't`,
     description:
         "AI receptionist for service businesses. Answers every call, books appointments, and alerts you to emergencies.",
 };

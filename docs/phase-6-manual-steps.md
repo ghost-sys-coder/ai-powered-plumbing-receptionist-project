@@ -33,7 +33,7 @@ from earlier phases and are reused by the tool endpoints.
 For every customer that should book via Google Calendar:
 
 1. In Google Calendar (web), create a dedicated calendar named
-   `"[Business Name] — PlumberAnswered"`.
+   `"[Business Name] — AnswerSteady"`.
 2. Calendar **Settings → Share with specific people** → add
    `GOOGLE_SERVICE_ACCOUNT_EMAIL` with **"Make changes to events"**.
 3. Copy the calendar's ID: **Settings → Integrate calendar → Calendar ID**

@@ -11,7 +11,7 @@ Order of work:
 1. **Industry + country profiles (this phase)** — Vapi only.
 2. Voice-provider abstraction — refactor, no behaviour change.
 3. ElevenLabs adapter + Twilio number purchase/import.
-4. Rebrand the marketing site (currently PlumberAnswered).
+4. Rebrand the marketing site. Done: the product is now AnswerSteady (answersteady.com).
 
 ---
 

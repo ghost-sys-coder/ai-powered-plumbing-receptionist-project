@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { appOrigin } from "@/lib/billing/stripe";
+import { appOrigin } from "@/lib/app-origin";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const origin = appOrigin();

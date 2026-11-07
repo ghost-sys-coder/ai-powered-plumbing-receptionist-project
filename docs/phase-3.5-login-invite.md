@@ -19,7 +19,7 @@ When the admin sends an invite:
 
 Verify these exist before starting:
 
-- `NEXT_PUBLIC_APP_URL` in `.env.local` and Vercel env vars (e.g. `https://plumberanswered.vercel.app`)
+- `NEXT_PUBLIC_APP_URL` in `.env.local` and Vercel env vars (e.g. `https://answersteady.com`)
 - Clerk backend SDK available (`@clerk/nextjs/server`)
 - `users` table has `customer_id` column (uuid, nullable, FK to customers)
 

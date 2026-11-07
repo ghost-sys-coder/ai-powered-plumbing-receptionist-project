@@ -504,7 +504,7 @@ Create `docs/phase-6-manual-steps.md`:
    ```
 
 2. For each customer using Google Calendar:
-   - Create a dedicated Google Calendar named "[Business Name] — PlumberAnswered".
+   - Create a dedicated Google Calendar named "[Business Name] — AnswerSteady".
    - Share it with `GOOGLE_SERVICE_ACCOUNT_EMAIL` → "Make changes to events".
    - Copy the calendar ID (Settings → Integrate calendar → Calendar ID).
    - Set `vapi_agents.calendar_id` and `vapi_agents.calendar_type = 'google_calendar'`

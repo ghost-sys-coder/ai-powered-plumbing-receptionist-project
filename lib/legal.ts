@@ -1,10 +1,10 @@
 // Single source of truth for the details quoted in the legal pages
 // (/terms, /privacy, /data-deletion). Update here and every page follows.
 export const legal = {
-  serviceName: "PlumberAnswered",
+  serviceName: "AnswerSteady",
   companyName: "VeilCode Studio",
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "frank@veilcode.studio",
-  lastUpdated: "November 6, 2026",
+  lastUpdated: "November 7, 2026",
   // Business days we commit to for acknowledging / completing deletion requests.
   deletionAcknowledgeDays: 5,
   deletionCompleteDays: 30,

@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/drizzle";
 import { calls, customers, vapiAgents } from "@/db/schema";
-import { appOrigin } from "@/lib/billing/stripe";
+import { appOrigin } from "@/lib/app-origin";
 import { sendSms } from "@/lib/twilio/send-sms";
 
 const OUTCOME_LABEL: Record<string, string> = {

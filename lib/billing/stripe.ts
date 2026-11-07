@@ -21,13 +21,7 @@ export function stripe(): Stripe {
   return client;
 }
 
-// The site's public origin, for Checkout/portal return links.
-export function appOrigin(): string {
-  const explicit = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (explicit) return explicit;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  return "http://localhost:3000";
-}
+export { appOrigin } from "@/lib/app-origin";
 
 let portalConfigId: string | null = null;
 

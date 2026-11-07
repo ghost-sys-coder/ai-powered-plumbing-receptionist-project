@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { appOrigin } from "@/lib/billing/stripe";
+import { appOrigin } from "@/lib/app-origin";
 
 // Crawl the marketing and legal pages; keep the app, sign-in and API out.
 export default function robots(): MetadataRoute.Robots {

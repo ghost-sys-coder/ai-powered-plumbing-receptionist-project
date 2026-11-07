@@ -339,3 +339,23 @@ each agent with what the app would push and pushes it again when they differ.
   changing anything; add `--repair` to push the app's settings.
 - Consequence: edits made in the Vapi or ElevenLabs dashboard to settings the
   app owns are undone. Change receptionists through the admin console.
+
+## Name and domain
+
+The product is **AnswerSteady**, at **answersteady.com** (registered at
+Hostinger, Nov 2026). It was PlumberAnswered at plumber.veilcode.studio.
+
+- The name, initials and support email live in `lib/brand.ts`; the legal pages
+  read `lib/legal.ts`. The icons are `app/icon.svg`, `app/favicon.ico` and
+  `app/apple-icon.png`.
+- `NEXT_PUBLIC_APP_URL` is the public address. Links in texts, Stripe returns,
+  invitations, Google sign-in and the sitemap all use it.
+- `next.config.ts` redirects page visits on www.answersteady.com and
+  plumber.veilcode.studio to that address (only when it is an https URL).
+  `/api` is never redirected, because Vapi, ElevenLabs, Stripe, Clerk and
+  Google call it and don't follow redirects.
+- Keep plumber.veilcode.studio on the Vercel project until every callback URL
+  has moved to answersteady.com: the Vapi org server URL and tools (a sync
+  re-registers the tools from `VAPI_TOOLS_BASE_URL` / `NEXT_PUBLIC_APP_URL`),
+  the ElevenLabs post-call webhook (`scripts/elevenlabs-setup.ts`), the Stripe
+  and Clerk webhook endpoints, and the Google OAuth redirect URI.
